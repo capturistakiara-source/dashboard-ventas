@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>📅 Tabla Completa</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Favicon para navegadores -->
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='favicon-16x16.png') }}">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+
+    <!-- Apple y Android -->
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='site.webmanifest') }}">
+
+    <!-- Android iconos -->
+    <link rel="icon" sizes="192x192" href="{{ url_for('static', filename='android-chrome-192x192.png') }}">
+    <link rel="icon" sizes="512x512" href="{{ url_for('static', filename='android-chrome-512x512.png') }}">
+
+</head>
+<body class="bg-light p-4">
+
+<div class="container">
+    <h1 class="mb-4">📅 Tabla completa (diaria)</h1>
+
+    <!-- 📝 Formulario único de filtro -->
+    <form method="POST" class="mb-4 text-center">
+        <label for="sucursal" class="form-label">Sucursal:</label>
+        <select name="sucursal" id="sucursal" class="form-select w-auto d-inline-block">
+            {% for s in sucursales %}
+                <option value="{{ s }}" {% if s == sucursal_actual %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="fecha_inicio" class="form-label ms-3">Desde:</label>
+        <input type="date" name="fecha_inicio" class="form-control d-inline-block w-auto"
+               value="{{ fecha_inicio or '' }}">
+
+        <label for="fecha_fin" class="form-label ms-3">Hasta:</label>
+        <input type="date" name="fecha_fin" class="form-control d-inline-block w-auto"
+               value="{{ fecha_fin or '' }}">
+
+        <button type="submit" class="btn btn-primary ms-3">Filtrar</button>
+        <a href="/" class="btn btn-secondary ms-2">⬅ Volver al inicio</a>
+    </form>
+
+    <!-- 📊 Totales arriba -->
+            {% if data and totales %}
+        {% set hay_valores = totales.values() | select('ne', 0) | list | length > 0 %}
+        {% if hay_valores %}
+        <div class="mb-4">
+            <h5 class="mb-3">📊 Totales del rango seleccionado:</h5>
+            <div class="row g-2">
+                {% for key, value in totales.items() if value != 0 %}
+                <div class="col-6 col-md-3">
+                    <div class="card text-center shadow-sm border-0 total-card" data-key="{{ key }}">
+                        <div class="card-body p-2">
+                            <h6 class="card-title fw-bold text-uppercase">
+                                {{ key }}
+                            </h6>
+                            <p class="card-text fs-5 fw-semibold
+                                {% if 'TOTAL' in key|upper %}text-primary
+                                {% elif 'EFECTIVO' in key|upper %}text-success
+                                {% elif 'UBER' in key|upper or 'DIDI' in key|upper or 'RAPPI' in key|upper %}text-warning
+                                {% else %}text-dark{% endif %}">
+                                
+                                {% if 'PEDIDOS' in key|upper or 'CUENTAS' in key|upper %}
+                                    {{ value|int }}
+                                {% else %}
+                                    {{ "$ {:,.2f}".format(value) }}
+                                {% endif %}
+                            </p>
+
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    {% endif %}
+
+    <!-- 📈 Gráfica -->
+    <div class="my-4">
+        <h4>📊 Gráfica de ventas y apps</h4>
+        <!-- 📌 Etiquetas de métricas seleccionadas -->
+        <div id="metricasSeleccionadas" class="mb-3 fw-bold text-primary"></div>
+        <canvas id="graficaVentas" height="100"></canvas>
+    </div>
+
+    <!-- 📅 Tabla de resultados -->
+    <div class="table-responsive">
+        <table class="table table-striped table-bordered text-center align-middle">
+            <thead class="table-dark">
+                {% if data|length > 0 %}
+                    <tr>
+                        {% for col in data[0].keys() %}
+                            <th>{{ col }}</th>
+                        {% endfor %}
+                    </tr>
+                {% else %}
+                    <tr>
+                        <th colspan="20" class="bg-warning text-dark">
+                            ⚠️ No hay datos en el rango seleccionado
+                        </th>
+                    </tr>
+                {% endif %}
+            </thead>
+            <tbody>
+                {% for fila in data %}
+                <tr>
+                    {% for valor in fila.values() %}
+                        <td>{{ valor }}</td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+</body>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const ctx = document.getElementById("graficaVentas").getContext("2d");
+    const form = document.querySelector("form");
+    const metricasDiv = document.getElementById("metricasSeleccionadas");
+    let chart;
+    let metricasSeleccionadas = new Set();  // ✅ Guarda las métricas elegidas
+
+    // 🎯 Actualiza etiquetas de métricas seleccionadas
+    function mostrarMetricasSeleccionadas() {
+        if (metricasSeleccionadas.size === 0) {
+            metricasDiv.textContent = "📌 No hay métricas seleccionadas";
+        } else {
+            metricasDiv.textContent = "📊 Métricas seleccionadas: " + Array.from(metricasSeleccionadas).join(" · ");
+        }
+    }
+
+    // 📈 Actualiza la gráfica con las métricas elegidas
+    function actualizarGrafica(datos) {
+        if (chart) chart.destroy();
+
+        const datasets = Array.from(metricasSeleccionadas).map((metrica, idx) => ({
+            label: metrica,
+            data: datos.series[metrica] || [],
+            borderColor: colores[idx % colores.length],
+            fill: false,
+            tension: 0.1
+        }));
+
+        chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: datos.fechas,
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'bottom' }
+                },
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+    }
+
+    // 🎨 Paleta de colores para las métricas
+    const colores = [
+        '#007bff', '#28a745', '#ffc107', '#dc3545', '#6f42c1',
+        '#20c997', '#fd7e14', '#6610f2', '#17a2b8', '#e83e8c'
+    ];
+
+    // 📊 Cargar datos filtrados desde Flask
+    function cargarDatosGrafica() {
+        const fd = new FormData(form);
+        fetch("/datos_grafica_filtrada", {
+            method: "POST",
+            body: fd
+        })
+        .then(res => res.json())
+        .then(data => actualizarGrafica(data))
+        .catch(err => console.error("Error en la gráfica:", err));
+    }
+
+    // 🖱️ Clic en tarjetas de totales (selección múltiple)
+    document.querySelectorAll(".total-card").forEach(card => {
+        card.addEventListener("click", function() {
+            const key = this.dataset.key;
+
+            // 🔁 Agregar o quitar selección
+            if (metricasSeleccionadas.has(key)) {
+                metricasSeleccionadas.delete(key);
+                this.classList.remove("border-primary");
+                this.classList.remove("border-3");
+            } else {
+                metricasSeleccionadas.add(key);
+                this.classList.add("border-primary");
+                this.classList.add("border-3");
+            }
+
+            mostrarMetricasSeleccionadas();
+            cargarDatosGrafica();
+        });
+    });
+
+    // 🚀 Inicializar
+    mostrarMetricasSeleccionadas();
+});
+</script>
+
+</html>

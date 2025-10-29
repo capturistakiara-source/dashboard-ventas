@@ -1,0 +1,24 @@
+# === Entorno virtual ===
+venv/
+
+# === Archivos de entorno y credenciales privadas ===
+.env
+credentials.json
+google_credentials*.json
+
+# === Caché y archivos temporales ===
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+*.tmp
+.DS_Store
+
+# === Archivos del sistema o IDE ===
+.vscode/
+.idea/
+
+# === Otros ===
+*.bak
+*.old
