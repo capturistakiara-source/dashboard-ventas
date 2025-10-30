@@ -5,6 +5,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 import time
 from flask import Flask, render_template, request, jsonify, send_from_directory
+from dotenv import load_dotenv
 
 # ==================== 🧠 CACHÉ GLOBAL ====================
 cache_sheets = {"data": None, "timestamp": 0}
@@ -35,20 +36,15 @@ from google.oauth2.service_account import Credentials
 
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 
-google_creds_file = "google_credentials.json"
+load_dotenv()
+SHEET_NAME = os.getenv("SHEET_NAME")  # 🧾 Nombre de tu Google Sheet principal
+GOOGLE_CREDS_FILE = os.getenv("GOOGLE_CREDENTIALS_FILE")
 
-if not os.path.exists(google_creds_file):
-    raise RuntimeError("❌ No se encontró el archivo local de credenciales")
-
-# Leer el archivo con encoding robusto
-with open(google_creds_file, "r", encoding="utf-8-sig") as f:
-    creds_text = f.read().strip()
-
-if not creds_text:
-    raise RuntimeError("⚠️ El archivo google_credentials.json está vacío")
+if not GOOGLE_CREDS_FILE
+    raise RuntimeError("❌ La informacion de google_credentials.json no se encuentra disponible")
 
 # Cargar JSON
-creds_data = json.loads(creds_text)
+creds_data = json.loads(GOOGLE_CREDS_FILE)
 
 # 🔧 Asegurar que la clave privada tenga saltos de línea reales
 private_key = creds_data.get("private_key", "").strip()
@@ -72,8 +68,6 @@ print("————————————————————————�
 creds = Credentials.from_service_account_info(creds_data, scopes=scope)
 client = gspread.authorize(creds)
 print("✅ Conexión exitosa con Google Sheets")
-
-SHEET_NAME = "ventas"  # 🧾 Nombre de tu Google Sheet principal
 
 # ==================== 📋 COLUMNAS ====================
 COLUMNAS_COMPLETAS = [
