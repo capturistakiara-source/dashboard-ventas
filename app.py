@@ -40,7 +40,7 @@ load_dotenv()
 SHEET_NAME = os.getenv("SHEET_NAME")  # 🧾 Nombre de tu Google Sheet principal
 GOOGLE_CREDS_FILE = os.getenv("GOOGLE_CREDENTIALS_FILE")
 
-if not GOOGLE_CREDS_FILE
+if not GOOGLE_CREDS_FILE:
     raise RuntimeError("❌ La informacion de google_credentials.json no se encuentra disponible")
 
 # Cargar JSON
