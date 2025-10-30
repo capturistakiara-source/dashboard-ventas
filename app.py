@@ -5,9 +5,6 @@ from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 import time
 from flask import Flask, render_template, request, jsonify, send_from_directory
-from dotenv import load_dotenv
-import os, json
-load_dotenv()
 
 # ==================== 🧠 CACHÉ GLOBAL ====================
 cache_sheets = {"data": None, "timestamp": 0}
@@ -32,44 +29,51 @@ def get_sheet_data():
 
 app = Flask(__name__)
 
-# ==================== 🔐 AUTENTICACIÓN (compatible con Render) ====================
-import re
-from oauth2client.service_account import ServiceAccountCredentials
-import gspread
+# ==================== 🔐 AUTENTICACIÓN LOCAL (Google Auth moderno, con corrección robusta) ====================
+import os, json, gspread
+from google.oauth2.service_account import Credentials
 
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 
-# 🔐 Leer credenciales desde la variable de entorno
-google_creds_json = os.environ.get("GOOGLE_CREDENTIALS_JSON")
+google_creds_file = "google_credentials.json"
 
-if not google_creds_json:
-    raise RuntimeError("❌ No se encontró la variable GOOGLE_CREDENTIALS_JSON")
+if not os.path.exists(google_creds_file):
+    raise RuntimeError("❌ No se encontró el archivo local de credenciales")
 
-try:
-    creds_data = json.loads(google_creds_json)
-except json.JSONDecodeError:
-    raise RuntimeError("⚠️ La variable GOOGLE_CREDENTIALS_JSON no tiene un formato JSON válido")
+# Leer el archivo con encoding robusto
+with open(google_creds_file, "r", encoding="utf-8-sig") as f:
+    creds_text = f.read().strip()
 
-# 🔧 Asegurar formato correcto del private_key
-private_key = creds_data.get("private_key", "")
-if "BEGIN PRIVATE KEY" not in private_key:
-    private_key = private_key.replace("\\n", "\n").strip()
+if not creds_text:
+    raise RuntimeError("⚠️ El archivo google_credentials.json está vacío")
 
-if not private_key.startswith("-----BEGIN PRIVATE KEY-----"):
-    private_key = "-----BEGIN PRIVATE KEY-----\n" + private_key
-if not private_key.endswith("-----END PRIVATE KEY-----"):
-    private_key = private_key + "\n-----END PRIVATE KEY-----"
+# Cargar JSON
+creds_data = json.loads(creds_text)
+
+# 🔧 Asegurar que la clave privada tenga saltos de línea reales
+private_key = creds_data.get("private_key", "").strip()
+
+# Si los saltos están escapados (\\n), los reparamos
+if "\\n" in private_key:
+    private_key = private_key.replace("\\n", "\n")
+
+# ⚠️ Si se perdió el contenido interno, intenta recuperarlo
+if private_key == "-----BEGIN PRIVATE KEY-----\n-----END PRIVATE KEY-----":
+    raise RuntimeError("❌ El bloque de la clave privada está vacío. Revisa el archivo JSON original o vuelve a descargarlo desde Google Cloud.")
 
 creds_data["private_key"] = private_key
 
-# ✅ Crear credenciales directamente desde el JSON limpio
-creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_data, scope)
+# 🧩 Vista previa
+print("🔑 Vista previa de la clave (primeras 2 líneas):")
+print("\n".join(private_key.splitlines()[:3]))
+print("————————————————————————————————————————")
+
+# Crear credenciales y cliente
+creds = Credentials.from_service_account_info(creds_data, scopes=scope)
 client = gspread.authorize(creds)
+print("✅ Conexión exitosa con Google Sheets")
 
-# 📊 Nombre del archivo principal en Google Sheets
-SHEET_NAME = os.environ.get("SHEET_NAME", "ventas")
-
-
+SHEET_NAME = "ventas"  # 🧾 Nombre de tu Google Sheet principal
 
 # ==================== 📋 COLUMNAS ====================
 COLUMNAS_COMPLETAS = [
