@@ -45,6 +45,8 @@ if not GOOGLE_CREDS_FILE:
 
 # Cargar JSON
 creds_data = json.loads(GOOGLE_CREDS_FILE)
+if isinstance(creds_data, str):
+  creds_data = json.loads(creds_data)
 
 # 🔧 Asegurar que la clave privada tenga saltos de línea reales
 private_key = creds_data.get("private_key", "").strip()
