@@ -1,77 +1,414 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
-    <title>📅 Tabla Completa</title>
+    <title>Tabla Completa - La Postal</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Favicon para navegadores -->
-    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon-32x32.png') }}">
-    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='favicon-16x16.png') }}">
-    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <style>
+        :root {
+            --color-bg: #000000;
+            --color-card: #ffffff;
+            --color-text: #2c2c2c;
+            --color-accent: #b71c1c;
+            --color-accent-hover: #8b0000;
+            --color-border: #e0e0e0;
+            --color-navbar: #1a1a1a;
+        }
 
-    <!-- Apple y Android -->
-    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
-    <link rel="manifest" href="{{ url_for('static', filename='site.webmanifest') }}">
+        body {
+            background-color: var(--color-bg);
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            color: white;
+            padding: 2rem 1rem;
+        }
 
-    <!-- Android iconos -->
-    <link rel="icon" sizes="192x192" href="{{ url_for('static', filename='android-chrome-192x192.png') }}">
-    <link rel="icon" sizes="512x512" href="{{ url_for('static', filename='android-chrome-512x512.png') }}">
+        .container {
+            max-width: 1400px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+        }
 
+        /* HEADER */
+        .page-header {
+            text-align: center;
+            margin-bottom: 3rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 1.5rem;
+        }
+
+        .brand-title {
+            font-size: 2.2rem;
+            font-weight: 300;
+            letter-spacing: 3px;
+            margin-bottom: 0.5rem;
+            color: white;
+        }
+
+        .brand-subtitle {
+            font-size: 0.9rem;
+            letter-spacing: 4px;
+            opacity: 0.8;
+            margin-bottom: 1rem;
+            color: white;
+        }
+
+        .page-title {
+            font-size: 1.8rem;
+            font-weight: 400;
+            color: white;
+            margin-bottom: 0.5rem;
+        }
+
+        .page-icon {
+            font-size: 2rem;
+            margin-right: 0.5rem;
+            font-weight: bold;
+        }
+
+        /* FORMULARIO */
+        .filter-form {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .form-label {
+            color: white;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-control,
+        .form-select {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            border-radius: 6px;
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: var(--color-accent);
+            color: white;
+            box-shadow: 0 0 0 0.2rem rgba(183, 28, 28, 0.25);
+        }
+
+        .form-control::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        /* BOTONES */
+        .btn-primary {
+            background-color: var(--color-accent);
+            border: none;
+            border-radius: 6px;
+            padding: 0.5rem 1.5rem;
+            font-weight: 500;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--color-accent-hover);
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            border-radius: 6px;
+            padding: 0.5rem 1.5rem;
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* TARJETAS DE TOTALES */
+        .total-card {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .total-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--color-accent);
+        }
+
+        .total-card.selected {
+            border: 3px solid var(--color-accent);
+            background: rgba(183, 28, 28, 0.1);
+        }
+
+        .card-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 0.5rem;
+        }
+
+        .card-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: white;
+        }
+
+        /* GRÁFICA */
+        .chart-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .chart-title {
+            font-size: 1.3rem;
+            font-weight: 500;
+            color: white;
+            margin-bottom: 1rem;
+        }
+
+        .metricas-seleccionadas {
+            background: rgba(183, 28, 28, 0.1);
+            border: 1px solid var(--color-accent);
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            color: white;
+            font-weight: 500;
+        }
+
+        /* TABLA */
+        .table-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .table {
+            color: white;
+            margin-bottom: 0;
+        }
+
+        .table-dark {
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .table-striped tbody tr:nth-of-type(odd) {
+            background-color: rgba(255, 255, 255, 0.03);
+        }
+
+        .table-bordered th,
+        .table-bordered td {
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .table th {
+            font-weight: 600;
+            background: rgba(0, 0, 0, 0.4);
+        }
+
+        /* IMAGEN DEL DISPOSITIVO */
+        .device-image {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            opacity: 0.1;
+            transition: opacity 0.3s;
+        }
+
+        .device-image:hover {
+            opacity: 0.8;
+        }
+
+        .device-watermark {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 100;
+            text-decoration: none;
+        }
+
+        /* ESTRUCTURA PARA KANJIS EN CÍRCULO ROJO */
+        .kanji-circle {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 50px;
+            height: 50px;
+            background-color: var(--color-accent);
+            border-radius: 50%;
+            color: white;
+            font-weight: bold;
+            font-size: 1.5rem;
+            margin-right: 1rem;
+            box-shadow: 0 4px 8px rgba(183, 28, 28, 0.3);
+        }
+
+        /* Variante más pequeña */
+        .kanji-circle-sm {
+            width: 40px;
+            height: 40px;
+            font-size: 1.2rem;
+            margin-right: 0.8rem;
+        }
+
+        /* Variante más grande */
+        .kanji-circle-lg {
+            width: 60px;
+            height: 60px;
+            font-size: 1.8rem;
+            margin-right: 1.2rem;
+        }
+
+        /* Para títulos de página */
+        .page-title .kanji-circle {
+            width: 70px;
+            height: 70px;
+            font-size: 2rem;
+            margin-right: 1rem;
+        }
+
+        /* Efectos hover */
+        .kanji-circle:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 12px rgba(183, 28, 28, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        /* Para usar en botones o tarjetas */
+        .btn-with-kanji {
+            display: flex;
+            align-items: center;
+            padding: 1rem 1.5rem;
+        }
+
+        .card-with-kanji {
+            display: flex;
+            align-items: center;
+            padding: 1.5rem;
+        }
+
+        /* FORMULARIO DE FILTRO - TEXTO VISIBLE */
+        .filter-form .form-label {
+            color: #ffffff !important;
+            font-weight: 500;
+        }
+
+        .filter-form .form-select,
+        .filter-form .form-control {
+            color: #ffffff !important;
+            background-color: rgba(255, 255, 255, 0.1) !important;
+            border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        }
+
+        .filter-form .form-select option {
+            color: #000000 !important;
+            background-color: #ffffff !important;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .brand-title {
+                font-size: 1.8rem;
+            }
+
+            .page-title {
+                font-size: 1.4rem;
+            }
+
+            .filter-form .d-inline-block {
+                display: block !important;
+                width: 100% !important;
+                margin-bottom: 1rem;
+            }
+
+            .btn {
+                width: 100%;
+                margin-bottom: 0.5rem;
+            }
+        }
+    </style>
 </head>
-<body class="bg-light p-4">
 
-<div class="container">
-    <h1 class="mb-4">📅 Tabla completa (diaria)</h1>
+<body>
+    <div class="container">
+        <!-- HEADER -->
+        <div class="page-header">
+            <h1 class="brand-title">LA POSTAL</h1>
+            <p class="brand-subtitle">TERIYAKI & SUSHI</p>
+            <h2 class="page-title">
+                <span class="kanji-circle kanji-circle-sm">表</span>Tabla Completa
+            </h2>
+            <p class="text-muted">Visualización detallada de ventas diarias</p>
+        </div>
 
-    <!-- 📝 Formulario único de filtro -->
-    <form method="POST" class="mb-4 text-center">
-        <label for="sucursal" class="form-label">Sucursal:</label>
-        <select name="sucursal" id="sucursal" class="form-select w-auto d-inline-block">
-            {% for s in sucursales %}
-                <option value="{{ s }}" {% if s == sucursal_actual %}selected{% endif %}>{{ s }}</option>
-            {% endfor %}
-        </select>
+        <!-- FORMULARIO DE FILTRO -->
+        <form method="POST" class="filter-form text-center">
+            <div class="row g-3 align-items-center justify-content-center">
+                <div class="col-auto">
+                    <label for="sucursal" class="form-label">Sucursal:</label>
+                    <select name="sucursal" id="sucursal" class="form-select">
+                        {% for s in sucursales %}
+                        <option value="{{ s }}" {% if s==sucursal_actual %}selected{% endif %}>{{ s }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
 
-        <label for="fecha_inicio" class="form-label ms-3">Desde:</label>
-        <input type="date" name="fecha_inicio" class="form-control d-inline-block w-auto"
-               value="{{ fecha_inicio or '' }}">
+                <div class="col-auto">
+                    <label for="fecha_inicio" class="form-label">Desde:</label>
+                    <input type="date" name="fecha_inicio" class="form-control" value="{{ fecha_inicio or '' }}">
+                </div>
 
-        <label for="fecha_fin" class="form-label ms-3">Hasta:</label>
-        <input type="date" name="fecha_fin" class="form-control d-inline-block w-auto"
-               value="{{ fecha_fin or '' }}">
+                <div class="col-auto">
+                    <label for="fecha_fin" class="form-label">Hasta:</label>
+                    <input type="date" name="fecha_fin" class="form-control" value="{{ fecha_fin or '' }}">
+                </div>
 
-        <button type="submit" class="btn btn-primary ms-3">Filtrar</button>
-        <a href="/" class="btn btn-secondary ms-2">⬅ Volver al inicio</a>
-    </form>
+                <div class="col-auto d-flex gap-2" style="padding-top: 1.8rem;">
+                    <button type="submit" class="btn btn-primary">Filtrar</button>
+                    <a href="/" class="btn btn-secondary">Volver al inicio</a>
+                </div>
+            </div>
+        </form>
 
-    <!-- 📊 Totales arriba -->
-            {% if data and totales %}
+        <!-- TOTALES -->
+        {% if data and totales %}
         {% set hay_valores = totales.values() | select('ne', 0) | list | length > 0 %}
         {% if hay_valores %}
         <div class="mb-4">
-            <h5 class="mb-3">📊 Totales del rango seleccionado:</h5>
+            <h5 class="mb-3" style="color: white;">Totales del rango seleccionado:</h5>
             <div class="row g-2">
                 {% for key, value in totales.items() if value != 0 %}
                 <div class="col-6 col-md-3">
-                    <div class="card text-center shadow-sm border-0 total-card" data-key="{{ key }}">
+                    <div class="card text-center total-card" data-key="{{ key }}">
                         <div class="card-body p-2">
-                            <h6 class="card-title fw-bold text-uppercase">
+                            <h6 class="card-title">
                                 {{ key }}
                             </h6>
-                            <p class="card-text fs-5 fw-semibold
-                                {% if 'TOTAL' in key|upper %}text-primary
-                                {% elif 'EFECTIVO' in key|upper %}text-success
-                                {% elif 'UBER' in key|upper or 'DIDI' in key|upper or 'RAPPI' in key|upper %}text-warning
-                                {% else %}text-dark{% endif %}">
-                                
+                            <p class="card-value">
                                 {% if 'PEDIDOS' in key|upper or 'CUENTAS' in key|upper %}
-                                    {{ value|int }}
+                                {{ value|int }}
                                 {% else %}
-                                    {{ "$ {:,.2f}".format(value) }}
+                                {{ "$ {:,.2f}".format(value) }}
                                 {% endif %}
                             </p>
-
                         </div>
                     </div>
                 </div>
@@ -79,138 +416,146 @@
             </div>
         </div>
         {% endif %}
-    {% endif %}
+        {% endif %}
 
-    <!-- 📈 Gráfica -->
-    <div class="my-4">
-        <h4>📊 Gráfica de ventas y apps</h4>
-        <!-- 📌 Etiquetas de métricas seleccionadas -->
-        <div id="metricasSeleccionadas" class="mb-3 fw-bold text-primary"></div>
-        <canvas id="graficaVentas" height="100"></canvas>
-    </div>
+        <!-- GRÁFICA -->
+        <div class="chart-container">
+            <h4 class="chart-title">Gráfica de ventas y apps</h4>
+            <div id="metricasSeleccionadas" class="metricas-seleccionadas"></div>
+            <canvas id="graficaVentas" height="100"></canvas>
+        </div>
 
-    <!-- 📅 Tabla de resultados -->
-    <div class="table-responsive">
-        <table class="table table-striped table-bordered text-center align-middle">
-            <thead class="table-dark">
-                {% if data|length > 0 %}
-                    <tr>
-                        {% for col in data[0].keys() %}
+        <!-- TABLA -->
+        <div class="table-container">
+            <div class="table-responsive">
+                <table class="table table-striped table-bordered text-center align-middle">
+                    <thead class="table-dark">
+                        {% if data|length > 0 %}
+                        <tr>
+                            {% for col in data[0].keys() %}
                             <th>{{ col }}</th>
+                            {% endfor %}
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <th colspan="20" style="background: rgba(255, 193, 7, 0.2); color: #ffc107;">
+                                No hay datos en el rango seleccionado
+                            </th>
+                        </tr>
+                        {% endif %}
+                    </thead>
+                    <tbody>
+                        {% for fila in data %}
+                        <tr>
+                            {% for valor in fila.values() %}
+                            <td>{{ valor }}</td>
+                            {% endfor %}
+                        </tr>
                         {% endfor %}
-                    </tr>
-                {% else %}
-                    <tr>
-                        <th colspan="20" class="bg-warning text-dark">
-                            ⚠️ No hay datos en el rango seleccionado
-                        </th>
-                    </tr>
-                {% endif %}
-            </thead>
-            <tbody>
-                {% for fila in data %}
-                <tr>
-                    {% for valor in fila.values() %}
-                        <td>{{ valor }}</td>
-                    {% endfor %}
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
-</div>
 
-</body>
+    <!-- IMAGEN DEL DISPOSITIVO - CLICKABLE (MENÚ INICIO) -->
+    <a href="{{ url_for('home') }}" class="device-watermark">
+        <img src="../static/logo personaje .png" alt="Menú Inicio" class="device-image">
+    </a>
 
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-    const ctx = document.getElementById("graficaVentas").getContext("2d");
-    const form = document.querySelector("form");
-    const metricasDiv = document.getElementById("metricasSeleccionadas");
-    let chart;
-    let metricasSeleccionadas = new Set();  // ✅ Guarda las métricas elegidas
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const ctx = document.getElementById("graficaVentas").getContext("2d");
+            const form = document.querySelector("form");
+            const metricasDiv = document.getElementById("metricasSeleccionadas");
+            let chart;
+            let metricasSeleccionadas = new Set();
 
-    // 🎯 Actualiza etiquetas de métricas seleccionadas
-    function mostrarMetricasSeleccionadas() {
-        if (metricasSeleccionadas.size === 0) {
-            metricasDiv.textContent = "📌 No hay métricas seleccionadas";
-        } else {
-            metricasDiv.textContent = "📊 Métricas seleccionadas: " + Array.from(metricasSeleccionadas).join(" · ");
-        }
-    }
-
-    // 📈 Actualiza la gráfica con las métricas elegidas
-    function actualizarGrafica(datos) {
-        if (chart) chart.destroy();
-
-        const datasets = Array.from(metricasSeleccionadas).map((metrica, idx) => ({
-            label: metrica,
-            data: datos.series[metrica] || [],
-            borderColor: colores[idx % colores.length],
-            fill: false,
-            tension: 0.1
-        }));
-
-        chart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: datos.fechas,
-                datasets: datasets
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: { position: 'bottom' }
-                },
-                scales: {
-                    y: { beginAtZero: true }
+            function mostrarMetricasSeleccionadas() {
+                if (metricasSeleccionadas.size === 0) {
+                    metricasDiv.textContent = "No hay métricas seleccionadas";
+                } else {
+                    metricasDiv.textContent = "Métricas seleccionadas: " + Array.from(metricasSeleccionadas).join(" · ");
                 }
             }
-        });
-    }
 
-    // 🎨 Paleta de colores para las métricas
-    const colores = [
-        '#007bff', '#28a745', '#ffc107', '#dc3545', '#6f42c1',
-        '#20c997', '#fd7e14', '#6610f2', '#17a2b8', '#e83e8c'
-    ];
+            function actualizarGrafica(datos) {
+                if (chart) chart.destroy();
 
-    // 📊 Cargar datos filtrados desde Flask
-    function cargarDatosGrafica() {
-        const fd = new FormData(form);
-        fetch("/datos_grafica_filtrada", {
-            method: "POST",
-            body: fd
-        })
-        .then(res => res.json())
-        .then(data => actualizarGrafica(data))
-        .catch(err => console.error("Error en la gráfica:", err));
-    }
+                const datasets = Array.from(metricasSeleccionadas).map((metrica, idx) => ({
+                    label: metrica,
+                    data: datos.series[metrica] || [],
+                    borderColor: colores[idx % colores.length],
+                    fill: false,
+                    tension: 0.1
+                }));
 
-    // 🖱️ Clic en tarjetas de totales (selección múltiple)
-    document.querySelectorAll(".total-card").forEach(card => {
-        card.addEventListener("click", function() {
-            const key = this.dataset.key;
-
-            // 🔁 Agregar o quitar selección
-            if (metricasSeleccionadas.has(key)) {
-                metricasSeleccionadas.delete(key);
-                this.classList.remove("border-primary");
-                this.classList.remove("border-3");
-            } else {
-                metricasSeleccionadas.add(key);
-                this.classList.add("border-primary");
-                this.classList.add("border-3");
+                chart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: datos.fechas,
+                        datasets: datasets
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: { color: 'white' }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { color: 'white' },
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                            },
+                            x: {
+                                ticks: { color: 'white' },
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                            }
+                        }
+                    }
+                });
             }
 
-            mostrarMetricasSeleccionadas();
-            cargarDatosGrafica();
-        });
-    });
+            const colores = [
+                '#b71c1c', '#007bff', '#28a745', '#ffc107', '#dc3545',
+                '#6f42c1', '#20c997', '#fd7e14', '#6610f2', '#17a2b8'
+            ];
 
-    // 🚀 Inicializar
-    mostrarMetricasSeleccionadas();
-});
-</script>
+            function cargarDatosGrafica() {
+                const fd = new FormData(form);
+                fetch("/datos_grafica_filtrada", {
+                    method: "POST",
+                    body: fd
+                })
+                    .then(res => res.json())
+                    .then(data => actualizarGrafica(data))
+                    .catch(err => console.error("Error en la gráfica:", err));
+            }
+
+            document.querySelectorAll(".total-card").forEach(card => {
+                card.addEventListener("click", function () {
+                    const key = this.dataset.key;
+
+                    if (metricasSeleccionadas.has(key)) {
+                        metricasSeleccionadas.delete(key);
+                        this.classList.remove("selected");
+                    } else {
+                        metricasSeleccionadas.add(key);
+                        this.classList.add("selected");
+                    }
+
+                    mostrarMetricasSeleccionadas();
+                    cargarDatosGrafica();
+                });
+            });
+
+            mostrarMetricasSeleccionadas();
+        });
+    </script>
+</body>
 
 </html>

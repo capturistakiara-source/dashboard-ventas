@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Ranking - La Postal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --color-bg: #000000;
+            --color-card: #ffffff;
+            --color-text: #ffffff;
+            --color-text-dark: #2c2c2c;
+            --color-accent: #b71c1c;
+            --color-accent-hover: #8b0000;
+            --color-border: #e0e0e0;
+            --color-navbar: #1a1a1a;
+        }
+
+        body {
+            background-color: var(--color-bg);
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            color: var(--color-text);
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+        }
+
+        /* HEADER */
+        .page-header {
+            text-align: center;
+            margin-bottom: 3rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 1.5rem;
+        }
+
+        .brand-title {
+            font-size: 2.2rem;
+            font-weight: 300;
+            letter-spacing: 3px;
+            margin-bottom: 0.5rem;
+            color: var(--color-text);
+        }
+
+        .brand-subtitle {
+            font-size: 0.9rem;
+            letter-spacing: 4px;
+            opacity: 0.8;
+            margin-bottom: 1rem;
+            color: var(--color-text);
+        }
+
+        .page-title {
+            font-size: 1.8rem;
+            font-weight: 400;
+            color: var(--color-text);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* KANJI CIRCLE */
+        .kanji-circle {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 60px;
+            height: 60px;
+            background-color: var(--color-accent);
+            border-radius: 50%;
+            color: white;
+            font-weight: bold;
+            font-size: 1.8rem;
+            margin-right: 1rem;
+            box-shadow: 0 4px 8px rgba(183, 28, 28, 0.3);
+        }
+
+        /* BOTONES */
+        .btn-primary {
+            background-color: var(--color-accent);
+            border: none;
+            border-radius: 6px;
+            padding: 0.5rem 1.5rem;
+            font-weight: 500;
+            color: white !important;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--color-accent-hover);
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: var(--color-text) !important;
+            border-radius: 6px;
+            padding: 0.5rem 1.5rem;
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* FORMULARIOS */
+        .filter-form {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .form-label {
+            color: var(--color-text) !important;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-control,
+        .form-select {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: var(--color-text) !important;
+            border-radius: 6px;
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: var(--color-accent);
+            color: var(--color-text) !important;
+            box-shadow: 0 0 0 0.2rem rgba(183, 28, 28, 0.25);
+        }
+
+        /* TARJETAS */
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-header {
+            background: rgba(0, 0, 0, 0.3) !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--color-text) !important;
+        }
+
+        .bg-primary {
+            background: rgba(183, 28, 28, 0.3) !important;
+        }
+
+        .bg-success {
+            background: rgba(40, 167, 69, 0.3) !important;
+        }
+
+        .bg-warning {
+            background: rgba(255, 193, 7, 0.3) !important;
+            color: white !important;
+        }
+
+        .bg-dark {
+            background: rgba(52, 58, 64, 0.3) !important;
+        }
+
+        /* ALERTAS */
+        .alert {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: var(--color-text);
+        }
+
+        .alert-warning {
+            background: rgba(255, 193, 7, 0.2) !important;
+            border-color: rgba(255, 193, 7, 0.5);
+        }
+
+        .alert-danger {
+            background: rgba(220, 53, 69, 0.2) !important;
+            border-color: rgba(220, 53, 69, 0.5);
+        }
+
+        /* TABLA */
+        .table {
+            color: #ffffff !important;
+            margin-bottom: 0;
+        }
+
+        .table th {
+            color: #ffffff !important;
+            font-weight: 600;
+            background: rgba(0, 0, 0, 0.6) !important;
+        }
+
+        .table td {
+            color: #ffffff !important;
+            background-color: rgba(0, 0, 0, 0.3) !important;
+        }
+
+        .table-striped tbody tr:nth-of-type(odd) {
+            background-color: rgba(255, 255, 255, 0.1) !important;
+        }
+
+        .table-striped tbody tr:nth-of-type(even) {
+            background-color: rgba(255, 255, 255, 0.05) !important;
+        }
+
+        .table-bordered th,
+        .table-bordered td {
+            border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        }
+
+        /* BADGES */
+        .badge {
+            font-weight: 500;
+            border-radius: 4px;
+        }
+
+        /* IMAGEN DEL DISPOSITIVO */
+        .device-image {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            opacity: 0.1;
+            transition: opacity 0.3s;
+        }
+
+        .device-image:hover {
+            opacity: 0.8;
+        }
+
+        .device-watermark {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 100;
+            text-decoration: none;
+        }
+
+        /* Específico para el formulario de filtro por semana */
+        .filter-form .card {
+            color: #ffffff !important;
+        }
+
+        .filter-form .card-body {
+            color: #000000 !important;
+        }
+
+        .filter-form .form-label {
+            color: #ffffff !important;
+        }
+
+        .filter-form .badge {
+            color: #000000 !important;
+            background-color: #e9ecef !important;
+        }
+
+        /* Para el texto dentro del select */
+        .filter-form .form-select {
+            color: #000000 !important;
+        }
+
+        .filter-form .form-select option {
+            color: #000000 !important;
+            background-color: white !important;
+        }
+
+        /* ESTILOS PARA COMPARACIÓN */
+        .comparison-badge {
+            font-size: 0.8rem;
+            margin-left: 5px;
+        }
+
+        .positive-change {
+            color: #28a745 !important;
+        }
+
+        .negative-change {
+            color: #dc3545 !important;
+        }
+
+        .week-indicator {
+            font-size: 0.75rem;
+            opacity: 0.8;
+        }
+
+        .current-week {
+            border-left: 4px solid #b71c1c;
+            padding-left: 10px;
+        }
+
+        .previous-week {
+            border-left: 4px solid #28a745;
+            padding-left: 10px;
+        }
+
+        /* SOLO LOS TEXTOS DE COMPARACIÓN DE SEMANAS EN BLANCO */
+        .current-week *,
+        .previous-week * {
+            color: #ffffff !important;
+        }
+
+        /* SOLO ESTOS TEXTOS ESPECÍFICOS EN BLANCO */
+        .week-indicator,
+        .card.text-center .card-body small {
+            color: #ffffff !important;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .brand-title {
+                font-size: 1.8rem;
+            }
+
+            .page-title {
+                font-size: 1.4rem;
+            }
+
+            .kanji-circle {
+                width: 50px;
+                height: 50px;
+                font-size: 1.5rem;
+                margin-right: 0.8rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- HEADER -->
+        <div class="page-header">
+            <h1 class="brand-title">LA POSTAL</h1>
+            <p class="brand-subtitle">TERIYAKI & SUSHI</p>
+            <h2 class="page-title">
+                <span class="kanji-circle">比</span>Comparador Semanal
+            </h2>
+            <p class="text-muted">Compara la semana seleccionada con la semana anterior</p>
+        </div>
+
+        <!-- Manejo de errores -->
+        {% if error %}
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <strong>Error:</strong> {{ error }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endif %}
+
+        <!-- FORMULARIO DE FILTRO POR SEMANA - SEMANA ACTUAL -->
+        <form method="POST" class="filter-form">
+            <div class="card">
+                <div class="card-header bg-success">
+                    <h5 class="mb-0">Selecciona la Semana a Analizar</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3 align-items-end">
+                        <!-- Semana Actual -->
+                        <div class="col-md-8">
+                            <label for="semana" class="form-label fw-bold">Semana a Analizar:</label>
+                            <select name="semana" id="semana" class="form-select" onchange="this.form.submit()">
+                                {% for opcion in opciones_semanas %}
+                                <option value="{{ opcion.value }}" {% if opcion.value==semana_actual %}selected{% endif
+                                    %}>
+                                    {{ opcion.label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <a href="/" class="btn btn-secondary w-100">Volver al Inicio</a>
+                        </div>
+                    </div>
+
+                    {% if semana_actual and semana_anterior %}
+                    <div class="row mt-3">
+                        <div class="col-md-6 current-week">
+                            <small class="text-muted">Semana Actual:</small><br>
+                            <strong>{{ fecha_inicio_actual }} al {{ fecha_fin_actual }}</strong><br>
+                            <small class="week-indicator">Semana {{ semana_actual }}</small>
+                        </div>
+                        <div class="col-md-6 previous-week">
+                            <small class="text-muted">Semana Anterior:</small><br>
+                            <strong>{{ fecha_inicio_anterior }} al {{ fecha_fin_anterior }}</strong><br>
+                            <small class="week-indicator">Semana {{ semana_anterior }}</small>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+
+        {% if datos_comparacion %}
+        <!-- RESUMEN COMPARATIVO -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card text-center">
+                    <div class="card-header bg-primary">
+                        <h6 class="mb-0">Total General Actual</h6>
+                    </div>
+                    <div class="card-body">
+                        <h4 class="text-success">$ {{ "{:,.2f}".format(total_general_actual) }}</h4>
+                        <small>Semana {{ semana_actual }}</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-center">
+                    <div class="card-header bg-primary">
+                        <h6 class="mb-0">Total General Anterior</h6>
+                    </div>
+                    <div class="card-body">
+                        <h4 class="text-warning">$ {{ "{:,.2f}".format(total_general_anterior) }}</h4>
+                        <small>Semana {{ semana_anterior }}</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-center">
+                    <div class="card-header bg-primary">
+                        <h6 class="mb-0">Crecimiento Total</h6>
+                    </div>
+                    <div class="card-body">
+                        <h4
+                            class="{% if crecimiento_total > 0 %}text-success{% elif crecimiento_total < 0 %}text-danger{% else %}text-warning{% endif %}">
+                            {{ "{:+.1f}".format(crecimiento_total) }}%
+                        </h4>
+                        <small>Variación Semanal</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GRÁFICA DE COMPARACIÓN -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card mb-4">
+                    <div class="card-header bg-warning">
+                        <h5 class="mb-0">Comparación: Semana {{ semana_actual }} vs Semana {{ semana_anterior }}</h5>
+                        <small>Total por Sucursal</small>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="graficaComparacion" height="120"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TABLA DE COMPARACIÓN -->
+        <div class="card">
+            <div class="card-header bg-dark">
+                <h5 class="mb-0">Detalle de la Comparación por Sucursal</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-bordered">
+                        <thead>
+                            <tr>
+                                <th width="60">#</th>
+                                <th>Sucursal</th>
+                                <th>Total Actual</th>
+                                <th>Total Anterior</th>
+                                <th>Diferencia</th>
+                                <th>% Cambio</th>
+                                <th>Ranking Actual</th>
+                                <th>Ranking Anterior</th>
+                                <th>Cambio Ranking</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for dato in datos_comparacion %}
+                            <tr>
+                                <td class="text-center">
+                                    <span class="badge 
+                                        {% if loop.index == 1 %}bg-warning
+                                        {% elif loop.index <= 3 %}bg-success
+                                        {% else %}bg-secondary{% endif %} fs-6">
+                                        {{ loop.index }}
+                                    </span>
+                                </td>
+                                <td class="fw-bold">{{ dato.sucursal }}</td>
+                                <td>$ {{ "{:,.2f}".format(dato.total_actual) }}</td>
+                                <td>$ {{ "{:,.2f}".format(dato.total_anterior) }}</td>
+                                <td>
+                                    $ {{ "{:,.2f}".format(dato.diferencia) }}
+                                    {% if dato.diferencia > 0 %}
+                                    <span class="badge bg-success comparison-badge">▲</span>
+                                    {% elif dato.diferencia < 0 %} <span class="badge bg-danger comparison-badge">
+                                        ▼</span>
+                                        {% endif %}
+                                </td>
+                                <td
+                                    class="{% if dato.porcentaje_cambio > 0 %}positive-change{% elif dato.porcentaje_cambio < 0 %}negative-change{% endif %}">
+                                    {{ "{:+.1f}".format(dato.porcentaje_cambio) }}%
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-info">{{ dato.ranking_actual }}</span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-info">{{ dato.ranking_anterior }}</span>
+                                </td>
+                                <td class="text-center">
+                                    {% if dato.cambio_ranking > 0 %}
+                                    <span class="badge bg-success">+{{ dato.cambio_ranking }}</span>
+                                    {% elif dato.cambio_ranking < 0 %} <span class="badge bg-danger">{{
+                                        dato.cambio_ranking }}</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">=</span>
+                                        {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        {% else %}
+        <!-- Mensaje si no hay datos -->
+        <div class="alert alert-warning text-center mt-4">
+            Selecciona una semana para ver la comparación con la semana anterior
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- IMAGEN DEL DISPOSITIVO - CLICKABLE (MENÚ INICIO) -->
+    <a href="{{ url_for('home') }}" class="device-watermark">
+        <img src="../static/logo personaje .png" alt="Menú Inicio" class="device-image">
+    </a>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            {% if datos_comparacion %}
+            const datos = {{ datos_comparacion | tojson
+        }};
+        const sucursales = datos.map(d => d.sucursal);
+        const totalesActual = datos.map(d => d.total_actual);
+        const totalesAnterior = datos.map(d => d.total_anterior);
+
+        // Configuración para gráfica de comparación
+        const chartOptions = {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: true,
+                    labels: {
+                        color: 'white',
+                        font: {
+                            size: 14
+                        }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            return context.dataset.label + ': $' + context.raw.toLocaleString();
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        color: 'white',
+                        callback: function (value) {
+                            return '$' + value.toLocaleString();
+                        }
+                    },
+                    grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                },
+                x: {
+                    ticks: {
+                        color: 'white',
+                        font: {
+                            size: 12
+                        }
+                    },
+                    grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                }
+            }
+        };
+
+        // Gráfica de Comparación
+        new Chart(document.getElementById('graficaComparacion'), {
+            type: 'bar',
+            data: {
+                labels: sucursales,
+                datasets: [
+                    {
+                        label: 'Semana {{ semana_actual }}',
+                        data: totalesActual,
+                        backgroundColor: 'rgba(183, 28, 28, 0.8)',
+                        borderColor: 'rgba(183, 28, 28, 1)',
+                        borderWidth: 2
+                    },
+                    {
+                        label: 'Semana {{ semana_anterior }}',
+                        data: totalesAnterior,
+                        backgroundColor: 'rgba(40, 167, 69, 0.8)',
+                        borderColor: 'rgba(40, 167, 69, 1)',
+                        borderWidth: 2
+                    }
+                ]
+            },
+            options: chartOptions
+        });
+        {% endif %}
+        });
+    </script>
+</body>
+
+</html>

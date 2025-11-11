@@ -1,293 +1,656 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
-    <title>📊 Dashboard de Ventas</title>
+    <title>Dashboard - La Postal</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Favicon para navegadores -->
-    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon-32x32.png') }}">
-    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='favicon-16x16.png') }}">
-    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <style>
+        :root {
+            --color-bg: #000000;
+            --color-card: #ffffff;
+            --color-text: #ffffff;
+            --color-text-dark: #2c2c2c;
+            --color-accent: #b71c1c;
+            --color-accent-hover: #8b0000;
+            --color-border: #e0e0e0;
+            --color-navbar: #1a1a1a;
+        }
 
-    <!-- Apple y Android -->
-    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
-    <link rel="manifest" href="{{ url_for('static', filename='site.webmanifest') }}">
+        body {
+            background-color: var(--color-bg);
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            color: var(--color-text);
+            padding: 2rem 1rem;
+        }
 
-    <!-- Android iconos -->
-    <link rel="icon" sizes="192x192" href="{{ url_for('static', filename='android-chrome-192x192.png') }}">
-    <link rel="icon" sizes="512x512" href="{{ url_for('static', filename='android-chrome-512x512.png') }}">
+        .container {
+            max-width: 1400px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+        }
 
+        /* HEADER */
+        .page-header {
+            text-align: center;
+            margin-bottom: 3rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 1.5rem;
+        }
+
+        .brand-title {
+            font-size: 2.2rem;
+            font-weight: 300;
+            letter-spacing: 3px;
+            margin-bottom: 0.5rem;
+            color: var(--color-text);
+        }
+
+        .brand-subtitle {
+            font-size: 0.9rem;
+            letter-spacing: 4px;
+            opacity: 0.8;
+            margin-bottom: 1rem;
+            color: var(--color-text);
+        }
+
+        .page-title {
+            font-size: 1.8rem;
+            font-weight: 400;
+            color: var(--color-text);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* TEXTO VISIBLE EN FORMULARIOS */
+        .form-label {
+            color: var(--color-text) !important;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-control,
+        .form-select {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: var(--color-text) !important;
+            border-radius: 6px;
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: var(--color-accent);
+            color: var(--color-text) !important;
+            box-shadow: 0 0 0 0.2rem rgba(183, 28, 28, 0.25);
+        }
+
+        /* COLORES ESPECÍFICOS PARA TEXTO */
+        .text-white-force {
+            color: #ffffff !important;
+        }
+
+        .text-dark-force {
+            color: #000000 !important;
+        }
+
+        /* SELECTOR DE SUCURSAL - TEXTO VISIBLE */
+        .sucursal-option {
+            color: #000000 !important;
+            background-color: white !important;
+        }
+
+        .sucursal-option:hover {
+            background-color: #f8f9fa !important;
+            color: #000000 !important;
+        }
+
+        /* BOTONES CON TEXTO VISIBLE */
+        .btn-primary {
+            background-color: var(--color-accent);
+            border: none;
+            border-radius: 6px;
+            padding: 0.5rem 1.5rem;
+            font-weight: 500;
+            color: white !important;
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: var(--color-text) !important;
+            border-radius: 6px;
+            padding: 0.5rem 1.5rem;
+        }
+
+        /* CONTENEDORES CON TEXTO VISIBLE */
+        .chart-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .section-title {
+            font-size: 1.4rem;
+            font-weight: 500;
+            color: var(--color-text) !important;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .sub-section-title {
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: var(--color-text) !important;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        /* TABLA CON TEXTO VISIBLE */
+        .table {
+            color: #ffffff !important;
+            margin-bottom: 0;
+        }
+
+        .table th {
+            color: #ffffff !important;
+            font-weight: 600;
+            background: rgba(0, 0, 0, 0.6) !important;
+        }
+
+        .table td {
+            color: #ffffff !important;
+            background-color: rgba(0, 0, 0, 0.3) !important;
+        }
+
+        .table-striped tbody tr:nth-of-type(odd) {
+            background-color: rgba(255, 255, 255, 0.1) !important;
+        }
+
+        .table-striped tbody tr:nth-of-type(even) {
+            background-color: rgba(255, 255, 255, 0.05) !important;
+        }
+
+        .table-bordered th,
+        .table-bordered td {
+            border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        }
+
+        .table-container {
+            background: rgba(0, 0, 0, 0.8) !important;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        /* KANJI CIRCLE */
+        .kanji-circle {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 60px;
+            height: 60px;
+            background-color: var(--color-accent);
+            border-radius: 50%;
+            color: white;
+            font-weight: bold;
+            font-size: 1.8rem;
+            margin-right: 1rem;
+            box-shadow: 0 4px 8px rgba(183, 28, 28, 0.3);
+        }
+
+        .filter-form {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .chart-selector {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 2rem;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .table-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .table-dark {
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .table-striped tbody tr:nth-of-type(odd) {
+            background-color: rgba(255, 255, 255, 0.03);
+        }
+
+        .table-bordered th,
+        .table-bordered td {
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .watermark {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            opacity: 0.1;
+            z-index: -1;
+        }
+
+        .watermark-symbol {
+            width: 100px;
+            height: 100px;
+            background-color: var(--color-accent);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 2.5rem;
+        }
+
+        /* IMAGEN DEL DISPOSITIVO */
+        .device-image {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            opacity: 0.1;
+            transition: opacity 0.3s;
+        }
+
+        .device-image:hover {
+            opacity: 0.8;
+        }
+
+        .device-watermark {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 100;
+            text-decoration: none;
+        }
+
+        /* SELECTOR DE GRÁFICA - TEXTO VISIBLE */
+        .text-white-force {
+            color: #ffffff !important;
+        }
+
+        #tipoGrafica {
+            color: white !important;
+            background-color: rgba(255, 255, 255, 0.05) !important;
+        }
+
+        #tipoGrafica option {
+            color: #000000 !important;
+            background-color: rgba(255, 255, 255, 0.05) !important;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .brand-title {
+                font-size: 1.8rem;
+            }
+
+            .page-title {
+                font-size: 1.4rem;
+            }
+
+            .kanji-circle {
+                width: 50px;
+                height: 50px;
+                font-size: 1.5rem;
+                margin-right: 0.8rem;
+            }
+
+            .filter-form .d-inline-block {
+                display: block !important;
+                width: 100% !important;
+                margin-bottom: 1rem;
+            }
+        }
+    </style>
 </head>
-<body class="bg-light p-4">
 
-<div class="container">
-    <h1 class="mb-4 text-center">📊 Dashboard de Ventas por Sucursal</h1>
+<body>
+    <div class="container">
+        <!-- HEADER -->
+        <div class="page-header">
+            <h1 class="brand-title text-white-force">LA POSTAL</h1>
+            <p class="brand-subtitle text-white-force">TERIYAKI & SUSHI</p>
+            <h2 class="page-title text-white-force">
+                <span class="kanji-circle">比</span>Dashboard Análisis
+            </h2>
+            <p class="text-white-force" style="opacity: 0.8;">Análisis de plataformas y áreas</p>
+        </div>
 
-    <!-- 🏪 Selector de sucursal -->
-    <form method="POST" class="mb-4 text-center">
-        <label for="sucursal" class="form-label">Sucursal:</label>
-        <select name="sucursal" id="sucursal" class="form-select w-auto d-inline-block" onchange="this.form.submit()">
-            {% for s in sucursales %}
-                <option value="{{ s }}" {% if s == sucursal_actual %}selected{% endif %}>{{ s }}</option>
-            {% endfor %}
-        </select>
-        <a href="/" class="btn btn-secondary ms-2">⬅ Volver al inicio</a>
-    </form>
+        <!-- FORMULARIO DE SUCURSAL -->
+        <form method="POST" class="filter-form text-center">
+            <div class="row g-3 align-items-center justify-content-center">
+                <div class="col-auto">
+                    <label for="sucursal" class="form-label text-white-force">Sucursal:</label>
+                    <select name="sucursal" id="sucursal" class="form-select" onchange="this.form.submit()">
+                        {% for s in sucursales %}
+                        <option value="{{ s }}" {% if s==sucursal_actual %}selected{% endif %} class="sucursal-option">
+                            {{ s }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
 
-    <!-- 📊 Menú de tipo de gráfica -->
-    <div class="mb-4 text-center">
-        <label for="tipoGrafica" class="form-label">Selecciona la comparación:</label>
-        <select id="tipoGrafica" class="form-select w-auto d-inline-block" onchange="mostrarGrafica()">
-            <option value="general" selected>Comparación General</option>
-            <option value="plataformas">Comparación de Plataformas</option>
-            <option value="areas">Comparación de Áreas</option>
-            <option value="global">Comparación entre Sucursales</option>
-        </select>
-    </div>
+                <!-- SELECTOR DE GRÁFICA -->
+                <div class="col-auto">
+                    <label for="tipoGrafica" class="form-label text-white-force">Tipo de Gráfica:</label>
+                    <select id="tipoGrafica" class="form-select" onchange="mostrarGrafica()">
+                        <option value="general" selected>Vista General</option>
+                        <option value="plataformas">Plataformas</option>
+                        <option value="areas">Áreas</option>
+                    </select>
+                </div>
 
-    <!-- 📈 Comparación General -->
-    <div id="contenedor-general" style="display:block;">
-        <h4 class="mt-4 text-center">📈 Comparación General</h4>
-        <canvas id="graficaGeneral"></canvas>
-    </div>
-
-    <!-- 💻 Comparación de Plataformas -->
-    <div id="contenedor-plataformas" style="display:none;">
-        <h4 class="mt-4 text-center">💻 Plataformas</h4>
-        <div class="row">
-            <div class="col-md-6">
-                <h5 class="text-center">💰 Ventas</h5>
-                <canvas id="graficaPlataformasVentas"></canvas>
+                <div class="col-auto d-flex gap-2" style="padding-top: 1.8rem;">
+                    <a href="/" class="btn btn-secondary text-white-force">Volver al inicio</a>
+                </div>
             </div>
-            <div class="col-md-6">
-                <h5 class="text-center">📦 Pedidos</h5>
-                <canvas id="graficaPlataformasPedidos"></canvas>
+        </form>
+
+        <!-- GRÁFICA GENERAL -->
+        <div id="contenedor-general" class="chart-section">
+            <h4 class="section-title">Vista General</h4>
+            <canvas id="graficaGeneral"></canvas>
+        </div>
+
+        <!-- GRÁFICA DE PLATAFORMAS -->
+        <div id="contenedor-plataformas" class="chart-section" style="display:none;">
+            <h4 class="section-title">Plataformas</h4>
+            <div class="row">
+                <div class="col-md-6">
+                    <h5 class="sub-section-title">Ventas</h5>
+                    <canvas id="graficaPlataformasVentas"></canvas>
+                </div>
+                <div class="col-md-6">
+                    <h5 class="sub-section-title">Pedidos</h5>
+                    <canvas id="graficaPlataformasPedidos"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- GRÁFICA DE ÁREAS -->
+        <div id="contenedor-areas" class="chart-section" style="display:none;">
+            <h4 class="section-title">Áreas</h4>
+            <div class="row">
+                <div class="col-md-6">
+                    <h5 class="sub-section-title">Ventas</h5>
+                    <canvas id="graficaAreasVentas"></canvas>
+                </div>
+                <div class="col-md-6">
+                    <h5 class="sub-section-title">Cuentas</h5>
+                    <canvas id="graficaAreasCuentas"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- TABLA DE DATOS -->
+        <div class="table-container">
+            <h4 class="section-title">Datos Detallados</h4>
+            <div class="table-responsive">
+                <table class="table table-striped table-bordered text-center align-middle">
+                    <thead class="table-dark">
+                        {% if data|length > 0 %}
+                        <tr>
+                            {% for col in data[0].keys() %}
+                            <th>{{ col }}</th>
+                            {% endfor %}
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="20" style="background: rgba(255, 193, 7, 0.2); color: #ffc107;">
+                                No hay datos disponibles para esta sucursal.
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </thead>
+                    <tbody>
+                        {% for fila in data %}
+                        <tr>
+                            {% for valor in fila.values() %}
+                            <td>{{ valor }}</td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
 
-    <!-- 🏪 Comparación de Áreas -->
-    <div id="contenedor-areas" style="display:none;">
-        <h4 class="mt-4 text-center">🏪 Áreas</h4>
-        <div class="row">
-            <div class="col-md-6">
-                <h5 class="text-center">💰 Ventas</h5>
-                <canvas id="graficaAreasVentas"></canvas>
-            </div>
-            <div class="col-md-6">
-                <h5 class="text-center">👥 Cuentas</h5>
-                <canvas id="graficaAreasCuentas"></canvas>
-            </div>
-        </div>
-    </div>
+    <!-- IMAGEN DEL DISPOSITIVO - CLICKABLE (MENÚ INICIO) -->
+    <a href="{{ url_for('home') }}" class="device-watermark">
+        <img src="../static/logo personaje .png" alt="Menú Inicio" class="device-image">
+    </a>
 
-    <!-- 🌎 Comparación Global -->
-    <div id="contenedor-global" style="display:none;">
-        <h4 class="mt-4 text-center">🌎 Comparación entre Sucursales</h4>
-        <div class="row">
-            <div class="col-md-6">
-                <h5 class="text-center">💰 Total Sucursal</h5>
-                <canvas id="graficaTotalSucursal"></canvas>
-            </div>
-            <div class="col-md-6">
-                <h5 class="text-center">📊 Ticket Promedio</h5>
-                <canvas id="graficaTicketPromedio"></canvas>
-            </div>
-        </div>
-    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // CONTROL DE VISTA
+        function mostrarGrafica() {
+            const tipo = document.getElementById('tipoGrafica').value;
 
-    <!-- 📊 Tabla de datos -->
-    <hr class="my-4">
-    <h4 class="mb-3">📋 Tabla de datos</h4>
-    <div class="table-responsive">
-        <table class="table table-striped table-bordered text-center align-middle">
-            <thead class="table-dark">
-                {% if data|length > 0 %}
-                <tr>
-                    {% for col in data[0].keys() %}
-                    <th>{{ col }}</th>
-                    {% endfor %}
-                </tr>
-                {% else %}
-                <tr><td colspan="20" class="text-center">⚠️ No hay datos disponibles para esta sucursal.</td></tr>
-                {% endif %}
-            </thead>
-            <tbody>
-                {% for fila in data %}
-                <tr>
-                    {% for valor in fila.values() %}
-                    <td>{{ valor }}</td>
-                    {% endfor %}
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
+            // Ocultar todos los contenedores
+            document.getElementById('contenedor-general').style.display = 'none';
+            document.getElementById('contenedor-plataformas').style.display = 'none';
+            document.getElementById('contenedor-areas').style.display = 'none';
 
-<!-- ================== 🧠 SCRIPT CONTROL DE VISTA ================== -->
-<script>
-function mostrarGrafica() {
-    const tipo = document.getElementById('tipoGrafica').value;
-    document.getElementById('contenedor-general').style.display = (tipo === 'general') ? 'block' : 'none';
-    document.getElementById('contenedor-plataformas').style.display = (tipo === 'plataformas') ? 'block' : 'none';
-    document.getElementById('contenedor-areas').style.display = (tipo === 'areas') ? 'block' : 'none';
-    document.getElementById('contenedor-global').style.display = (tipo === 'global') ? 'block' : 'none';
-}
-</script>
-
-<!-- ================== 📈 SCRIPT DE GRÁFICAS ================== -->
-<script>
-let sucursalSeleccionada = "{{ sucursal_actual }}";
-let chartGeneral, chartPlataformasVentas, chartPlataformasPedidos, chartAreasVentas, chartAreasCuentas;
-let chartGlobalTotales, chartGlobalTicket;
-
-const colores = {
-    uber: 'red',
-    didi: 'blue',
-    rappi: 'green',
-    comedor: 'orange',
-    domicilio: 'purple',
-    rapido: 'brown'
-};
-
-async function cargarDatos() {
-    const res = await fetch(`/datos_grafica/${encodeURIComponent(sucursalSeleccionada)}`);
-    const data = await res.json();
-    generarGraficaGeneral(data);
-    generarGraficaPlataformas(data);
-    generarGraficaAreas(data);
-    await cargarDatosGlobal();
-}
-
-// 📈 Gráfica General
-function generarGraficaGeneral(data) {
-    if (chartGeneral) chartGeneral.destroy();
-    chartGeneral = new Chart(document.getElementById('graficaGeneral').getContext('2d'), {
-        type: 'line',
-        data: {
-            labels: data.meses,
-            datasets: [
-                { label: 'UBER', data: data.uber, borderColor: colores.uber, borderWidth: 2, tension: 0.3 },
-                { label: 'DIDI', data: data.didi, borderColor: colores.didi, borderWidth: 2, tension: 0.3 },
-                { label: 'RAPPI', data: data.rappi, borderColor: colores.rappi, borderWidth: 2, tension: 0.3 },
-                { label: 'COMEDOR', data: data.comedor, borderColor: colores.comedor, borderWidth: 2, tension: 0.3 },
-                { label: 'DOMICILIO', data: data.domicilio, borderColor: colores.domicilio, borderWidth: 2, tension: 0.3 },
-                { label: 'RÁPIDO', data: data.rapido, borderColor: colores.rapido, borderWidth: 2, tension: 0.3 },
-            ]
-        },
-        options: { responsive: true, plugins: { legend: { position: 'top' } } }
-    });
-}
-
-// 💻 Plataformas
-function generarGraficaPlataformas(data) {
-    if (chartPlataformasVentas) chartPlataformasVentas.destroy();
-    chartPlataformasVentas = new Chart(document.getElementById('graficaPlataformasVentas').getContext('2d'), {
-        type: 'line',
-        data: {
-            labels: data.meses,
-            datasets: [
-                { label: 'UBER', data: data.uber, borderColor: colores.uber, borderWidth: 2, tension: 0.3, pointRadius: 4 },
-                { label: 'DIDI', data: data.didi, borderColor: colores.didi, borderWidth: 2, tension: 0.3, pointRadius: 4 },
-                { label: 'RAPPI', data: data.rappi, borderColor: colores.rappi, borderWidth: 2, tension: 0.3, pointRadius: 4 },
-            ]
-        },
-        options: {
-            responsive: true,
-            plugins: { legend: { position: 'top' } },
-            scales: { y: { beginAtZero: true } }
+            // Mostrar solo el contenedor seleccionado
+            if (tipo === 'general') {
+                document.getElementById('contenedor-general').style.display = 'block';
+            } else if (tipo === 'plataformas') {
+                document.getElementById('contenedor-plataformas').style.display = 'block';
+            } else if (tipo === 'areas') {
+                document.getElementById('contenedor-areas').style.display = 'block';
+            }
         }
-    });
 
-    if (chartPlataformasPedidos) chartPlataformasPedidos.destroy();
-    chartPlataformasPedidos = new Chart(document.getElementById('graficaPlataformasPedidos').getContext('2d'), {
-        type: 'line',
-        data: {
-            labels: data.meses,
-            datasets: [
-                { label: 'PEDIDOS UBER', data: data.pedidos_uber, borderColor: colores.uber, borderWidth: 2, tension: 0.3, pointRadius: 4 },
-                { label: 'PEDIDOS DIDI', data: data.pedidos_didi, borderColor: colores.didi, borderWidth: 2, tension: 0.3, pointRadius: 4 },
-                { label: 'PEDIDOS RAPPI', data: data.pedidos_rappi, borderColor: colores.rappi, borderWidth: 2, tension: 0.3, pointRadius: 4 },
-            ]
-        },
-        options: {
-            responsive: true,
-            plugins: { legend: { position: 'top' } },
-            scales: { y: { beginAtZero: true } }
+        // GRÁFICAS
+        let sucursalSeleccionada = "{{ sucursal_actual }}";
+        let chartGeneral, chartPlataformasVentas, chartPlataformasPedidos, chartAreasVentas, chartAreasCuentas;
+
+        const colores = {
+            uber: 'green',
+            didi: 'orange',
+            rappi: 'red',
+            comedor: 'blue',
+            domicilio: '#6f42c1',
+            rapido: 'white'
+        };
+
+        async function cargarDatos() {
+            const res = await fetch(`/datos_grafica/${encodeURIComponent(sucursalSeleccionada)}`);
+            const data = await res.json();
+            generarGraficaGeneral(data);
+            generarGraficaPlataformas(data);
+            generarGraficaAreas(data);
         }
-    });
-}
 
-// 🏪 Áreas
-function generarGraficaAreas(data) {
-    if (chartAreasVentas) chartAreasVentas.destroy();
-    chartAreasVentas = new Chart(document.getElementById('graficaAreasVentas').getContext('2d'), {
-        type: 'line',
-        data: {
-            labels: data.meses,
-            datasets: [
-                { label: 'COMEDOR', data: data.comedor, borderColor: colores.comedor, borderWidth: 2, tension: 0.3 },
-                { label: 'DOMICILIO', data: data.domicilio, borderColor: colores.domicilio, borderWidth: 2, tension: 0.3 },
-                { label: 'RÁPIDO', data: data.rapido, borderColor: colores.rapido, borderWidth: 2, tension: 0.3 },
-            ]
+        function generarGraficaGeneral(data) {
+            if (chartGeneral) chartGeneral.destroy();
+            const ctx = document.getElementById('graficaGeneral').getContext('2d');
+            chartGeneral = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.meses,
+                    datasets: [
+                        { label: 'UBER', data: data.uber, borderColor: colores.uber, borderWidth: 2, tension: 0.3 },
+                        { label: 'DIDI', data: data.didi, borderColor: colores.didi, borderWidth: 2, tension: 0.3 },
+                        { label: 'RAPPI', data: data.rappi, borderColor: colores.rappi, borderWidth: 2, tension: 0.3 },
+                        { label: 'COMEDOR', data: data.comedor, borderColor: colores.comedor, borderWidth: 2, tension: 0.3 },
+                        { label: 'DOMICILIO', data: data.domicilio, borderColor: colores.domicilio, borderWidth: 2, tension: 0.3 },
+                        { label: 'RÁPIDO', data: data.rapido, borderColor: colores.rapido, borderWidth: 2, tension: 0.3 },
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: { color: 'white' }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            ticks: { color: 'white' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        },
+                        x: {
+                            ticks: { color: 'white' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        }
+                    }
+                }
+            });
         }
-    });
 
-    if (chartAreasCuentas) chartAreasCuentas.destroy();
-    chartAreasCuentas = new Chart(document.getElementById('graficaAreasCuentas').getContext('2d'), {
-        type: 'line',
-        data: {
-            labels: data.meses,
-            datasets: [
-                { label: 'CUENTAS COMEDOR', data: data.cuentas_comedor, borderColor: colores.comedor, borderWidth: 2, tension: 0.3 },
-                { label: 'CUENTAS DOMICILIO', data: data.cuentas_domicilio, borderColor: colores.domicilio, borderWidth: 2, tension: 0.3 },
-                { label: 'CUENTAS RÁPIDO', data: data.cuentas_rapido, borderColor: colores.rapido, borderWidth: 2, tension: 0.3 },
-            ]
+        function generarGraficaPlataformas(data) {
+            if (chartPlataformasVentas) chartPlataformasVentas.destroy();
+            chartPlataformasVentas = new Chart(document.getElementById('graficaPlataformasVentas').getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: data.meses,
+                    datasets: [
+                        { label: 'UBER', data: data.uber, borderColor: colores.uber, borderWidth: 2, tension: 0.3, pointRadius: 4 },
+                        { label: 'DIDI', data: data.didi, borderColor: colores.didi, borderWidth: 2, tension: 0.3, pointRadius: 4 },
+                        { label: 'RAPPI', data: data.rappi, borderColor: colores.rappi, borderWidth: 2, tension: 0.3, pointRadius: 4 },
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: { color: 'white' }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { color: 'white' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        },
+                        x: {
+                            ticks: { color: 'white' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        }
+                    }
+                }
+            });
+
+            if (chartPlataformasPedidos) chartPlataformasPedidos.destroy();
+            chartPlataformasPedidos = new Chart(document.getElementById('graficaPlataformasPedidos').getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: data.meses,
+                    datasets: [
+                        { label: 'PEDIDOS UBER', data: data.pedidos_uber, borderColor: colores.uber, borderWidth: 2, tension: 0.3, pointRadius: 4 },
+                        { label: 'PEDIDOS DIDI', data: data.pedidos_didi, borderColor: colores.didi, borderWidth: 2, tension: 0.3, pointRadius: 4 },
+                        { label: 'PEDIDOS RAPPI', data: data.pedidos_rappi, borderColor: colores.rappi, borderWidth: 2, tension: 0.3, pointRadius: 4 },
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: { color: 'white' }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { color: 'white' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        },
+                        x: {
+                            ticks: { color: 'white' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        }
+                    }
+                }
+            });
         }
-    });
-}
 
-// 🌎 Global
-async function cargarDatosGlobal() {
-    const res = await fetch(`/datos_grafica_global`);
-    const data = await res.json();
-    generarGraficaGlobal(data);
-}
+        function generarGraficaAreas(data) {
+            if (chartAreasVentas) chartAreasVentas.destroy();
+            chartAreasVentas = new Chart(document.getElementById('graficaAreasVentas').getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: data.meses,
+                    datasets: [
+                        { label: 'COMEDOR', data: data.comedor, borderColor: colores.comedor, borderWidth: 2, tension: 0.3 },
+                        { label: 'DOMICILIO', data: data.domicilio, borderColor: colores.domicilio, borderWidth: 2, tension: 0.3 },
+                        { label: 'RÁPIDO', data: data.rapido, borderColor: colores.rapido, borderWidth: 2, tension: 0.3 },
+                    ]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            ticks: { color: 'white' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        },
+                        x: {
+                            ticks: { color: 'white' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        }
+                    }
+                }
+            });
 
-function generarGraficaGlobal(data) {
-    if (chartGlobalTotales) chartGlobalTotales.destroy();
-    chartGlobalTotales = new Chart(document.getElementById('graficaTotalSucursal').getContext('2d'), {
-        type: 'bar',
-        data: {
-            labels: data.sucursales,
-            datasets: [{
-                label: 'Total Sucursal',
-                data: data.totales,
-                backgroundColor: 'orange'
-            }]
-        },
-        options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
-    });
+            if (chartAreasCuentas) chartAreasCuentas.destroy();
+            chartAreasCuentas = new Chart(document.getElementById('graficaAreasCuentas').getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: data.meses,
+                    datasets: [
+                        { label: 'CUENTAS COMEDOR', data: data.cuentas_comedor, borderColor: colores.comedor, borderWidth: 2, tension: 0.3 },
+                        { label: 'CUENTAS DOMICILIO', data: data.cuentas_domicilio, borderColor: colores.domicilio, borderWidth: 2, tension: 0.3 },
+                        { label: 'CUENTAS RÁPIDO', data: data.cuentas_rapido, borderColor: colores.rapido, borderWidth: 2, tension: 0.3 },
+                    ]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            ticks: { color: 'white' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        },
+                        x: {
+                            ticks: { color: 'white' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        }
+                    }
+                }
+            });
+        }
 
-    if (chartGlobalTicket) chartGlobalTicket.destroy();
-    chartGlobalTicket = new Chart(document.getElementById('graficaTicketPromedio').getContext('2d'), {
-        type: 'bar',
-        data: {
-            labels: data.sucursales,
-            datasets: [{
-                label: 'Ticket Promedio',
-                data: data.ticket_promedio,
-                backgroundColor: 'green'
-            }]
-        },
-        options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
-    });
-}
-
-cargarDatos();
-</script>
-
+        // Inicializar cargando la vista general
+        cargarDatos();
+    </script>
 </body>
+
 </html>

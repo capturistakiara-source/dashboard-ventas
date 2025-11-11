@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar Sesión - La Postal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --color-bg: #000000;
+            --color-card: #ffffff;
+            --color-text: #2c2c2c;
+            --color-accent: #b71c1c;
+            --color-accent-hover: #8b0000;
+            --color-border: #e0e0e0;
+            --color-placeholder: #9e9e9e;
+        }
+
+        body {
+            background-color: var(--color-bg);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .login-container {
+            display: flex;
+            max-width: 900px;
+            width: 100%;
+            margin: 0 auto;
+            background: var(--color-card);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .login-image {
+            flex: 1;
+            background: linear-gradient(135deg, var(--color-accent) 0%, #8b0000 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            position: relative;
+        }
+
+        .character-container {
+            text-align: center;
+            color: white;
+        }
+
+        .character-image {
+            max-width: 200px;
+            height: auto;
+            margin-bottom: 20px;
+            border-radius: 10px;
+        }
+
+        .character-placeholder {
+            width: 200px;
+            height: 200px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px auto;
+            border: 2px dashed rgba(255, 255, 255, 0.5);
+        }
+
+        .character-placeholder span {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+        }
+
+        .brand-text {
+            font-size: 1.8rem;
+            font-weight: 300;
+            letter-spacing: 2px;
+            margin-bottom: 5px;
+        }
+
+        .brand-subtext {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            letter-spacing: 3px;
+        }
+
+        .login-form {
+            flex: 1;
+            padding: 50px 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .form-title {
+            font-size: 1.5rem;
+            font-weight: 500;
+            color: var(--color-text);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .form-label {
+            font-weight: 500;
+            color: var(--color-text);
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .form-control {
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            padding: 12px 15px;
+            transition: all 0.3s;
+            margin-bottom: 20px;
+        }
+
+        .form-control:focus {
+            border-color: var(--color-accent);
+            box-shadow: 0 0 0 0.2rem rgba(183, 28, 28, 0.1);
+        }
+
+        .form-options {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            font-size: 0.9rem;
+        }
+
+        .remember-me {
+            display: flex;
+            align-items: center;
+        }
+
+        .remember-me input {
+            margin-right: 8px;
+        }
+
+        .forgot-password {
+            color: var(--color-accent);
+            text-decoration: none;
+        }
+
+        .forgot-password:hover {
+            text-decoration: underline;
+        }
+
+        .btn-login {
+            background-color: var(--color-accent);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-weight: 500;
+            padding: 12px;
+            transition: background-color 0.3s;
+            width: 100%;
+            font-size: 1rem;
+        }
+
+        .btn-login:hover {
+            background-color: var(--color-accent-hover);
+        }
+
+        .demo-users {
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 25px;
+        }
+
+        .demo-title {
+            font-weight: 600;
+            color: var(--color-text);
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .demo-info {
+            font-size: 0.8rem;
+            color: var(--color-text);
+            opacity: 0.8;
+            line-height: 1.4;
+        }
+
+        .watermark {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            opacity: 0.2;
+        }
+
+        .watermark-symbol {
+            width: 60px;
+            height: 60px;
+            background-color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--color-accent);
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+
+        /* Estilos del Daruma MODIFICADOS - sin blanco */
+        .daruma-container {
+            text-align: center;
+            margin: 1.5rem 0;
+            position: relative;
+        }
+
+        .daruma {
+            width: 80px;
+            height: 90px;
+            background: linear-gradient(to bottom, #b71c1c 0%, #8b0000 100%);
+            border-radius: 40px 40px 50px 50px;
+            margin: 0 auto;
+            position: relative;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .daruma-face {
+            width: 50px;
+            height: 40px;
+            border: 2px solid #000;
+            /* Solo borde, sin fondo blanco */
+            border-radius: 20px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .daruma-eyes {
+            display: flex;
+            justify-content: space-between;
+            width: 40px;
+            margin-top: 5px;
+        }
+
+        .daruma-eye {
+            width: 8px;
+            height: 8px;
+            background-color: #fff;
+            /* Blanco para contrastar con el rojo */
+            border-radius: 50%;
+        }
+
+        .daruma-mouth {
+            width: 12px;
+            height: 4px;
+            background-color: #fff;
+            /* Blanco para contrastar con el rojo */
+            border-radius: 2px;
+            margin-top: 5px;
+        }
+
+        .daruma-base {
+            width: 70px;
+            height: 10px;
+            background-color: #5d4037;
+            border-radius: 5px;
+            margin-top: -5px;
+        }
+
+        .daruma-text {
+            margin-top: 10px;
+            font-size: 0.8rem;
+            color: var(--color-text);
+            opacity: 0.7;
+            font-style: italic;
+        }
+
+        .daruma-symbol {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 20px;
+            height: 20px;
+            background-color: #ffd700;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: bold;
+            color: #000;
+        }
+
+        @media (max-width: 768px) {
+            .login-container {
+                flex-direction: column;
+            }
+
+            .login-image {
+                padding: 30px 20px;
+            }
+
+            .login-form {
+                padding: 30px 25px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-container">
+        <!-- Sección de imagen con el personaje -->
+        <div class="login-image">
+            <div class="character-container">
+                <!-- Aquí va tu imagen logo personaje.png -->
+                <img src="../static/logo personaje .png" alt="La Postal" class="character-image">
+                <h1 class="brand-text">LA POSTAL</h1>
+                <p class="brand-subtext">TERIYAKI & SUSHI</p>
+            </div>
+
+            <!-- Marca de agua -->
+            <div class="watermark">
+                <div class="watermark-symbol">郵</div>
+            </div>
+        </div>
+
+        <!-- Sección del formulario -->
+        <div class="login-form">
+            <h2 class="form-title">Iniciar Sesión</h2>
+
+            <!-- Mensajes Flash -->
+            <div class="alert alert-danger alert-dismissible fade show d-none" role="alert">
+                Credenciales incorrectas. Intenta nuevamente.
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+
+            <form method="POST">
+                <div class="mb-3">
+                    <label for="username" class="form-label">Usuario</label>
+                    <input type="text" class="form-control" id="username" name="username"
+                        placeholder="Ingresa tu usuario" required autofocus>
+                </div>
+
+                <div class="mb-3">
+                    <label for="password" class="form-label">Contraseña</label>
+                    <input type="password" class="form-control" id="password" name="password"
+                        placeholder="Ingresa tu contraseña" required>
+                </div>
+
+                <div class="form-options">
+                    <div class="remember-me">
+                        <input type="checkbox" id="remember" name="remember">
+                        <label for="remember">Recordarme</label>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-login">
+                    Iniciar Sesión
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

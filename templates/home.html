@@ -1,30 +1,345 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard Ventas</title>
+    <title>Dashboard - La Postal</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Favicon para navegadores -->
-    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon-32x32.png') }}">
-    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='favicon-16x16.png') }}">
-    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <style>
+        :root {
+            --color-bg: #000000;
+            --color-card: #ffffff;
+            --color-text: #2c2c2c;
+            --color-accent: #b71c1c;
+            --color-accent-hover: #8b0000;
+            --color-border: #e0e0e0;
+            --color-navbar: #1a1a1a;
+        }
 
-    <!-- Apple y Android -->
-    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
-    <link rel="manifest" href="{{ url_for('static', filename='site.webmanifest') }}">
+        body {
+            background-color: var(--color-bg);
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            color: white;
+            min-height: 100vh;
+        }
 
-    <!-- Android iconos -->
-    <link rel="icon" sizes="192x192" href="{{ url_for('static', filename='android-chrome-192x192.png') }}">
-    <link rel="icon" sizes="512x512" href="{{ url_for('static', filename='android-chrome-512x512.png') }}">
+        /* NAVBAR */
+        .navbar {
+            background-color: var(--color-navbar) !important;
+            border-bottom: 2px solid var(--color-accent);
+            padding: 1rem 0;
+        }
 
+        .navbar-brand {
+            font-weight: 300;
+            letter-spacing: 2px;
+            font-size: 1.3rem;
+        }
+
+        .nav-link {
+            font-weight: 400;
+            transition: color 0.3s;
+            margin-left: 1rem;
+        }
+
+        .nav-link:hover {
+            color: var(--color-accent) !important;
+        }
+
+        /* CONTENIDO PRINCIPAL */
+        .dashboard-container {
+            padding: 3rem 1rem;
+        }
+
+        .welcome-section {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .brand-title {
+            font-size: 2.5rem;
+            font-weight: 300;
+            letter-spacing: 3px;
+            margin-bottom: 0.5rem;
+            color: white;
+        }
+
+        .brand-subtitle {
+            font-size: 1rem;
+            letter-spacing: 4px;
+            opacity: 0.8;
+            margin-bottom: 2rem;
+            color: white;
+        }
+
+        .welcome-text {
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+            color: white;
+        }
+
+        .user-name {
+            color: var(--color-accent);
+            font-weight: 500;
+        }
+
+        /* BOTONES */
+        .btn-dashboard {
+            background-color: transparent;
+            border: 2px solid var(--color-accent);
+            color: white;
+            border-radius: 8px;
+            padding: 1.2rem 1.5rem;
+            font-weight: 500;
+            transition: all 0.3s;
+            margin-bottom: 1rem;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            width: 100%;
+        }
+
+        .btn-dashboard:hover {
+            background-color: var(--color-accent);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .btn-icon {
+            font-size: 1.8rem;
+            margin-right: 1rem;
+            width: 40px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .btn-content {
+            flex: 1;
+        }
+
+        .btn-title {
+            font-size: 1.1rem;
+            font-weight: 500;
+            margin-bottom: 0.2rem;
+        }
+
+        .btn-desc {
+            font-size: 0.85rem;
+            opacity: 0.8;
+            margin: 0;
+        }
+
+        /* GRID DE BOTONES */
+        .btn-grid {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* MARCA DE AGUA */
+        .watermark {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            opacity: 0.1;
+            z-index: -1;
+        }
+
+        .watermark-symbol {
+            width: 120px;
+            height: 120px;
+            background-color: var(--color-accent);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 3rem;
+        }
+
+        /* IMAGEN DEL EQUIPO (estilo marca de agua) */
+        .team-watermark {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            opacity: 0.8;
+            z-index: 100;
+        }
+
+        .team-watermark-photo {
+            width: 120px;
+            height: 120px;
+            border-radius: 0%;
+            object-fit: cover;
+        }
+
+        /* ESTRUCTURA PARA KANJIS EN CÍRCULO ROJO */
+        .kanji-circle {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 50px;
+            height: 50px;
+            background-color: var(--color-accent);
+            border-radius: 50%;
+            color: white;
+            font-weight: bold;
+            font-size: 1.5rem;
+            margin-right: 1rem;
+            box-shadow: 0 4px 8px rgba(183, 28, 28, 0.3);
+        }
+
+        /* Variante más pequeña */
+        .kanji-circle-sm {
+            width: 40px;
+            height: 40px;
+            font-size: 1.2rem;
+            margin-right: 0.8rem;
+        }
+
+        /* Variante más grande */
+        .kanji-circle-lg {
+            width: 60px;
+            height: 60px;
+            font-size: 1.8rem;
+            margin-right: 1.2rem;
+        }
+
+        /* Para títulos de página */
+        .page-title .kanji-circle {
+            width: 70px;
+            height: 70px;
+            font-size: 2rem;
+            margin-right: 1rem;
+        }
+
+        /* Efectos hover */
+        .kanji-circle:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 12px rgba(183, 28, 28, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        /* Para usar en botones o tarjetas */
+        .btn-with-kanji {
+            display: flex;
+            align-items: center;
+            padding: 1rem 1.5rem;
+        }
+
+        .card-with-kanji {
+            display: flex;
+            align-items: center;
+            padding: 1.5rem;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .brand-title {
+                font-size: 2rem;
+            }
+
+            .brand-subtitle {
+                font-size: 0.9rem;
+            }
+
+            .btn-dashboard {
+                padding: 1rem;
+            }
+
+            .btn-icon {
+                font-size: 1.5rem;
+                margin-right: 0.8rem;
+                width: 35px;
+            }
+        }
+    </style>
 </head>
-<body class="bg-light d-flex align-items-center justify-content-center vh-100">
-    <div class="text-center">
-        <h1 class="mb-5 fw-bold">📊 Dashboard de Ventas</h1>
-        <a href="/tabla" class="btn btn-primary btn-lg mb-3 w-100">📅 Ver tabla completa (diaria)</a>
-        <a href="/resumen" class="btn btn-success btn-lg w-100">📈 Ver resumen mensual</a>
-    </div>
-</body>
-</html>
 
+<body>
+    <!-- NAVBAR -->
+    <nav class="navbar navbar-expand-lg navbar-dark rounded-0">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('home') }}">
+                LA POSTAL | DASHBOARD
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3">
+                    Hola, <span class="user-name">{{ current_user.nombre }}</span>
+                </span>
+                <a class="nav-link" href="{{ url_for('perfil') }}">Perfil</a>
+                <a class="nav-link" href="{{ url_for('logout') }}">Salir</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <div class="dashboard-container">
+        <div class="welcome-section">
+            <h1 class="brand-title">LA POSTAL</h1>
+            <p class="brand-subtitle">TERIYAKI & SUSHI</p>
+            <p class="welcome-text">Bienvenido al sistema de gestión</p>
+        </div>
+
+        <div class="container">
+            <div class="btn-grid">
+                <!-- TABLA COMPLETA -->
+                <a href="/tabla" class="btn btn-dashboard btn-with-kanji">
+                    <span class="kanji-circle kanji-circle-sm">表</span>
+                    <div class="btn-content">
+                        <div class="btn-title">Tabla Completa</div>
+                        <div class="btn-desc">Visualización detallada de ventas diarias</div>
+                    </div>
+                </a>
+
+                <!-- RESUMEN MENSUAL -->
+                <a href="/resumen" class="btn btn-dashboard btn-with-kanji">
+                    <div class="kanji-circle kanji-circle-sm">月</div>
+                    <div class="btn-content">
+                        <div class="btn-title">Resumen Mensual</div>
+                        <div class="btn-desc">Análisis y estadísticas del mes en curso</div>
+                    </div>
+                </a>
+
+                <!-- COMPARATIVA -->
+                <a href="/comparativa" class="btn btn-dashboard btn-with-kanji">
+                    <div class="kanji-circle kanji-circle-sm">比</div>
+                    <div class="btn-content">
+                        <div class="btn-title">Comparativa</div>
+                        <div class="btn-desc">Análisis comparativo entre sucursales</div>
+                    </div>
+                </a>
+
+                <!-- RANKING -->
+                <a href="/ranking" class="btn btn-dashboard btn-with-kanji">
+                    <div class="kanji-circle kanji-circle-sm">位</div>
+                    <div class="btn-content">
+                        <div class="btn-title">Ranking</div>
+                        <div class="btn-desc">Clasificación de sucursales por desempeño</div>
+                    </div>
+                </a>
+
+                <!-- BOTÓN SOLO PARA USUARIO GRAFICA -->
+                {% if current_user.id == 'Grafica' %}
+                <a href="{{ url_for('reporte_semanal_grafica') }}" class="btn btn-dashboard btn-with-kanji">
+                    <div class="kanji-circle kanji-circle-sm">週</div>
+                    <div class="btn-content">
+                        <div class="btn-title">Reporte Semanal</div>
+                        <div class="btn-desc">Visualización de datos semanales (acceso restringido)</div>
+                    </div>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- IMAGEN DEL EQUIPO -->
+    <div class="team-watermark">
+        <img src="../static/logo personaje .png" alt="Equipo La Postal" class="team-watermark-photo">
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>
