@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* MANTENIENDO TODOS TUS ESTILOS ORIGINALES */
+        /* TODOS LOS ESTILOS ORIGINALES COMPLETOS */
         :root {
             --color-bg: #000000;
             --color-card: #1a1a1a;
@@ -360,11 +360,17 @@
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            padding: 0.3rem 0.5rem;
+            border-radius: 4px;
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid transparent;
         }
 
         .document-link:hover {
             color: white;
-            text-decoration: underline;
+            background-color: rgba(183, 28, 28, 0.1);
+            border-color: var(--color-accent);
+            text-decoration: none;
         }
 
         .table-action-btn {
@@ -471,7 +477,33 @@
             color: var(--color-accent);
         }
 
-        /* KANBAN */
+        /* Mejoras para el modal de archivos */
+        .modal-body iframe {
+            border-radius: 6px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-body pre {
+            background: #2a2a2a;
+            color: #e0e0e0;
+            padding: 1rem;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        .modal-body img {
+            border-radius: 6px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            max-width: 90%;
+            max-height: 70vh;
+            object-fit: contain;
+        }
+
+        /* ================= ESTILOS KANBAN ================= */
         .kanban-view {
             display: flex;
             gap: 1rem;
@@ -571,6 +603,11 @@
             align-items: center;
         }
 
+        .kanban-sucursal i {
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+
         .kanban-info {
             font-size: 0.9rem;
             color: #ccc;
@@ -658,7 +695,7 @@
         </div>
     </nav>
 
-    <!-- ENCABEZADO CORPORATIVO (Mismo diseño) -->
+    <!-- ENCABEZADO CORPORATIVO -->
     <div class="corporate-header">
         <div class="container">
             <div class="header-logo">LA POSTAL</div>
@@ -666,9 +703,9 @@
         </div>
     </div>
 
-    <!-- CONTENEDOR PRINCIPAL (Mismo diseño) -->
+    <!-- CONTENEDOR PRINCIPAL -->
     <div class="main-container">
-        <!-- TARJETAS RESUMEN (Mismo diseño) -->
+        <!-- TARJETAS RESUMEN -->
         <div class="row summary-cards g-3 mt-0">
             <div class="row g-3">
                 <div class="col-md-4">
@@ -710,7 +747,7 @@
             </div>
         </div>
 
-        <!-- CONTROLES DE VISTA (Mismo diseño) -->
+        <!-- CONTROLES DE VISTA -->
         <div class="view-controls">
             <h6 class="mb-3" style="color: #aaa;">EJEMPLO</h6>
             <div class="d-flex flex-wrap">
@@ -723,7 +760,7 @@
             </div>
         </div>
 
-        <!-- ÁREA DE FILTROS (Mismo diseño) -->
+        <!-- ÁREA DE FILTROS -->
         <div class="filter-section">
             <div class="filter-row">
                 <div class="filter-group">
@@ -778,10 +815,10 @@
             </div>
         </div>
 
-        <!-- SEPARADOR (Mismo diseño) -->
+        <!-- SEPARADOR -->
         <div class="section-divider"></div>
 
-        <!-- TABLA DE DATOS (Mismo diseño) -->
+        <!-- TABLA DE DATOS -->
         <div class="data-table-container" id="tablaContainer">
             <div class="table-responsive">
                 <table class="data-table">
@@ -804,7 +841,7 @@
                 </table>
             </div>
 
-            <!-- PIE DE TABLA (Mismo diseño) -->
+            <!-- PIE DE TABLA -->
             <div style="padding: 1rem 1.5rem; background-color: #1a1a1a; border-top: 1px solid var(--color-border);">
                 <div class="d-flex justify-content-between align-items-center">
                     <div style="color: #aaa; font-size: 0.9rem;">
@@ -819,12 +856,29 @@
             </div>
         </div>
 
-        <!-- CONTENEDOR KANBAN (Mismo diseño) -->
+        <!-- CONTENEDOR KANBAN -->
         <div id="kanbanContainer" class="data-table-container" style="display: none;">
             <div id="kanbanView" class="kanban-view"></div>
         </div>
 
-        <!-- MODAL AGREGAR REGISTRO (Mismo diseño) -->
+        <!-- MODAL VER DETALLES (para Kanban) - DEVUELTO -->
+        <div id="modalDetalle" class="modal-overlay">
+            <div class="modal-box" style="max-width: 500px;">
+                <div class="modal-header">
+                    <h3 id="modalDetalleTitulo" style="margin: 0; font-size: 1.3rem;">Detalles del Permiso</h3>
+                </div>
+                <div class="modal-body">
+                    <div id="detalleContenido"></div>
+                </div>
+                <div class="modal-footer">
+                    <button id="editarDesdeDetalle" class="btn-primary-custom" style="margin-right: 0.5rem;">
+                        <i class="fas fa-edit"></i> Editar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL AGREGAR REGISTRO -->
         <div id="modalAgregar" class="modal-overlay">
             <div class="modal-box">
                 <div class="modal-header">
@@ -947,6 +1001,22 @@
             { name: "ZONA RÍO", block: "3" }
         ];
 
+        // Iconos para archivos - DEVUELTO
+        const fileIcons = {
+            'pdf': 'fa-file-pdf',
+            'doc': 'fa-file-word',
+            'docx': 'fa-file-word',
+            'xls': 'fa-file-excel',
+            'xlsx': 'fa-file-excel',
+            'jpg': 'fa-file-image',
+            'jpeg': 'fa-file-image',
+            'png': 'fa-file-image',
+            'txt': 'fa-file-alt',
+            'zip': 'fa-file-archive',
+            'rar': 'fa-file-archive',
+            'default': 'fa-file'
+        };
+
         let permisosGuardados = [];
         let editingIndex = -1;
         let currentView = 'tabla';
@@ -1015,11 +1085,16 @@
                 if (permiso.estatus === 'en-tramite') estadoColor = '#ff9800';
                 if (permiso.estatus === 'vencido') estadoColor = '#f44336';
 
-                const archivoHTML = permiso.archivoNombre ? 
-                    `<a href="#" class="document-link ver-archivo-btn" data-index="${index}">
-                        <i class="fas fa-file"></i> ${permiso.archivoNombre}
-                    </a>` :
-                    '<span style="color: #666;">Sin archivo</span>';
+                // Archivo con icono - DEVUELTO
+                let archivoHTML = '<span style="color: #666;">Sin archivo</span>';
+                if (permiso.archivoNombre) {
+                    const fileIcon = getFileIcon(permiso.archivoNombre);
+                    archivoHTML = `
+                        <a href="#" class="document-link ver-archivo-btn" data-index="${index}">
+                            <i class="fas ${fileIcon}"></i> ${permiso.archivoNombre}
+                        </a>
+                    `;
+                }
 
                 const row = document.createElement('tr');
                 row.innerHTML = `
@@ -1047,7 +1122,7 @@
                 tablaBody.appendChild(row);
             });
 
-            // Agregar eventos
+            // Eventos - DEVUELTOS
             document.querySelectorAll('.editar-btn').forEach(btn => {
                 btn.addEventListener('click', function() {
                     abrirModal(parseInt(this.dataset.index));
@@ -1068,6 +1143,93 @@
                     mostrarArchivoModal(parseInt(this.dataset.index));
                 });
             });
+        }
+
+        // FUNCIÓN PARA OBTENER ICONO DE ARCHIVO - DEVUELTA
+        function getFileIcon(filename) {
+            if (!filename) return fileIcons.default;
+            const extension = filename.split('.').pop().toLowerCase();
+            return fileIcons[extension] || fileIcons.default;
+        }
+
+        // MODAL DE ARCHIVOS COMPLETO - DEVUELTO
+        function mostrarArchivoModal(index) {
+            const permiso = permisosGuardados[index];
+            if (!permiso.archivoData) {
+                alert('No hay archivo para mostrar');
+                return;
+            }
+
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.style.display = 'flex';
+
+            const fileData = `data:${permiso.archivoTipo};base64,${permiso.archivoData}`;
+            let contenido = '';
+            
+            if (permiso.archivoTipo.startsWith('image/')) {
+                contenido = `<img src="${fileData}" style="max-width: 100%; max-height: 70vh;" alt="${permiso.archivoNombre}">`;
+            } else if (permiso.archivoTipo === 'application/pdf') {
+                contenido = `<iframe src="${fileData}" style="width: 100%; height: 70vh;" frameborder="0"></iframe>`;
+            } else if (permiso.archivoTipo.includes('text/')) {
+                try {
+                    const textContent = atob(permiso.archivoData);
+                    contenido = `<pre style="background: #2a2a2a; padding: 1rem; border-radius: 6px; max-height: 70vh; overflow: auto;">${textContent}</pre>`;
+                } catch (e) {
+                    contenido = '<p>No se puede previsualizar este tipo de archivo. Usa el botón de descarga.</p>';
+                }
+            } else {
+                contenido = '<p>No se puede previsualizar este tipo de archivo. Usa el botón de descarga.</p>';
+            }
+
+            modal.innerHTML = `
+                <div class="modal-box" style="max-width: 800px;">
+                    <div class="modal-header">
+                        <h3 style="margin: 0; font-size: 1.3rem;">
+                            <i class="fas ${getFileIcon(permiso.archivoNombre)}"></i> ${permiso.archivoNombre}
+                        </h3>
+                        <button class="modal-close cerrar-archivo-modal">&times;</button>
+                    </div>
+                    <div class="modal-body" style="text-align: center;">
+                        ${contenido}
+                    </div>
+                    <div class="modal-footer">
+                        <button onclick="descargarArchivoDirecto(${index})" class="btn-primary-custom">
+                            <i class="fas fa-download"></i> Descargar Archivo
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+
+            modal.querySelector('.cerrar-archivo-modal').addEventListener('click', () => {
+                document.body.removeChild(modal);
+            });
+
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    document.body.removeChild(modal);
+                }
+            });
+        }
+
+        // FUNCIÓN PARA DESCARGAR ARCHIVO - DEVUELTA
+        function descargarArchivoDirecto(index) {
+            const permiso = permisosGuardados[index];
+            if (!permiso.archivoData) {
+                alert('No hay archivo para descargar');
+                return;
+            }
+
+            const fileData = `data:${permiso.archivoTipo};base64,${permiso.archivoData}`;
+            const link = document.createElement('a');
+            link.href = fileData;
+            link.download = permiso.archivoNombre;
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
 
         function abrirModal(editarIndex = -1) {
@@ -1097,7 +1259,7 @@
                 
                 const fileInfo = document.getElementById('fileInfo');
                 if (p.archivoNombre) {
-                    fileInfo.innerHTML = `<i class="fas fa-file"></i> Archivo actual: ${p.archivoNombre}`;
+                    fileInfo.innerHTML = `<i class="fas ${getFileIcon(p.archivoNombre)}"></i> Archivo actual: ${p.archivoNombre}`;
                 } else {
                     fileInfo.innerHTML = '';
                 }
@@ -1126,6 +1288,34 @@
         function cerrarModal() {
             document.getElementById('modalAgregar').style.display = 'none';
             editingIndex = -1;
+        }
+
+        function cargarBloquesModal() {
+            const select = document.getElementById('bloqueModal');
+            const bloquesUnicos = [...new Set(branchData.map(b => b.block))].sort();
+            select.innerHTML = '<option value="">Seleccionar bloque</option>' +
+                bloquesUnicos.map(b => `<option value="${b}">Bloque ${b}</option>`).join('');
+        }
+
+        function cargarSucursalesModal() {
+            const bloque = document.getElementById('bloqueModal').value;
+            const select = document.getElementById('sucursalModal');
+            select.innerHTML = '<option value="">Seleccionar sucursal</option>';
+
+            let sucursales = [];
+            if (bloque) {
+                sucursales = branchData.filter(b => b.block === bloque)
+                    .sort((a, b) => a.name.localeCompare(b.name));
+            } else {
+                sucursales = [...new Set(branchData.map(b => b.name))].sort();
+            }
+
+            sucursales.forEach(s => {
+                const option = document.createElement('option');
+                option.value = typeof s === 'object' ? s.name : s;
+                option.textContent = typeof s === 'object' ? s.name : s;
+                select.appendChild(option);
+            });
         }
 
         async function guardarPermiso() {
@@ -1256,35 +1446,6 @@
             actualizarContadores();
         }
 
-        // FUNCIONES AUXILIARES
-        function cargarBloquesModal() {
-            const select = document.getElementById('bloqueModal');
-            const bloquesUnicos = [...new Set(branchData.map(b => b.block))].sort();
-            select.innerHTML = '<option value="">Seleccionar bloque</option>' +
-                bloquesUnicos.map(b => `<option value="${b}">Bloque ${b}</option>`).join('');
-        }
-
-        function cargarSucursalesModal() {
-            const bloque = document.getElementById('bloqueModal').value;
-            const select = document.getElementById('sucursalModal');
-            select.innerHTML = '<option value="">Seleccionar sucursal</option>';
-
-            let sucursales = [];
-            if (bloque) {
-                sucursales = branchData.filter(b => b.block === bloque)
-                    .sort((a, b) => a.name.localeCompare(b.name));
-            } else {
-                sucursales = [...new Set(branchData.map(b => b.name))].sort();
-            }
-
-            sucursales.forEach(s => {
-                const option = document.createElement('option');
-                option.value = typeof s === 'object' ? s.name : s;
-                option.textContent = typeof s === 'object' ? s.name : s;
-                select.appendChild(option);
-            });
-        }
-
         function actualizarContadores() {
             const vigentes = permisosGuardados.filter(p => p.estatus === 'vigente').length;
             const vencidos = permisosGuardados.filter(p => p.estatus === 'vencido').length;
@@ -1309,26 +1470,7 @@
             document.getElementById('contadorTotal').textContent = total;
         }
 
-        function mostrarArchivoModal(index) {
-            const permiso = permisosGuardados[index];
-            if (!permiso.archivoData) {
-                alert('No hay archivo para mostrar');
-                return;
-            }
-
-            const fileData = `data:${permiso.archivoTipo};base64,${permiso.archivoData}`;
-            const win = window.open();
-            win.document.write(`
-                <html>
-                <head><title>${permiso.archivoNombre}</title></head>
-                <body style="margin:0;padding:0;">
-                    <iframe src="${fileData}" style="width:100%;height:100vh;border:none;"></iframe>
-                </body>
-                </html>
-            `);
-        }
-
-        // VISTAS KANBAN
+        // VISTAS KANBAN COMPLETAS - DEVUELTAS
         function mostrarKanban(registros) {
             const kanbanView = document.getElementById('kanbanView');
             if (!kanbanView) return;
@@ -1353,12 +1495,30 @@
                 } else {
                     registrosColumna.forEach(permiso => {
                         const index = permisosGuardados.findIndex(p => p.id === permiso.id);
+                        const fileIcon = permiso.archivoNombre ? getFileIcon(permiso.archivoNombre) : 'fa-file';
+
                         contenido += `
                             <div class="kanban-tarjeta ${columna.id}" data-index="${index}">
-                                <div class="kanban-sucursal">${permiso.sucursal || 'Sin sucursal'}</div>
-                                <div class="kanban-info"><strong>Permiso:</strong> ${permiso.permiso || ''}</div>
-                                <div class="kanban-info"><strong>Bloque:</strong> ${permiso.bloque || ''}</div>
-                                <div class="kanban-info"><strong>Estatus:</strong> ${permiso.estatus || ''}</div>
+                                <div class="kanban-sucursal">
+                                    ${permiso.sucursal || 'Sin sucursal'}
+                                    <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="kanban-info">
+                                    <strong>Permiso:</strong> ${permiso.permiso || ''}
+                                </div>
+                                <div class="kanban-info">
+                                    <strong>Bloque:</strong> ${permiso.bloque || ''}
+                                </div>
+                                <div class="kanban-info">
+                                    <strong>Existencia:</strong> ${permiso.existencia || ''}
+                                </div>
+                                ${permiso.archivoNombre ? `
+                                <div class="kanban-archivo">
+                                    <a href="#" class="document-link ver-archivo-kanban" data-index="${index}">
+                                        <i class="fas ${fileIcon}"></i> Ver ${permiso.archivoNombre.split('.').pop().toUpperCase()}
+                                    </a>
+                                </div>
+                                ` : ''}
                             </div>
                         `;
                     });
@@ -1368,11 +1528,164 @@
                 kanbanView.appendChild(columnaHTML);
             });
 
+            // Eventos para Kanban - DEVUELTOS
             document.querySelectorAll('.kanban-tarjeta').forEach(tarjeta => {
-                tarjeta.addEventListener('click', function() {
-                    abrirModal(parseInt(this.dataset.index));
+                tarjeta.addEventListener('click', function(e) {
+                    if (!e.target.closest('.document-link')) {
+                        mostrarDetalleModal(parseInt(this.dataset.index));
+                    }
                 });
             });
+
+            document.querySelectorAll('.ver-archivo-kanban').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    mostrarArchivoModal(parseInt(this.dataset.index));
+                });
+            });
+        }
+
+        // MODAL DE DETALLES COMPLETO - DEVUELTO
+        function mostrarDetalleModal(index) {
+            const permiso = permisosGuardados[index];
+            if (!permiso) return;
+
+            const modal = document.getElementById('modalDetalle');
+            const titulo = document.getElementById('modalDetalleTitulo');
+            const contenido = document.getElementById('detalleContenido');
+            const btnEditar = document.getElementById('editarDesdeDetalle');
+
+            titulo.textContent = `${permiso.sucursal || 'Permiso'}`;
+
+            const colorEstatus = getColorPorEstatus(permiso.estatus);
+            const fileIcon = permiso.archivoNombre ? getFileIcon(permiso.archivoNombre) : 'fa-file';
+
+            let contenidoHTML = `
+                <div style="margin-bottom: 1.5rem;">
+                    <div style="display: flex; align-items: center; margin-bottom: 1rem;">
+                        <span class="status-badge" style="
+                            background-color: ${colorEstatus}20; 
+                            color: ${colorEstatus}; 
+                            border-color: ${colorEstatus}40;
+                            font-size: 0.9rem;
+                        ">
+                            ${permiso.estatus ? permiso.estatus.toUpperCase() : 'SIN ESTATUS'}
+                        </span>
+                        <span style="margin-left: auto; color: #aaa; font-size: 0.9rem;">
+                            ID: ${permiso.id}
+                        </span>
+                    </div>
+                    
+                    <div style="background-color: #2a2a2a; border-radius: 8px; padding: 1.5rem;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                            <div>
+                                <div style="color: #aaa; font-size: 0.85rem; margin-bottom: 0.3rem;">Asigna</div>
+                                <div style="color: white; font-weight: 500;">${permiso.asigna || 'No asignado'}</div>
+                            </div>
+                            <div>
+                                <div style="color: #aaa; font-size: 0.85rem; margin-bottom: 0.3rem;">Permiso</div>
+                                <div style="color: white; font-weight: 500;">${permiso.permiso || 'Sin permiso'}</div>
+                            </div>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                            <div>
+                                <div style="color: #aaa; font-size: 0.85rem; margin-bottom: 0.3rem;">Bloque</div>
+                                <div style="color: white; font-weight: 500;">${permiso.bloque || ''}</div>
+                            </div>
+                            <div>
+                                <div style="color: #aaa; font-size: 0.85rem; margin-bottom: 0.3rem;">Sucursal</div>
+                                <div style="color: white; font-weight: 500;">${permiso.sucursal || 'Sin sucursal'}</div>
+                            </div>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                            <div>
+                                <div style="color: #aaa; font-size: 0.85rem; margin-bottom: 0.3rem;">Existencia</div>
+                                <div style="color: white; font-weight: 500;">${permiso.existencia || 'Sin información'}</div>
+                            </div>
+                            <div>
+                                <div style="color: #aaa; font-size: 0.85rem; margin-bottom: 0.3rem;">Estatus Legal</div>
+                                <div style="color: white; font-weight: 500;">${permiso.estatusLegal || 'Sin estatus legal'}</div>
+                            </div>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                            <div>
+                                <div style="color: #aaa; font-size: 0.85rem; margin-bottom: 0.3rem;">Fecha Expedición</div>
+                                <div style="color: white; font-weight: 500;">${permiso.fechaExpedicion || 'No especificada'}</div>
+                            </div>
+                            <div>
+                                <div style="color: #aaa; font-size: 0.85rem; margin-bottom: 0.3rem;">Fecha Renovación</div>
+                                <div style="color: white; font-weight: 500;">${permiso.fechaRenovacion || 'No especificada'}</div>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--color-border);">
+                            <div style="color: #aaa; font-size: 0.85rem; margin-bottom: 0.5rem;">Documento</div>
+            `;
+
+            if (permiso.archivoNombre) {
+                contenidoHTML += `
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <a href="#" class="document-link ver-archivo-detalle" data-index="${index}" style="flex: 1;">
+                            <i class="fas ${fileIcon}"></i> ${permiso.archivoNombre}
+                        </a>
+                        <button class="btn-secondary-custom" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;" onclick="descargarArchivoDirecto(${index})">
+                            <i class="fas fa-download"></i>
+                        </button>
+                    </div>
+                `;
+            } else {
+                contenidoHTML += `
+                    <div style="color: #666; font-style: italic;">
+                        No hay documento adjunto
+                    </div>
+                `;
+            }
+
+            contenidoHTML += `
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            contenido.innerHTML = contenidoHTML;
+
+            btnEditar.onclick = function() {
+                cerrarDetalleModal();
+                setTimeout(() => {
+                    abrirModal(index);
+                }, 100);
+            };
+
+            modal.style.display = 'flex';
+
+            // Evento para el enlace de archivo en el detalle
+            const archivoLink = document.querySelector('.ver-archivo-detalle');
+            if (archivoLink) {
+                archivoLink.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    mostrarArchivoModal(index);
+                });
+            }
+        }
+
+        function cerrarDetalleModal() {
+            const modal = document.getElementById('modalDetalle');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        function getColorPorEstatus(estatus) {
+            switch (estatus) {
+                case 'vigente': return '#4caf50';
+                case 'en-tramite': return '#ff9800';
+                case 'vencido': return '#f44336';
+                default: return '#9c27b0';
+            }
         }
 
         function cambiarVista(vista) {
@@ -1409,7 +1722,7 @@
                 filtrarVistaActual();
             });
 
-            ['branchFilter', 'permisoFilter', 'estatusFilter', 'estatusLegalFilter'].forEach(id => {
+            ['branchFilter', 'permisoFilter', 'estatusFilter'].forEach(id => {
                 document.getElementById(id)?.addEventListener('change', filtrarVistaActual);
             });
 
@@ -1442,7 +1755,6 @@
             const branchFilter = document.getElementById('branchFilter').value;
             const permisoFilter = document.getElementById('permisoFilter').value;
             const estatusFilter = document.getElementById('estatusFilter').value;
-            const estatusLegalFilter = document.getElementById('estatusLegalFilter')?.value || 'all';
             const busqueda = document.getElementById('busquedaInput').value.toLowerCase();
 
             let filtrados = [...permisosGuardados];
@@ -1451,7 +1763,6 @@
             if (branchFilter !== 'all') filtrados = filtrados.filter(p => p.sucursal === branchFilter);
             if (permisoFilter !== 'all') filtrados = filtrados.filter(p => p.permiso === permisoFilter);
             if (estatusFilter !== 'all') filtrados = filtrados.filter(p => p.estatus === estatusFilter);
-            if (estatusLegalFilter !== 'all') filtrados = filtrados.filter(p => p.estatusLegal === estatusLegalFilter);
             if (busqueda) {
                 filtrados = filtrados.filter(p => 
                     (p.sucursal && p.sucursal.toLowerCase().includes(busqueda)) ||
@@ -1479,7 +1790,7 @@
             document.getElementById('btnVistaTabla').addEventListener('click', () => cambiarVista('tabla'));
             document.getElementById('btnVistaKanban').addEventListener('click', () => cambiarVista('kanban'));
 
-            // Eventos de modal
+            // Eventos de modal principal
             document.getElementById('btnAgregar').addEventListener('click', () => abrirModal());
             document.getElementById('cancelarModal').addEventListener('click', cerrarModal);
             document.getElementById('guardarRegistro').addEventListener('click', guardarPermiso);
@@ -1496,10 +1807,15 @@
                 if (this.files.length > 0) {
                     const file = this.files[0];
                     const fileSize = (file.size / 1024).toFixed(2);
-                    fileInfo.innerHTML = `<i class="fas fa-file"></i> ${file.name} (${fileSize} KB)`;
+                    fileInfo.innerHTML = `<i class="fas ${getFileIcon(file.name)}"></i> ${file.name} (${fileSize} KB)`;
                 } else {
                     fileInfo.innerHTML = '';
                 }
+            });
+
+            // Eventos modal detalle
+            document.getElementById('modalDetalle').addEventListener('click', function(e) {
+                if (e.target === this) cerrarDetalleModal();
             });
 
             console.log('✅ Aplicación inicializada correctamente');
