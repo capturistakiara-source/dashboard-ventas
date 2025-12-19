@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <title>Planeación - La Postal</title>
@@ -677,6 +678,7 @@
         }
     </style>
 </head>
+
 <body>
     <!-- NAVBAR (Mismo diseño) -->
     <nav class="navbar navbar-expand-lg navbar-dark">
@@ -686,7 +688,8 @@
             </a>
             <div class="navbar-nav ms-auto">
                 <span class="navbar-text me-3">
-                    Hola, <span style="color: #b71c1c; font-weight: 500;" id="nombreUsuario">{{ current_user.nombre }}</span>
+                    Hola, <span style="color: #b71c1c; font-weight: 500;" id="nombreUsuario">{{ current_user.nombre
+                        }}</span>
                 </span>
                 <a class="nav-link" href="{{ url_for('home') }}">Dashboard</a>
                 <a class="nav-link" href="{{ url_for('perfil') }}">Perfil</a>
@@ -1126,13 +1129,13 @@
 
             // Eventos - DEVUELTOS
             document.querySelectorAll('.editar-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
+                btn.addEventListener('click', function () {
                     abrirModal(parseInt(this.dataset.index));
                 });
             });
 
             document.querySelectorAll('.eliminar-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
+                btn.addEventListener('click', function () {
                     if (confirm('¿Estás seguro de eliminar este registro?')) {
                         eliminarRegistro(parseInt(this.dataset.index));
                     }
@@ -1140,7 +1143,7 @@
             });
 
             document.querySelectorAll('.ver-archivo-btn').forEach(link => {
-                link.addEventListener('click', function(e) {
+                link.addEventListener('click', function (e) {
                     e.preventDefault();
                     mostrarArchivoModal(parseInt(this.dataset.index));
                 });
@@ -1168,7 +1171,7 @@
 
             const fileData = `data:${permiso.archivoTipo};base64,${permiso.archivoData}`;
             let contenido = '';
-            
+
             if (permiso.archivoTipo.startsWith('image/')) {
                 contenido = `<img src="${fileData}" style="max-width: 100%; max-height: 70vh;" alt="${permiso.archivoNombre}">`;
             } else if (permiso.archivoTipo === 'application/pdf') {
@@ -1238,9 +1241,9 @@
             editingIndex = editarIndex;
             const modal = document.getElementById('modalAgregar');
             const modalTitulo = document.getElementById('modalTitulo');
-            
+
             modalTitulo.textContent = editarIndex >= 0 ? 'Editar Permiso' : 'Agregar Permiso';
-            
+
             cargarBloquesModal();
             cargarSucursalesModal();
 
@@ -1258,7 +1261,7 @@
                 document.getElementById('fechaRenovacion').value = p.fechaRenovacion || '';
                 document.getElementById('estatusLegal').value = p.estatusLegal || '';
                 document.getElementById('permisoDigital').value = '';
-                
+
                 const fileInfo = document.getElementById('fileInfo');
                 if (p.archivoNombre) {
                     fileInfo.innerHTML = `<i class="fas ${getFileIcon(p.archivoNombre)}"></i> Archivo actual: ${p.archivoNombre}`;
@@ -1272,11 +1275,11 @@
                 document.getElementById('permiso').value = 'Anuncios';
                 document.getElementById('existencia').value = 'Recibo';
                 document.getElementById('estatus').value = 'vigente';
-                
+
                 const today = new Date();
                 const nextYear = new Date(today);
                 nextYear.setFullYear(today.getFullYear() + 1);
-                
+
                 document.getElementById('fechaExpedicion').value = today.toISOString().split('T')[0];
                 document.getElementById('fechaRenovacion').value = nextYear.toISOString().split('T')[0];
                 document.getElementById('estatusLegal').value = '✓';
@@ -1332,7 +1335,6 @@
             }
 
             const nuevoPermiso = {
-                id: editingIndex >= 0 ? permisosGuardados[editingIndex].id : Date.now(),
                 asigna: asigna,
                 bloque: bloque,
                 sucursal: sucursal,
@@ -1342,7 +1344,6 @@
                 fechaExpedicion: document.getElementById('fechaExpedicion').value,
                 fechaRenovacion: document.getElementById('fechaRenovacion').value,
                 estatusLegal: document.getElementById('estatusLegal').value,
-                fechaCreacion: editingIndex >= 0 ? permisosGuardados[editingIndex].fechaCreacion : new Date().toISOString().split('T')[0],
                 archivoNombre: '',
                 archivoData: '',
                 archivoTipo: ''
@@ -1352,20 +1353,118 @@
             if (fileInput && fileInput.files.length > 0) {
                 const file = fileInput.files[0];
                 const reader = new FileReader();
-                reader.onload = function(e) {
+                reader.onload = function (e) {
                     nuevoPermiso.archivoNombre = file.name;
                     nuevoPermiso.archivoData = e.target.result.split(',')[1];
                     nuevoPermiso.archivoTipo = file.type;
                     finalizarGuardado(nuevoPermiso);
                 };
                 reader.readAsDataURL(file);
-            } else if (editingIndex >= 0 && permisosGuardados[editingIndex].archivoNombre) {
-                nuevoPermiso.archivoNombre = permisosGuardados[editingIndex].archivoNombre;
-                nuevoPermiso.archivoData = permisosGuardados[editingIndex].archivoData;
-                nuevoPermiso.archivoTipo = permisosGuardados[editingIndex].archivoTipo;
-                finalizarGuardado(nuevoPermiso);
             } else {
                 finalizarGuardado(nuevoPermiso);
+            }
+        }
+
+        async function finalizarGuardado(nuevoPermiso) {
+            // VERIFICA QUÉ DATOS SE VAN A ENVIAR
+            console.log('📤 Datos a guardar en Supabase:', nuevoPermiso);
+
+            const datosSupabase = {
+                anexa: nuevoPermiso.asigna || '',
+                bloque: nuevoPermiso.bloque || '',
+                sucursal: nuevoPermiso.sucursal || '',
+                tipo_permiso: nuevoPermiso.permiso || '',
+                existencia: nuevoPermiso.existencia || '',
+                estatus: nuevoPermiso.estatus || '',
+                fecha_expedicion: nuevoPermiso.fechaExpedicion || null,
+                fecha_renovacion: nuevoPermiso.fechaRenovacion || null,
+                estatus_legal: nuevoPermiso.estatusLegal || '',
+                permiso_legal: nuevoPermiso.estatusLegal || '',
+                archive_nombre: nuevoPermiso.archivoNombre || null,
+                archive_data: nuevoPermiso.archivoData || null,
+                archive_tipo: nuevoPermiso.archivoTipo || null,
+                archivo_url: ''
+            };
+
+            console.log('📤 Mapeado a estructura Supabase:', datosSupabase);
+
+            try {
+                let resultadoSupabase;
+
+                if (editingIndex >= 0 && permisosGuardados[editingIndex].id) {
+                    console.log(`📝 Actualizando registro ID: ${permisosGuardados[editingIndex].id}`);
+
+                    const { data, error } = await supabaseClient
+                        .from('datos_financieros')
+                        .update(datosSupabase)
+                        .eq('id', permisosGuardados[editingIndex].id)
+                        .select();
+
+                    if (error) {
+                        console.error('❌ Error en UPDATE:', error);
+                        throw error;
+                    }
+
+                    resultadoSupabase = data[0];
+                    console.log('✅ Actualización exitosa:', resultadoSupabase);
+
+                } else {
+                    console.log('➕ Insertando nuevo registro');
+
+                    const { data, error } = await supabaseClient
+                        .from('datos_financieros')
+                        .insert([datosSupabase])
+                        .select();
+
+                    if (error) {
+                        console.error('❌ Error en INSERT:', error);
+                        throw error;
+                    }
+
+                    resultadoSupabase = data[0];
+                    console.log('✅ Inserción exitosa:', resultadoSupabase);
+                }
+
+                // Actualiza el array local
+                const permisoActualizado = {
+                    ...nuevoPermiso,
+                    id: resultadoSupabase.id,
+                    fechaCreacion: resultadoSupabase.creado_en
+                };
+
+                if (editingIndex >= 0) {
+                    permisosGuardados[editingIndex] = permisoActualizado;
+                } else {
+                    permisosGuardados.push(permisoActualizado);
+                }
+
+                localStorage.setItem('permisos', JSON.stringify(permisosGuardados));
+                cerrarModal();
+                mostrarRegistrosEnTabla(permisosGuardados);
+                actualizarContadores();
+                alert('✅ Permiso guardado exitosamente en Supabase');
+
+            } catch (error) {
+                console.error('❌ Error completo en Supabase:', error);
+                console.error('Mensaje de error:', error.message);
+                console.error('Detalles:', error.details);
+
+                // Fallback: guardar solo localmente
+                if (editingIndex >= 0) {
+                    permisosGuardados[editingIndex] = nuevoPermiso;
+                } else {
+                    permisosGuardados.push({
+                        ...nuevoPermiso,
+                        id: Date.now(),
+                        fechaCreacion: new Date().toISOString()
+                    });
+                }
+
+                localStorage.setItem('permisos', JSON.stringify(permisosGuardados));
+                cerrarModal();
+                mostrarRegistrosEnTabla(permisosGuardados);
+                actualizarContadores();
+                alert('⚠️ Se guardó localmente debido a error en Supabase. Revisa la consola para más detalles.');
             }
         }
 
@@ -1489,9 +1588,9 @@
                 const registrosColumna = registros.filter(columna.filtro);
                 const columnaHTML = document.createElement('div');
                 columnaHTML.className = 'kanban-columna';
-                
+
                 let contenido = `<div class="kanban-header ${columna.id}">${columna.titulo}</div><div class="kanban-tarjetas">`;
-                
+
                 if (registrosColumna.length === 0) {
                     contenido += `<div class="kanban-sin-actividades">Sin actividades</div>`;
                 } else {
@@ -1532,7 +1631,7 @@
 
             // Eventos para Kanban - DEVUELTOS
             document.querySelectorAll('.kanban-tarjeta').forEach(tarjeta => {
-                tarjeta.addEventListener('click', function(e) {
+                tarjeta.addEventListener('click', function (e) {
                     if (!e.target.closest('.document-link')) {
                         mostrarDetalleModal(parseInt(this.dataset.index));
                     }
@@ -1540,7 +1639,7 @@
             });
 
             document.querySelectorAll('.ver-archivo-kanban').forEach(link => {
-                link.addEventListener('click', function(e) {
+                link.addEventListener('click', function (e) {
                     e.preventDefault();
                     e.stopPropagation();
                     mostrarArchivoModal(parseInt(this.dataset.index));
@@ -1655,7 +1754,7 @@
 
             contenido.innerHTML = contenidoHTML;
 
-            btnEditar.onclick = function() {
+            btnEditar.onclick = function () {
                 cerrarDetalleModal();
                 setTimeout(() => {
                     abrirModal(index);
@@ -1667,7 +1766,7 @@
             // Evento para el enlace de archivo en el detalle
             const archivoLink = document.querySelector('.ver-archivo-detalle');
             if (archivoLink) {
-                archivoLink.addEventListener('click', function(e) {
+                archivoLink.addEventListener('click', function (e) {
                     e.preventDefault();
                     mostrarArchivoModal(index);
                 });
@@ -1719,7 +1818,7 @@
 
             actualizarFiltroSucursales('all');
 
-            blockFilter.addEventListener('change', function() {
+            blockFilter.addEventListener('change', function () {
                 actualizarFiltroSucursales(this.value);
                 filtrarVistaActual();
             });
@@ -1766,7 +1865,7 @@
             if (permisoFilter !== 'all') filtrados = filtrados.filter(p => p.permiso === permisoFilter);
             if (estatusFilter !== 'all') filtrados = filtrados.filter(p => p.estatus === estatusFilter);
             if (busqueda) {
-                filtrados = filtrados.filter(p => 
+                filtrados = filtrados.filter(p =>
                     (p.sucursal && p.sucursal.toLowerCase().includes(busqueda)) ||
                     (p.permiso && p.permiso.toLowerCase().includes(busqueda)) ||
                     (p.existencia && p.existencia.toLowerCase().includes(busqueda)) ||
@@ -1782,9 +1881,9 @@
         }
 
         // INICIALIZACIÓN
-        document.addEventListener('DOMContentLoaded', async function() {
+        document.addEventListener('DOMContentLoaded', async function () {
             console.log('🚀 Iniciando aplicación...');
-            
+
             await cargarDatosIniciales();
             inicializarFiltros();
 
@@ -1796,15 +1895,15 @@
             document.getElementById('btnAgregar').addEventListener('click', () => abrirModal());
             document.getElementById('cancelarModal').addEventListener('click', cerrarModal);
             document.getElementById('guardarRegistro').addEventListener('click', guardarPermiso);
-            
-            document.getElementById('modalAgregar').addEventListener('click', function(e) {
+
+            document.getElementById('modalAgregar').addEventListener('click', function (e) {
                 if (e.target === this) cerrarModal();
             });
 
             // Eventos de formulario
             document.getElementById('bloqueModal').addEventListener('change', cargarSucursalesModal);
-            
-            document.getElementById('permisoDigital').addEventListener('change', function() {
+
+            document.getElementById('permisoDigital').addEventListener('change', function () {
                 const fileInfo = document.getElementById('fileInfo');
                 if (this.files.length > 0) {
                     const file = this.files[0];
@@ -1816,12 +1915,145 @@
             });
 
             // Eventos modal detalle
-            document.getElementById('modalDetalle').addEventListener('click', function(e) {
+            document.getElementById('modalDetalle').addEventListener('click', function (e) {
                 if (e.target === this) cerrarDetalleModal();
             });
 
             console.log('✅ Aplicación inicializada correctamente');
         });
+        async function cargarDatosIniciales() {
+            try {
+                console.log('🔄 Cargando datos desde Supabase...');
+
+                // PRIMERO: Verifica la estructura real de la tabla
+                const { data: testData, error: testError } = await supabaseClient
+                    .from('datos_financieros')
+                    .select('*')
+                    .limit(1);
+
+                if (!testError && testData && testData.length > 0) {
+                    console.log('📊 Estructura del primer registro:', testData[0]);
+                    console.log('📊 Columnas disponibles:', Object.keys(testData[0]));
+                }
+
+                // SEGUNDO: Carga todos los datos
+                const { data, error } = await supabaseClient
+                    .from('datos_financieros')
+                    .select('*')
+                    .order('creado_en', { ascending: false });
+
+                if (error) throw error;
+
+                console.log('✅ Datos crudos de Supabase:', data);
+
+                if (data && data.length > 0) {
+                    // Mapeo CORREGIDO - usa los nombres reales de las columnas
+                    permisosGuardados = data.map(item => {
+                        console.log('📋 Procesando item:', item); // Debug
+
+                        return {
+                            id: item.id,
+                            asigna: item.anexa || item.asigna || '',
+                            bloque: item.bloque || '',
+                            sucursal: item.sucursal || '',
+                            permiso: item.tipo_permiso || item.permiso || '',
+                            existencia: item.existencia || '',
+                            estatus: item.estatus || '',
+                            fechaExpedicion: item.fecha_expedicion || '',
+                            fechaRenovacion: item.fecha_renovacion || '',
+                            estatusLegal: item.estatus_legal || '',
+                            permisoLegal: item.permiso_legal || '',
+                            archivoNombre: item.archive_nombre || '',
+                            archivoData: item.archive_data || '',
+                            archivoTipo: item.archive_tipo || '',
+                            fechaCreacion: item.creado_en || new Date().toISOString()
+                        };
+                    });
+
+                    console.log(`✅ Cargados ${permisosGuardados.length} registros mapeados:`, permisosGuardados);
+                } else {
+                    console.log('ℹ️ No hay datos en Supabase');
+                    permisosGuardados = JSON.parse(localStorage.getItem('permisos')) || [];
+                }
+
+                // Guarda copia local por si acaso
+                localStorage.setItem('permisos', JSON.stringify(permisosGuardados));
+
+            } catch (error) {
+                console.error('❌ Error cargando datos:', error);
+                console.error('Detalles del error:', error.message);
+
+                // Fallback a localStorage
+                permisosGuardados = JSON.parse(localStorage.getItem('permisos')) || [];
+                console.log('⚠️ Usando datos de localStorage:', permisosGuardados.length);
+            }
+
+            mostrarRegistrosEnTabla(permisosGuardados);
+            actualizarContadores();
+        }
+
+        // FUNCIÓN DE DIAGNÓSTICO - Agrega al inicio del script
+        async function diagnosticarSupabase() {
+            console.log('🔍 INICIANDO DIAGNÓSTICO SUPABASE');
+
+            try {
+                // 1. Verificar conexión
+                console.log('1. Verificando conexión a Supabase...');
+                const { data: connectionTest, error: connectionError } = await supabaseClient
+                    .from('datos_financieros')
+                    .select('count')
+                    .limit(1);
+
+                if (connectionError) {
+                    console.error('❌ Error de conexión:', connectionError);
+                    return false;
+                }
+                console.log('✅ Conexión a Supabase OK');
+
+                // 2. Verificar estructura de tabla
+                console.log('2. Verificando estructura de tabla...');
+                const { data: sampleData, error: sampleError } = await supabaseClient
+                    .from('datos_financieros')
+                    .select('*')
+                    .limit(2);
+
+                if (sampleError) {
+                    console.error('❌ Error al leer tabla:', sampleError);
+                    return false;
+                }
+
+                if (sampleData && sampleData.length > 0) {
+                    console.log('✅ Tabla contiene datos:', sampleData.length, 'registros');
+                    console.log('📋 Primer registro:', sampleData[0]);
+                    console.log('🗂️ Columnas disponibles:', Object.keys(sampleData[0]));
+                } else {
+                    console.log('ℹ️ Tabla vacía');
+                }
+
+                return true;
+
+            } catch (error) {
+                console.error('❌ Error en diagnóstico:', error);
+                return false;
+            }
+        }
+
+        // Llama al diagnóstico al cargar la página
+        document.addEventListener('DOMContentLoaded', async function () {
+            console.log('🚀 Iniciando aplicación...');
+
+            // Ejecuta diagnóstico
+            await diagnosticarSupabase();
+
+            // Luego carga los datos
+            await cargarDatosIniciales();
+            inicializarFiltros();
+
+            // ... resto del código de inicialización ...
+        });
+
+
     </script>
 </body>
+
 </html>
