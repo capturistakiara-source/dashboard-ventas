@@ -1006,115 +1006,38 @@
             { name: "ZONA RÍO", block: "3" }
         ];
 
-        // Iconos para archivos
-        const fileIcons = {
-            'pdf': 'fa-file-pdf',
-            'doc': 'fa-file-word',
-            'docx': 'fa-file-word',
-            'xls': 'fa-file-excel',
-            'xlsx': 'fa-file-excel',
-            'jpg': 'fa-file-image',
-            'jpeg': 'fa-file-image',
-            'png': 'fa-file-image',
-            'txt': 'fa-file-alt',
-            'zip': 'fa-file-archive',
-            'rar': 'fa-file-archive',
-            'default': 'fa-file'
-        };
-
         let permisosGuardados = [];
         let editingIndex = -1;
         let currentView = 'tabla';
 
-        // FUNCIÓN DE DIAGNÓSTICO
-        async function diagnosticarSupabase() {
-            console.log('🔍 INICIANDO DIAGNÓSTICO SUPABASE');
-
-            try {
-                // 1. Verificar conexión
-                console.log('1. Verificando conexión a Supabase...');
-                const { data: connectionTest, error: connectionError } = await supabaseClient
-                    .from('datos_financieros')
-                    .select('count')
-                    .limit(1);
-
-                if (connectionError) {
-                    console.error('❌ Error de conexión:', connectionError);
-                    return false;
-                }
-                console.log('✅ Conexión a Supabase OK');
-
-                // 2. Verificar estructura de tabla
-                console.log('2. Verificando estructura de tabla...');
-                const { data: sampleData, error: sampleError } = await supabaseClient
-                    .from('datos_financieros')
-                    .select('*')
-                    .limit(2);
-
-                if (sampleError) {
-                    console.error('❌ Error al leer tabla:', sampleError);
-                    return false;
-                }
-
-                if (sampleData && sampleData.length > 0) {
-                    console.log('✅ Tabla contiene datos:', sampleData.length, 'registros');
-                    console.log('📋 Primer registro completo:', sampleData[0]);
-                    console.log('🗂️ Columnas disponibles:', Object.keys(sampleData[0]));
-
-                    // Mostrar todos los valores para debug
-                    Object.keys(sampleData[0]).forEach(key => {
-                        console.log(`   ${key}:`, sampleData[0][key], `(tipo: ${typeof sampleData[0][key]})`);
-                    });
-                } else {
-                    console.log('ℹ️ Tabla vacía');
-                }
-
-                return true;
-
-            } catch (error) {
-                console.error('❌ Error en diagnóstico:', error);
-                return false;
-            }
-        }
-
-        // FUNCIONES PRINCIPALES - VERSIÓN ÚNICA Y CORREGIDA
+        // FUNCIÓN PRINCIPAL CORREGIDA - VERSIÓN SIMPLE
         async function cargarDatosIniciales() {
             try {
                 console.log('🔄 Cargando datos desde Supabase...');
 
-                // PRIMERO: Verifica la estructura real de la tabla
-                const { data: testData, error: testError } = await supabaseClient
-                    .from('datos_financieros')
-                    .select('*')
-                    .limit(1);
-
-                if (!testError && testData && testData.length > 0) {
-                    console.log('📊 DEBUG: Estructura del primer registro:', testData[0]);
-                    console.log('📊 DEBUG: Columnas disponibles:', Object.keys(testData[0]));
-                }
-
-                // SEGUNDO: Carga todos los datos
+                // Carga TODOS los datos sin filtros
                 const { data, error } = await supabaseClient
                     .from('datos_financieros')
                     .select('*')
                     .order('creado_en', { ascending: false });
 
                 if (error) {
-                    console.error('❌ Error en consulta Supabase:', error);
+                    console.error('❌ Error en Supabase:', error);
                     throw error;
                 }
 
-                console.log('✅ DEBUG: Datos crudos de Supabase:', data);
+                console.log('✅ Datos recibidos de Supabase:', data);
+                console.log(`📊 Total de registros: ${data ? data.length : 0}`);
 
                 if (data && data.length > 0) {
-                    // Mapeo CORREGIDO con valores por defecto
+                    // Mapeo SIMPLE y DIRECTO
                     permisosGuardados = data.map(item => {
-                        // Debug de cada item
-                        console.log('📋 Procesando item ID:', item.id, item);
+                        console.log('📋 Procesando registro ID:', item.id, item);
 
+                        // Asegúrate de que los nombres coincidan EXACTAMENTE con tu tabla
                         return {
                             id: item.id,
-                            asigna: item.anexa || item.asigna || '',
+                            asigna: item.anexa || item.asigna || '',  // Probablemente es 'anexa'
                             bloque: item.bloque || '',
                             sucursal: item.sucursal || '',
                             permiso: item.tipo_permiso || item.permiso || '',
@@ -1123,7 +1046,7 @@
                             fechaExpedicion: item.fecha_expedicion || '',
                             fechaRenovacion: item.fecha_renovacion || '',
                             estatusLegal: item.estatus_legal || '',
-                            permisoLegal: item.permiso_legal || item.estatus_legal || '',
+                            permisoLegal: item.permiso_legal || '',
                             archivoNombre: item.archive_nombre || '',
                             archivoData: item.archive_data || '',
                             archivoTipo: item.archive_tipo || '',
@@ -1131,29 +1054,67 @@
                         };
                     });
 
-                    console.log(`✅ Cargados ${permisosGuardados.length} registros mapeados`);
-                    console.log('📊 Ejemplo del primer registro mapeado:', permisosGuardados[0]);
+                    console.log(`🎯 Mapeados ${permisosGuardados.length} registros`);
+                    console.log('📄 Primer registro mapeado:', permisosGuardados[0]);
+
+                    // Guarda en localStorage como respaldo
+                    localStorage.setItem('permisos', JSON.stringify(permisosGuardados));
+
                 } else {
                     console.log('ℹ️ No hay datos en Supabase');
+                    // Intenta cargar de localStorage
                     permisosGuardados = JSON.parse(localStorage.getItem('permisos')) || [];
                 }
 
-                // Guarda copia local por si acaso
-                localStorage.setItem('permisos', JSON.stringify(permisosGuardados));
-
             } catch (error) {
                 console.error('❌ Error cargando datos:', error);
-                console.error('Detalles del error:', error.message);
+                console.error('Mensaje:', error.message);
 
                 // Fallback a localStorage
                 permisosGuardados = JSON.parse(localStorage.getItem('permisos')) || [];
                 console.log('⚠️ Usando datos de localStorage:', permisosGuardados.length);
             }
 
+            // Muestra los datos
             mostrarRegistrosEnTabla(permisosGuardados);
             actualizarContadores();
         }
 
+        // FUNCIÓN PARA VER ESTRUCTURA DE LA TABLA
+        async function verEstructuraTabla() {
+            console.log('🔍 Verificando estructura de tabla...');
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('datos_financieros')
+                    .select('*')
+                    .limit(1);
+
+                if (error) {
+                    console.error('❌ Error:', error);
+                    return;
+                }
+
+                if (data && data.length > 0) {
+                    console.log('📋 ESTRUCTURA DEL PRIMER REGISTRO:');
+                    const primerRegistro = data[0];
+
+                    // Muestra TODAS las propiedades
+                    Object.keys(primerRegistro).forEach(key => {
+                        const valor = primerRegistro[key];
+                        console.log(`   ${key}:`, valor, `(tipo: ${typeof valor}, longitud: ${valor ? valor.length : 0})`);
+                    });
+
+                    console.log('🔑 CLAVES DISPONIBLES:', Object.keys(primerRegistro));
+                } else {
+                    console.log('ℹ️ Tabla vacía');
+                }
+            } catch (error) {
+                console.error('❌ Error:', error);
+            }
+        }
+
+        // FUNCIÓN SIMPLIFICADA PARA MOSTRAR DATOS
         function mostrarRegistrosEnTabla(registros) {
             const tablaBody = document.getElementById('tablaBody');
             if (!tablaBody) {
@@ -1162,7 +1123,12 @@
             }
 
             tablaBody.innerHTML = '';
-            document.getElementById('contadorRegistros').textContent = registros.length;
+            const contador = document.getElementById('contadorRegistros');
+            if (contador) {
+                contador.textContent = registros.length;
+            }
+
+            console.log('📊 Mostrando', registros.length, 'registros en tabla');
 
             if (registros.length === 0) {
                 tablaBody.innerHTML = `
@@ -1172,7 +1138,11 @@
                 return;
             }
 
-            console.log('📊 Mostrando', registros.length, 'registros en tabla');
+            // Muestra los primeros 5 registros en consola para debug
+            console.log('📋 PRIMEROS 5 REGISTROS A MOSTRAR:');
+            registros.slice(0, 5).forEach((p, i) => {
+                console.log(`   [${i}] ID: ${p.id}, Sucursal: ${p.sucursal}, Permiso: ${p.permiso}, Estatus: ${p.estatus}`);
+            });
 
             registros.forEach((permiso, index) => {
                 let estadoColor = '#aaa';
@@ -1180,16 +1150,11 @@
                 if (permiso.estatus === 'en-tramite') estadoColor = '#ff9800';
                 if (permiso.estatus === 'vencido') estadoColor = '#f44336';
 
-                // Archivo con icono
-                let archivoHTML = '<span style="color: #666;">Sin archivo</span>';
-                if (permiso.archivoNombre && permiso.archivoNombre !== 'null' && permiso.archivoNombre.trim() !== '') {
-                    const fileIcon = getFileIcon(permiso.archivoNombre);
-                    archivoHTML = `
-                    <a href="#" class="document-link ver-archivo-btn" data-index="${index}">
-                        <i class="fas ${fileIcon}"></i> ${permiso.archivoNombre}
-                    </a>
-                `;
-                }
+                // Formatea fechas si es necesario
+                const fechaExpedicion = permiso.fechaExpedicion ?
+                    (permiso.fechaExpedicion.split('T')[0] || permiso.fechaExpedicion) : '';
+                const fechaRenovacion = permiso.fechaRenovacion ?
+                    (permiso.fechaRenovacion.split('T')[0] || permiso.fechaRenovacion) : '';
 
                 const row = document.createElement('tr');
                 row.innerHTML = `
@@ -1200,11 +1165,14 @@
                 <td><span class="status-badge" style="background-color: ${estadoColor}20; color: ${estadoColor}; border-color: ${estadoColor}40;">
                     ${(permiso.estatus || '').toUpperCase()}
                 </span></td>
-                <td>${permiso.fechaExpedicion || ''}</td>
-                <td>${permiso.fechaRenovacion || ''}</td>
+                <td>${fechaExpedicion}</td>
+                <td>${fechaRenovacion}</td>
                 <td>${permiso.estatusLegal || ''}</td>
                 <td>${permiso.permisoLegal || ''}</td>
-                <td>${archivoHTML}</td>
+                <td>${permiso.archivoNombre ?
+                        `<span style="color: #4caf50;">✓ Con archivo</span>` :
+                        `<span style="color: #666;">Sin archivo</span>`}
+                </td>
                 <td>
                     <button class="table-action-btn editar-btn" data-index="${index}">
                         <i class="fas fa-edit"></i> Editar
@@ -1217,7 +1185,11 @@
                 tablaBody.appendChild(row);
             });
 
-            // Eventos
+            // Agrega eventos
+            agregarEventosTabla();
+        }
+
+        function agregarEventosTabla() {
             document.querySelectorAll('.editar-btn').forEach(btn => {
                 btn.addEventListener('click', function () {
                     abrirModal(parseInt(this.dataset.index));
@@ -1231,379 +1203,37 @@
                     }
                 });
             });
-
-            document.querySelectorAll('.ver-archivo-btn').forEach(link => {
-                link.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    mostrarArchivoModal(parseInt(this.dataset.index));
-                });
-            });
-        }
-
-        // FUNCIÓN PARA OBTENER ICONO DE ARCHIVO
-        function getFileIcon(filename) {
-            if (!filename || filename === 'null') return fileIcons.default;
-            const extension = filename.split('.').pop().toLowerCase();
-            return fileIcons[extension] || fileIcons.default;
-        }
-
-        // MODAL DE ARCHIVOS COMPLETO
-        function mostrarArchivoModal(index) {
-            const permiso = permisosGuardados[index];
-            if (!permiso.archivoData || permiso.archivoData === 'null') {
-                alert('No hay archivo para mostrar');
-                return;
-            }
-
-            const modal = document.createElement('div');
-            modal.className = 'modal-overlay';
-            modal.style.display = 'flex';
-
-            const fileData = `data:${permiso.archivoTipo};base64,${permiso.archivoData}`;
-            let contenido = '';
-
-            if (permiso.archivoTipo.startsWith('image/')) {
-                contenido = `<img src="${fileData}" style="max-width: 100%; max-height: 70vh;" alt="${permiso.archivoNombre}">`;
-            } else if (permiso.archivoTipo === 'application/pdf') {
-                contenido = `<iframe src="${fileData}" style="width: 100%; height: 70vh;" frameborder="0"></iframe>`;
-            } else if (permiso.archivoTipo.includes('text/')) {
-                try {
-                    const textContent = atob(permiso.archivoData);
-                    contenido = `<pre style="background: #2a2a2a; padding: 1rem; border-radius: 6px; max-height: 70vh; overflow: auto;">${textContent}</pre>`;
-                } catch (e) {
-                    contenido = '<p>No se puede previsualizar este tipo de archivo. Usa el botón de descarga.</p>';
-                }
-            } else {
-                contenido = '<p>No se puede previsualizar este tipo de archivo. Usa el botón de descarga.</p>';
-            }
-
-            modal.innerHTML = `
-            <div class="modal-box" style="max-width: 800px;">
-                <div class="modal-header">
-                    <h3 style="margin: 0; font-size: 1.3rem;">
-                        <i class="fas ${getFileIcon(permiso.archivoNombre)}"></i> ${permiso.archivoNombre}
-                    </h3>
-                    <button class="modal-close cerrar-archivo-modal">&times;</button>
-                </div>
-                <div class="modal-body" style="text-align: center;">
-                    ${contenido}
-                </div>
-                <div class="modal-footer">
-                    <button onclick="descargarArchivoDirecto(${index})" class="btn-primary-custom">
-                        <i class="fas fa-download"></i> Descargar Archivo
-                    </button>
-                </div>
-            </div>
-        `;
-
-            document.body.appendChild(modal);
-
-            modal.querySelector('.cerrar-archivo-modal').addEventListener('click', () => {
-                document.body.removeChild(modal);
-            });
-
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) {
-                    document.body.removeChild(modal);
-                }
-            });
-        }
-
-        // FUNCIÓN PARA DESCARGAR ARCHIVO
-        function descargarArchivoDirecto(index) {
-            const permiso = permisosGuardados[index];
-            if (!permiso.archivoData || permiso.archivoData === 'null') {
-                alert('No hay archivo para descargar');
-                return;
-            }
-
-            const fileData = `data:${permiso.archivoTipo};base64,${permiso.archivoData}`;
-            const link = document.createElement('a');
-            link.href = fileData;
-            link.download = permiso.archivoNombre;
-            link.style.display = 'none';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
-        function abrirModal(editarIndex = -1) {
-            editingIndex = editarIndex;
-            const modal = document.getElementById('modalAgregar');
-            const modalTitulo = document.getElementById('modalTitulo');
-
-            modalTitulo.textContent = editarIndex >= 0 ? 'Editar Permiso' : 'Agregar Permiso';
-
-            cargarBloquesModal();
-            cargarSucursalesModal();
-
-            if (editarIndex >= 0 && permisosGuardados[editarIndex]) {
-                const p = permisosGuardados[editarIndex];
-                document.getElementById('asigna').value = p.asigna || '';
-                document.getElementById('bloqueModal').value = p.bloque || '';
-                setTimeout(() => {
-                    document.getElementById('sucursalModal').value = p.sucursal || '';
-                }, 50);
-                document.getElementById('permiso').value = p.permiso || '';
-                document.getElementById('existencia').value = p.existencia || '';
-                document.getElementById('estatus').value = p.estatus || '';
-                document.getElementById('fechaExpedicion').value = p.fechaExpedicion || '';
-                document.getElementById('fechaRenovacion').value = p.fechaRenovacion || '';
-                document.getElementById('estatusLegal').value = p.estatusLegal || '';
-                document.getElementById('permisoDigital').value = '';
-
-                const fileInfo = document.getElementById('fileInfo');
-                if (p.archivoNombre && p.archivoNombre !== 'null') {
-                    fileInfo.innerHTML = `<i class="fas ${getFileIcon(p.archivoNombre)}"></i> Archivo actual: ${p.archivoNombre}`;
-                } else {
-                    fileInfo.innerHTML = '';
-                }
-            } else {
-                document.getElementById('asigna').value = 'Christian M';
-                document.getElementById('bloqueModal').value = '';
-                document.getElementById('sucursalModal').value = '';
-                document.getElementById('permiso').value = 'Anuncios';
-                document.getElementById('existencia').value = 'Recibo';
-                document.getElementById('estatus').value = 'vigente';
-
-                const today = new Date();
-                const nextYear = new Date(today);
-                nextYear.setFullYear(today.getFullYear() + 1);
-
-                document.getElementById('fechaExpedicion').value = today.toISOString().split('T')[0];
-                document.getElementById('fechaRenovacion').value = nextYear.toISOString().split('T')[0];
-                document.getElementById('estatusLegal').value = '✓';
-                document.getElementById('permisoDigital').value = '';
-                document.getElementById('fileInfo').innerHTML = '';
-            }
-
-            modal.style.display = 'flex';
-        }
-
-        function cerrarModal() {
-            document.getElementById('modalAgregar').style.display = 'none';
-            editingIndex = -1;
-        }
-
-        function cargarBloquesModal() {
-            const select = document.getElementById('bloqueModal');
-            const bloquesUnicos = [...new Set(branchData.map(b => b.block))].sort();
-            select.innerHTML = '<option value="">Seleccionar bloque</option>' +
-                bloquesUnicos.map(b => `<option value="${b}">Bloque ${b}</option>`).join('');
-        }
-
-        function cargarSucursalesModal() {
-            const bloque = document.getElementById('bloqueModal').value;
-            const select = document.getElementById('sucursalModal');
-            select.innerHTML = '<option value="">Seleccionar sucursal</option>';
-
-            let sucursales = [];
-            if (bloque) {
-                sucursales = branchData.filter(b => b.block === bloque)
-                    .sort((a, b) => a.name.localeCompare(b.name));
-            } else {
-                sucursales = [...new Set(branchData.map(b => b.name))].sort();
-            }
-
-            sucursales.forEach(s => {
-                const option = document.createElement('option');
-                option.value = typeof s === 'object' ? s.name : s;
-                option.textContent = typeof s === 'object' ? s.name : s;
-                select.appendChild(option);
-            });
-        }
-
-        async function guardarPermiso() {
-            const asigna = document.getElementById('asigna').value;
-            const bloque = document.getElementById('bloqueModal').value;
-            const sucursal = document.getElementById('sucursalModal').value;
-            const permiso = document.getElementById('permiso').value;
-
-            if (!asigna || !bloque || !sucursal || !permiso) {
-                alert('Por favor complete todos los campos obligatorios: Asigna, Bloque, Sucursal y Permiso');
-                return;
-            }
-
-            const nuevoPermiso = {
-                asigna: asigna,
-                bloque: bloque,
-                sucursal: sucursal,
-                permiso: permiso,
-                existencia: document.getElementById('existencia').value,
-                estatus: document.getElementById('estatus').value,
-                fechaExpedicion: document.getElementById('fechaExpedicion').value,
-                fechaRenovacion: document.getElementById('fechaRenovacion').value,
-                estatusLegal: document.getElementById('estatusLegal').value,
-                archivoNombre: '',
-                archivoData: '',
-                archivoTipo: ''
-            };
-
-            const fileInput = document.getElementById('permisoDigital');
-            if (fileInput && fileInput.files.length > 0) {
-                const file = fileInput.files[0];
-                const reader = new FileReader();
-                reader.onload = function (e) {
-                    nuevoPermiso.archivoNombre = file.name;
-                    nuevoPermiso.archivoData = e.target.result.split(',')[1];
-                    nuevoPermiso.archivoTipo = file.type;
-                    finalizarGuardado(nuevoPermiso);
-                };
-                reader.readAsDataURL(file);
-            } else {
-                finalizarGuardado(nuevoPermiso);
-            }
-        }
-
-        async function finalizarGuardado(nuevoPermiso) {
-            // VERIFICA QUÉ DATOS SE VAN A ENVIAR
-            console.log('📤 Datos a guardar en Supabase:', nuevoPermiso);
-
-            const datosSupabase = {
-                anexa: nuevoPermiso.asigna || '',
-                bloque: nuevoPermiso.bloque || '',
-                sucursal: nuevoPermiso.sucursal || '',
-                tipo_permiso: nuevoPermiso.permiso || '',
-                existencia: nuevoPermiso.existencia || '',
-                estatus: nuevoPermiso.estatus || '',
-                fecha_expedicion: nuevoPermiso.fechaExpedicion || null,
-                fecha_renovacion: nuevoPermiso.fechaRenovacion || null,
-                estatus_legal: nuevoPermiso.estatusLegal || '',
-                permiso_legal: nuevoPermiso.estatusLegal || '',
-                archive_nombre: nuevoPermiso.archivoNombre || null,
-                archive_data: nuevoPermiso.archivoData || null,
-                archive_tipo: nuevoPermiso.archivoTipo || null,
-                archivo_url: ''
-            };
-
-            console.log('📤 Mapeado a estructura Supabase:', datosSupabase);
-
-            try {
-                let resultadoSupabase;
-
-                if (editingIndex >= 0 && permisosGuardados[editingIndex].id) {
-                    console.log(`📝 Actualizando registro ID: ${permisosGuardados[editingIndex].id}`);
-
-                    const { data, error } = await supabaseClient
-                        .from('datos_financieros')
-                        .update(datosSupabase)
-                        .eq('id', permisosGuardados[editingIndex].id)
-                        .select();
-
-                    if (error) {
-                        console.error('❌ Error en UPDATE:', error);
-                        throw error;
-                    }
-
-                    resultadoSupabase = data[0];
-                    console.log('✅ Actualización exitosa:', resultadoSupabase);
-
-                } else {
-                    console.log('➕ Insertando nuevo registro');
-
-                    const { data, error } = await supabaseClient
-                        .from('datos_financieros')
-                        .insert([datosSupabase])
-                        .select();
-
-                    if (error) {
-                        console.error('❌ Error en INSERT:', error);
-                        throw error;
-                    }
-
-                    resultadoSupabase = data[0];
-                    console.log('✅ Inserción exitosa:', resultadoSupabase);
-                }
-
-                // Actualiza el array local
-                const permisoActualizado = {
-                    ...nuevoPermiso,
-                    id: resultadoSupabase.id,
-                    fechaCreacion: resultadoSupabase.creado_en
-                };
-
-                if (editingIndex >= 0) {
-                    permisosGuardados[editingIndex] = permisoActualizado;
-                } else {
-                    permisosGuardados.push(permisoActualizado);
-                }
-
-                localStorage.setItem('permisos', JSON.stringify(permisosGuardados));
-                cerrarModal();
-                mostrarRegistrosEnTabla(permisosGuardados);
-                actualizarContadores();
-                alert('✅ Permiso guardado exitosamente en Supabase');
-
-            } catch (error) {
-                console.error('❌ Error completo en Supabase:', error);
-                console.error('Mensaje de error:', error.message);
-                console.error('Detalles:', error.details);
-
-                // Fallback: guardar solo localmente
-                if (editingIndex >= 0) {
-                    permisosGuardados[editingIndex] = nuevoPermiso;
-                } else {
-                    permisosGuardados.push({
-                        ...nuevoPermiso,
-                        id: Date.now(),
-                        fechaCreacion: new Date().toISOString()
-                    });
-                }
-
-                localStorage.setItem('permisos', JSON.stringify(permisosGuardados));
-                cerrarModal();
-                mostrarRegistrosEnTabla(permisosGuardados);
-                actualizarContadores();
-                alert('⚠️ Se guardó localmente debido a error en Supabase. Revisa la consola para más detalles.');
-            }
-        }
-
-        function eliminarRegistro(index) {
-            const permiso = permisosGuardados[index];
-            if (permiso && permiso.id) {
-                // Si tiene ID de Supabase, intenta eliminar también allá
-                if (confirm('¿Estás seguro de eliminar este registro? También se eliminará de Supabase.')) {
-                    supabaseClient
-                        .from('datos_financieros')
-                        .delete()
-                        .eq('id', permiso.id)
-                        .then(({ error }) => {
-                            if (error) {
-                                console.error('❌ Error eliminando de Supabase:', error);
-                                alert('Error eliminando de Supabase, pero se eliminará localmente.');
-                            }
-                            permisosGuardados.splice(index, 1);
-                            localStorage.setItem('permisos', JSON.stringify(permisosGuardados));
-                            mostrarRegistrosEnTabla(permisosGuardados);
-                            actualizarContadores();
-                        });
-                }
-            } else {
-                if (confirm('¿Estás seguro de eliminar este registro?')) {
-                    permisosGuardados.splice(index, 1);
-                    localStorage.setItem('permisos', JSON.stringify(permisosGuardados));
-                    mostrarRegistrosEnTabla(permisosGuardados);
-                    actualizarContadores();
-                }
-            }
         }
 
         function actualizarContadores() {
+            if (!permisosGuardados || permisosGuardados.length === 0) {
+                console.log('⚠️ No hay datos para actualizar contadores');
+                return;
+            }
+
             const vigentes = permisosGuardados.filter(p => p.estatus === 'vigente').length;
             const vencidos = permisosGuardados.filter(p => p.estatus === 'vencido').length;
             const enTramite = permisosGuardados.filter(p => p.estatus === 'en-tramite').length;
             const pendientes = permisosGuardados.filter(p => !p.estatus || p.estatus === 'pendiente').length;
             const total = permisosGuardados.length;
 
+            // Calcula próximos a vencer
             const hoy = new Date();
             const proximos = permisosGuardados.filter(p => {
                 if (!p.fechaRenovacion) return false;
-                const fechaRen = new Date(p.fechaRenovacion);
-                const diffTime = fechaRen - hoy;
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                return diffDays > 0 && diffDays <= 30;
+                try {
+                    const fechaRen = new Date(p.fechaRenovacion);
+                    const diffTime = fechaRen - hoy;
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    return diffDays > 0 && diffDays <= 30;
+                } catch (e) {
+                    return false;
+                }
             }).length;
 
+            console.log(`📊 Contadores: Vigentes=${vigentes}, Vencidos=${vencidos}, Trámite=${enTramite}, Pendientes=${pendientes}, Total=${total}, Próximos=${proximos}`);
+
+            // Actualiza la interfaz
             document.getElementById('contadorVigentes').textContent = vigentes;
             document.getElementById('contadorVencidos').textContent = vencidos;
             document.getElementById('contadorTramite').textContent = enTramite;
@@ -1612,375 +1242,103 @@
             document.getElementById('contadorTotal').textContent = total;
         }
 
-        // VISTAS KANBAN
-        function mostrarKanban(registros) {
-            const kanbanView = document.getElementById('kanbanView');
-            if (!kanbanView) return;
+        // FUNCIONES BÁSICAS DEL MODAL
+        function abrirModal(editarIndex = -1) {
+            editingIndex = editarIndex;
+            const modal = document.getElementById('modalAgregar');
+            const modalTitulo = document.getElementById('modalTitulo');
 
-            const columnas = [
-                { id: 'vigente', titulo: 'VIGENTE', filtro: p => p.estatus === 'vigente' },
-                { id: 'en-tramite', titulo: 'EN TRÁMITE', filtro: p => p.estatus === 'en-tramite' },
-                { id: 'pendiente', titulo: 'PENDIENTE', filtro: p => !p.estatus || p.estatus === 'pendiente' },
-                { id: 'vencido', titulo: 'VENCIDO', filtro: p => p.estatus === 'vencido' }
-            ];
-
-            kanbanView.innerHTML = '';
-            columnas.forEach(columna => {
-                const registrosColumna = registros.filter(columna.filtro);
-                const columnaHTML = document.createElement('div');
-                columnaHTML.className = 'kanban-columna';
-
-                let contenido = `<div class="kanban-header ${columna.id}">${columna.titulo}</div><div class="kanban-tarjetas">`;
-
-                if (registrosColumna.length === 0) {
-                    contenido += `<div class="kanban-sin-actividades">Sin actividades</div>`;
-                } else {
-                    registrosColumna.forEach(permiso => {
-                        const index = permisosGuardados.findIndex(p => p.id === permiso.id);
-                        const fileIcon = permiso.archivoNombre ? getFileIcon(permiso.archivoNombre) : 'fa-file';
-
-                        contenido += `
-                        <div class="kanban-tarjeta ${columna.id}" data-index="${index}">
-                            <div class="kanban-sucursal">
-                                ${permiso.sucursal || 'Sin sucursal'}
-                                <i class="fas fa-chevron-right"></i>
-                            </div>
-                            <div class="kanban-info">
-                                <strong>Permiso:</strong> ${permiso.permiso || ''}
-                            </div>
-                            <div class="kanban-info">
-                                <strong>Bloque:</strong> ${permiso.bloque || ''}
-                            </div>
-                            <div class="kanban-info">
-                                <strong>Existencia:</strong> ${permiso.existencia || ''}
-                            </div>
-                            ${permiso.archivoNombre && permiso.archivoNombre !== 'null' ? `
-                            <div class="kanban-archivo">
-                                <a href="#" class="document-link ver-archivo-kanban" data-index="${index}">
-                                    <i class="fas ${fileIcon}"></i> Ver ${permiso.archivoNombre.split('.').pop().toUpperCase()}
-                                </a>
-                            </div>
-                            ` : ''}
-                        </div>
-                    `;
-                    });
-                }
-                contenido += '</div>';
-                columnaHTML.innerHTML = contenido;
-                kanbanView.appendChild(columnaHTML);
-            });
-
-            // Eventos para Kanban
-            document.querySelectorAll('.kanban-tarjeta').forEach(tarjeta => {
-                tarjeta.addEventListener('click', function (e) {
-                    if (!e.target.closest('.document-link')) {
-                        mostrarDetalleModal(parseInt(this.dataset.index));
-                    }
-                });
-            });
-
-            document.querySelectorAll('.ver-archivo-kanban').forEach(link => {
-                link.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    mostrarArchivoModal(parseInt(this.dataset.index));
-                });
-            });
-        }
-
-        // MODAL DE DETALLES
-        function mostrarDetalleModal(index) {
-            const permiso = permisosGuardados[index];
-            if (!permiso) return;
-
-            const modal = document.getElementById('modalDetalle');
-            const titulo = document.getElementById('modalDetalleTitulo');
-            const contenido = document.getElementById('detalleContenido');
-            const btnEditar = document.getElementById('editarDesdeDetalle');
-
-            titulo.textContent = `${permiso.sucursal || 'Permiso'}`;
-
-            const colorEstatus = getColorPorEstatus(permiso.estatus);
-            const fileIcon = permiso.archivoNombre ? getFileIcon(permiso.archivoNombre) : 'fa-file';
-
-            let contenidoHTML = `
-            <div style="margin-bottom: 1.5rem;">
-                <div style="display: flex; align-items: center; margin-bottom: 1rem;">
-                    <span class="status-badge" style="
-                        background-color: ${colorEstatus}20; 
-                        color: ${colorEstatus}; 
-                        border-color: ${colorEstatus}40;
-                        font-size: 0.9rem;
-                    ">
-                        ${permiso.estatus ? permiso.estatus.toUpperCase() : 'SIN ESTATUS'}
-                    </span>
-                    <span style="margin-left: auto; color: #aaa; font-size: 0.9rem;">
-                        ID: ${permiso.id}
-                    </span>
-                </div>
-                
-                <div style="background-color: #2a2a2a; border-radius: 8px; padding: 1.5rem;">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-                        <div>
-                            <div style="color: #aaa; font-size: 0.85rem; margin-bottom: 0.3rem;">Asigna</div>
-                            <div style="color: white; font-weight: 500;">${permiso.asigna || 'No asignado'}</div>
-                        </div>
-                        <div>
-                            <div style="color: #aaa; font-size: 0.85rem; margin-bottom: 0.3rem;">Permiso</div>
-                            <div style="color: white; font-weight: 500;">${permiso.permiso || 'Sin permiso'}</div>
-                        </div>
-                    </div>
-                    
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-                        <div>
-                            <div style="color: #aaa; font-size: 0.85rem; margin-bottom: 0.3rem;">Bloque</div>
-                            <div style="color: white; font-weight: 500;">${permiso.bloque || ''}</div>
-                        </div>
-                        <div>
-                            <div style="color: #aaa; font-size: 0.85rem; margin-bottom: 0.3rem;">Sucursal</div>
-                            <div style="color: white; font-weight: 500;">${permiso.sucursal || 'Sin sucursal'}</div>
-                        </div>
-                    </div>
-                    
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-                        <div>
-                            <div style="color: #aaa; font-size: 0.85rem; margin-bottom: 0.3rem;">Existencia</div>
-                            <div style="color: white; font-weight: 500;">${permiso.existencia || 'Sin información'}</div>
-                        </div>
-                        <div>
-                            <div style="color: #aaa; font-size: 0.85rem; margin-bottom: 0.3rem;">Estatus Legal</div>
-                            <div style="color: white; font-weight: 500;">${permiso.estatusLegal || 'Sin estatus legal'}</div>
-                        </div>
-                    </div>
-                    
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-                        <div>
-                            <div style="color: #aaa; font-size: 0.85rem; margin-bottom: 0.3rem;">Fecha Expedición</div>
-                            <div style="color: white; font-weight: 500;">${permiso.fechaExpedicion || 'No especificada'}</div>
-                        </div>
-                        <div>
-                            <div style="color: #aaa; font-size: 0.85rem; margin-bottom: 0.3rem;">Fecha Renovación</div>
-                            <div style="color: white; font-weight: 500;">${permiso.fechaRenovacion || 'No especificada'}</div>
-                        </div>
-                    </div>
-                    
-                    <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--color-border);">
-                        <div style="color: #aaa; font-size: 0.85rem; margin-bottom: 0.5rem;">Documento</div>
-        `;
-
-            if (permiso.archivoNombre && permiso.archivoNombre !== 'null') {
-                contenidoHTML += `
-                <div style="display: flex; align-items: center; gap: 1rem;">
-                    <a href="#" class="document-link ver-archivo-detalle" data-index="${index}" style="flex: 1;">
-                        <i class="fas ${fileIcon}"></i> ${permiso.archivoNombre}
-                    </a>
-                    <button class="btn-secondary-custom" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;" onclick="descargarArchivoDirecto(${index})">
-                        <i class="fas fa-download"></i>
-                    </button>
-                </div>
-            `;
-            } else {
-                contenidoHTML += `
-                <div style="color: #666; font-style: italic;">
-                    No hay documento adjunto
-                </div>
-            `;
-            }
-
-            contenidoHTML += `
-                    </div>
-                </div>
-            </div>
-        `;
-
-            contenido.innerHTML = contenidoHTML;
-
-            btnEditar.onclick = function () {
-                cerrarDetalleModal();
-                setTimeout(() => {
-                    abrirModal(index);
-                }, 100);
-            };
-
+            modalTitulo.textContent = editarIndex >= 0 ? 'Editar Permiso' : 'Agregar Permiso';
             modal.style.display = 'flex';
-
-            // Evento para el enlace de archivo en el detalle
-            const archivoLink = document.querySelector('.ver-archivo-detalle');
-            if (archivoLink) {
-                archivoLink.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    mostrarArchivoModal(index);
-                });
-            }
         }
 
-        function cerrarDetalleModal() {
-            const modal = document.getElementById('modalDetalle');
-            if (modal) {
-                modal.style.display = 'none';
-            }
+        function cerrarModal() {
+            document.getElementById('modalAgregar').style.display = 'none';
+            editingIndex = -1;
         }
 
-        function getColorPorEstatus(estatus) {
-            switch (estatus) {
-                case 'vigente': return '#4caf50';
-                case 'en-tramite': return '#ff9800';
-                case 'vencido': return '#f44336';
-                default: return '#9c27b0';
-            }
-        }
-
-        function cambiarVista(vista) {
-            currentView = vista;
-            const tablaBtn = document.getElementById('btnVistaTabla');
-            const kanbanBtn = document.getElementById('btnVistaKanban');
-            const tablaContainer = document.getElementById('tablaContainer');
-            const kanbanContainer = document.getElementById('kanbanContainer');
-
-            if (vista === 'tabla') {
-                tablaBtn.classList.add('active');
-                kanbanBtn.classList.remove('active');
-                tablaContainer.style.display = 'block';
-                kanbanContainer.style.display = 'none';
-                mostrarRegistrosEnTabla(permisosGuardados);
-            } else {
-                tablaBtn.classList.remove('active');
-                kanbanBtn.classList.add('active');
-                tablaContainer.style.display = 'none';
-                kanbanContainer.style.display = 'block';
-                mostrarKanban(permisosGuardados);
-            }
-        }
-
-        // FILTROS
-        function inicializarFiltros() {
-            const blockFilter = document.getElementById('blockFilter');
-            const branchFilter = document.getElementById('branchFilter');
-
-            actualizarFiltroSucursales('all');
-
-            blockFilter.addEventListener('change', function () {
-                actualizarFiltroSucursales(this.value);
-                filtrarVistaActual();
-            });
-
-            ['branchFilter', 'permisoFilter', 'estatusFilter'].forEach(id => {
-                document.getElementById(id)?.addEventListener('change', filtrarVistaActual);
-            });
-
-            document.getElementById('busquedaInput')?.addEventListener('input', filtrarVistaActual);
-        }
-
-        function actualizarFiltroSucursales(blockValue) {
-            const branchFilter = document.getElementById('branchFilter');
-            branchFilter.innerHTML = '<option value="all">Todas las Sucursales</option>';
-
-            let sucursales = [];
-            if (blockValue === 'all') {
-                sucursales = [...new Set(branchData.map(b => b.name))].sort();
-            } else {
-                sucursales = branchData.filter(b => b.block === blockValue)
-                    .sort((a, b) => a.name.localeCompare(b.name))
-                    .map(b => b.name);
-            }
-
-            sucursales.forEach(sucursal => {
-                const option = document.createElement('option');
-                option.value = sucursal;
-                option.textContent = sucursal;
-                branchFilter.appendChild(option);
-            });
-        }
-
-        function filtrarVistaActual() {
-            const blockFilter = document.getElementById('blockFilter').value;
-            const branchFilter = document.getElementById('branchFilter').value;
-            const permisoFilter = document.getElementById('permisoFilter').value;
-            const estatusFilter = document.getElementById('estatusFilter').value;
-            const busqueda = document.getElementById('busquedaInput').value.toLowerCase();
-
-            let filtrados = [...permisosGuardados];
-
-            if (blockFilter !== 'all') filtrados = filtrados.filter(p => p.bloque === blockFilter);
-            if (branchFilter !== 'all') filtrados = filtrados.filter(p => p.sucursal === branchFilter);
-            if (permisoFilter !== 'all') filtrados = filtrados.filter(p => p.permiso === permisoFilter);
-            if (estatusFilter !== 'all') filtrados = filtrados.filter(p => p.estatus === estatusFilter);
-            if (busqueda) {
-                filtrados = filtrados.filter(p =>
-                    (p.sucursal && p.sucursal.toLowerCase().includes(busqueda)) ||
-                    (p.permiso && p.permiso.toLowerCase().includes(busqueda)) ||
-                    (p.existencia && p.existencia.toLowerCase().includes(busqueda)) ||
-                    (p.estatusLegal && p.estatusLegal.toLowerCase().includes(busqueda))
-                );
-            }
-
-            if (currentView === 'tabla') {
-                mostrarRegistrosEnTabla(filtrados);
-            } else {
-                mostrarKanban(filtrados);
-            }
-        }
-
-        // INICIALIZACIÓN
+        // INICIALIZACIÓN SIMPLE
         document.addEventListener('DOMContentLoaded', async function () {
             console.log('🚀 Iniciando aplicación...');
 
-            // Ejecuta diagnóstico
-            await diagnosticarSupabase();
+            // Primero verifica la estructura
+            await verEstructuraTabla();
 
             // Luego carga los datos
             await cargarDatosIniciales();
-            inicializarFiltros();
 
-            // Eventos de vista
-            document.getElementById('btnVistaTabla').addEventListener('click', () => cambiarVista('tabla'));
-            document.getElementById('btnVistaKanban').addEventListener('click', () => cambiarVista('kanban'));
-
-            // Eventos de modal principal
+            // Configura eventos básicos
             document.getElementById('btnAgregar').addEventListener('click', () => abrirModal());
             document.getElementById('cancelarModal').addEventListener('click', cerrarModal);
-            document.getElementById('guardarRegistro').addEventListener('click', guardarPermiso);
 
-            document.getElementById('modalAgregar').addEventListener('click', function (e) {
-                if (e.target === this) cerrarModal();
-            });
-
-            // Eventos de formulario
-            document.getElementById('bloqueModal').addEventListener('change', cargarSucursalesModal);
-
-            document.getElementById('permisoDigital').addEventListener('change', function () {
-                const fileInfo = document.getElementById('fileInfo');
-                if (this.files.length > 0) {
-                    const file = this.files[0];
-                    const fileSize = (file.size / 1024).toFixed(2);
-                    fileInfo.innerHTML = `<i class="fas ${getFileIcon(file.name)}"></i> ${file.name} (${fileSize} KB)`;
-                } else {
-                    fileInfo.innerHTML = '';
-                }
-            });
-
-            // Eventos modal detalle
-            document.getElementById('modalDetalle').addEventListener('click', function (e) {
-                if (e.target === this) cerrarDetalleModal();
-            });
-
-            console.log('✅ Aplicación inicializada correctamente');
+            console.log('✅ Aplicación inicializada');
         });
 
-        // Funciones de debug adicionales
-        function verEstadoActual() {
-            console.log('📊 ESTADO ACTUAL:');
-            console.log('Permisos en memoria:', permisosGuardados);
-            console.log('Total registros:', permisosGuardados.length);
-            console.log('Vista actual:', currentView);
+        // FUNCIONES DE DEBUG - Agrega estas funciones
+        async function debugSupabase() {
+            console.log('🐛 INICIANDO DEBUG COMPLETO');
 
-            if (permisosGuardados.length > 0) {
-                console.log('Ejemplo de primer registro:', permisosGuardados[0]);
+            try {
+                // 1. Verificar conexión
+                console.log('1. Verificando conexión...');
+                const { data, error } = await supabaseClient
+                    .from('datos_financieros')
+                    .select('count')
+                    .single();
+
+                if (error) {
+                    console.error('❌ Error de conexión:', error);
+                    return;
+                }
+                console.log('✅ Conexión OK. Total registros:', data.count);
+
+                // 2. Obtener todos los datos
+                console.log('2. Obteniendo todos los registros...');
+                const { data: todosDatos, error: errorTodos } = await supabaseClient
+                    .from('datos_financieros')
+                    .select('*');
+
+                if (errorTodos) {
+                    console.error('❌ Error obteniendo datos:', errorTodos);
+                    return;
+                }
+
+                console.log(`✅ Obtenidos ${todosDatos.length} registros`);
+
+                // 3. Mostrar estructura del primer registro
+                if (todosDatos.length > 0) {
+                    console.log('3. Estructura del primer registro:');
+                    const primer = todosDatos[0];
+                    for (let key in primer) {
+                        console.log(`   "${key}":`, primer[key]);
+                    }
+                }
+
+                // 4. Intentar mapear
+                console.log('4. Intentando mapear datos...');
+                const mapeados = todosDatos.map(item => ({
+                    id: item.id,
+                    anexa: item.anexa,
+                    bloque: item.bloque,
+                    sucursal: item.sucursal,
+                    tipo_permiso: item.tipo_permiso,
+                    existencia: item.existencia,
+                    estatus: item.estatus,
+                    fecha_expedicion: item.fecha_expedicion,
+                    fecha_renovacion: item.fecha_renovacion,
+                    estatus_legal: item.estatus_legal,
+                    permiso_legal: item.permiso_legal
+                }));
+
+                console.log('✅ Primer registro mapeado:', mapeados[0]);
+
+            } catch (error) {
+                console.error('❌ Error en debug:', error);
             }
         }
 
-        function recargarDatosForzado() {
-            console.log('🔄 Recarga forzada de datos...');
+        function forzarRecarga() {
+            console.log('🔄 Forzando recarga de datos...');
             cargarDatosIniciales();
         }
     </script>
