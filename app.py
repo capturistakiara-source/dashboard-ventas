@@ -88,6 +88,16 @@ USUARIOS = {
         'nombre': 'Garcia Rodriguez Genesis Clarise',
         'rol': 'Gerente RH'
     },
+        'Ingenierio': {
+        'password': 'Iapostal01',
+        'nombre': 'Sanchez Gomez Jose Antonio',
+        'rol': 'Ing de Proyectos/Procesos'
+    },
+        'Licenciado': {
+        'password': 'Lcapostal01',
+        'nombre': 'Martinez Peralta Christian Ignacio',
+        'rol': ''
+    },
     'Gerentes': {
         'password': 'Gpostal01',
         'nombre': 'Sucursales',
@@ -308,6 +318,9 @@ def logout():
 def perfil():
     return render_template('perfil.html', usuario=current_user)
 
+@app.route('/planeacion')
+def planeacion():
+    return render_template('planeacion.html')
 # ==================== RUTA HOME PRINCIPAL ====================
 @app.route("/")
 @login_required

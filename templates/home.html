@@ -320,6 +320,15 @@
                     </div>
                 </a>
 
+                <!-- NUEVO BOTÓN: PLANEACIÓN -->
+                <a href="/planeacion" class="btn btn-dashboard btn-with-kanji">
+                    <div class="kanji-circle kanji-circle-sm">計</div>
+                    <div class="btn-content">
+                        <div class="btn-title">Planeación</div>
+                        <div class="btn-desc">Planificación estratégica y proyecciones</div>
+                    </div>
+                </a>
+
                 <!-- BOTÓN SOLO PARA USUARIO GRAFICA -->
                 {% if current_user.id == 'Grafica' %}
                 <a href="{{ url_for('reporte_semanal_grafica') }}" class="btn btn-dashboard btn-with-kanji">

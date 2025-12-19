@@ -1,0 +1,1509 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Planeación - La Postal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* MANTENIENDO TODOS TUS ESTILOS ORIGINALES */
+        :root {
+            --color-bg: #000000;
+            --color-card: #1a1a1a;
+            --color-text: #ffffff;
+            --color-accent: #b71c1c;
+            --color-accent-dark: #8b0000;
+            --color-accent-light: #ff5252;
+            --color-border: #333333;
+            --color-success: #2e7d32;
+            --color-warning: #f57c00;
+            --color-info: #0288d1;
+        }
+
+        body {
+            background-color: var(--color-bg);
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            color: var(--color-text);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background-color: #1a1a1a !important;
+            border-bottom: 2px solid var(--color-accent);
+            padding: 1rem 0;
+        }
+
+        .navbar-brand {
+            font-weight: 300;
+            letter-spacing: 2px;
+            font-size: 1.3rem;
+        }
+
+        .nav-link {
+            font-weight: 400;
+            transition: color 0.3s;
+            margin-left: 1rem;
+        }
+
+        .nav-link:hover {
+            color: var(--color-accent) !important;
+        }
+
+        .corporate-header {
+            background: linear-gradient(135deg, var(--color-accent-dark) 0%, var(--color-accent) 50%, var(--color-accent-light) 100%);
+            color: white;
+            padding: 2.5rem 0;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(183, 28, 28, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .corporate-header::before {
+            content: "計";
+            position: absolute;
+            font-size: 15rem;
+            opacity: 0.1;
+            right: 5%;
+            top: 50%;
+            transform: translateY(-50%);
+            font-weight: bold;
+        }
+
+        .header-logo {
+            font-size: 2.8rem;
+            font-weight: 300;
+            letter-spacing: 4px;
+            margin-bottom: 0.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header-subtitle {
+            font-size: 1.1rem;
+            letter-spacing: 3px;
+            opacity: 0.9;
+            font-weight: 300;
+            position: relative;
+            z-index: 1;
+        }
+
+        .main-container {
+            padding: 2rem 1.5rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .summary-cards {
+            margin-top: -3rem;
+            position: relative;
+            z-index: 10;
+        }
+
+        .summary-card {
+            background-color: var(--color-card);
+            border-radius: 12px;
+            padding: 1.5rem;
+            height: 100%;
+            border: 1px solid var(--color-border);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s, box-shadow 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .summary-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(183, 28, 28, 0.2);
+        }
+
+        .summary-card::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 6px;
+            background-color: var(--card-color, var(--color-accent));
+        }
+
+        .summary-card.sales::before {
+            background-color: var(--color-accent);
+        }
+
+        .summary-card.customers::before {
+            background-color: var(--color-success);
+        }
+
+        .summary-card.average::before {
+            background-color: var(--color-info);
+        }
+
+        .summary-card.target::before {
+            background-color: var(--color-warning);
+        }
+
+        .card-number {
+            font-size: 2.5rem;
+            font-weight: 300;
+            text-align: center;
+            color: var(--color-text);
+            margin: 1rem 0;
+        }
+
+        .card-label {
+            text-align: center;
+            color: #aaa;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .view-controls {
+            background-color: var(--color-card);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+            border: 1px solid var(--color-border);
+        }
+
+        .view-btn {
+            background-color: transparent;
+            border: 1px solid var(--color-border);
+            color: var(--color-text);
+            padding: 0.7rem 1.5rem;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: all 0.3s;
+            margin-right: 0.5rem;
+        }
+
+        .view-btn:hover {
+            border-color: var(--color-accent);
+            color: var(--color-accent);
+        }
+
+        .view-btn.active {
+            background-color: var(--color-accent);
+            border-color: var(--color-accent);
+            color: white;
+        }
+
+        .kanji-header {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px;
+            height: 30px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            margin-right: 0.5rem;
+            font-weight: bold;
+        }
+
+        .filter-section {
+            background-color: var(--color-card);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--color-border);
+        }
+
+        .filter-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            align-items: flex-end;
+        }
+
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .filter-label {
+            display: block;
+            color: #aaa;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .filter-select,
+        .search-input {
+            width: 100%;
+            background-color: #2a2a2a;
+            border: 1px solid var(--color-border);
+            color: var(--color-text);
+            padding: 0.6rem 1rem;
+            border-radius: 6px;
+            font-size: 0.95rem;
+        }
+
+        .search-input:focus,
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--color-accent);
+        }
+
+        .search-box {
+            flex: 2;
+            min-width: 300px;
+        }
+
+        .btn-primary-custom {
+            background-color: var(--color-accent);
+            border: none;
+            color: white;
+            padding: 0.7rem 1.8rem;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .btn-primary-custom:hover {
+            background-color: var(--color-accent-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(183, 28, 28, 0.3);
+        }
+
+        .btn-secondary-custom {
+            background-color: transparent;
+            border: 1px solid var(--color-accent);
+            color: var(--color-accent);
+            padding: 0.7rem 1.8rem;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .btn-secondary-custom:hover {
+            background-color: rgba(183, 28, 28, 0.1);
+        }
+
+        .section-divider {
+            height: 2px;
+            background: linear-gradient(90deg, transparent 0%, var(--color-accent) 50%, transparent 100%);
+            margin: 2rem 0;
+            opacity: 0.5;
+        }
+
+        .data-table-container {
+            background-color: var(--color-card);
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid var(--color-border);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table thead {
+            background-color: #2a2a2a;
+        }
+
+        .data-table th {
+            padding: 1.2rem 1rem;
+            text-align: left;
+            font-weight: 500;
+            color: #ccc;
+            border-bottom: 2px solid var(--color-accent);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .data-table tbody tr {
+            border-bottom: 1px solid var(--color-border);
+            transition: background-color 0.2s;
+        }
+
+        .data-table tbody tr:nth-child(even) {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        .data-table tbody tr:hover {
+            background-color: rgba(183, 28, 28, 0.05);
+        }
+
+        .data-table td {
+            padding: 1.2rem 1rem;
+            color: #ddd;
+            vertical-align: middle;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+        }
+
+        .document-link {
+            color: var(--color-accent-light);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .document-link:hover {
+            color: white;
+            text-decoration: underline;
+        }
+
+        .table-action-btn {
+            background-color: transparent;
+            border: 1px solid var(--color-border);
+            color: #ccc;
+            padding: 0.4rem 0.8rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            margin-right: 0.3rem;
+        }
+
+        .table-action-btn:hover {
+            border-color: var(--color-accent);
+            color: var(--color-accent);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, .75);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            padding: 1rem;
+        }
+
+        .modal-box {
+            background: #111;
+            width: 90%;
+            max-width: 900px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--color-border);
+        }
+
+        .modal-header,
+        .modal-footer {
+            padding: 1rem 1.5rem;
+            background: #1a1a1a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.8rem;
+            color: #fff;
+            cursor: pointer;
+            line-height: 1;
+            padding: 0;
+            margin: 0;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+        }
+
+        .form-grid>div {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-grid label {
+            color: #aaa;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .form-grid input,
+        .form-grid select {
+            width: 100%;
+            padding: 0.6rem 0.8rem;
+            border-radius: 6px;
+            background-color: #2a2a2a;
+            border: 1px solid var(--color-border);
+            color: var(--color-text);
+            font-size: 0.95rem;
+        }
+
+        .file-info {
+            font-size: 0.85rem;
+            color: #4caf50;
+            margin-top: 0.3rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .file-info i {
+            color: var(--color-accent);
+        }
+
+        /* KANBAN */
+        .kanban-view {
+            display: flex;
+            gap: 1rem;
+            padding: 1rem;
+            overflow-x: auto;
+            min-height: 500px;
+        }
+
+        .kanban-columna {
+            flex: 1;
+            min-width: 300px;
+            background-color: #1a1a1a;
+            border-radius: 10px;
+            border: 1px solid var(--color-border);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            max-height: 70vh;
+        }
+
+        .kanban-header {
+            padding: 1rem;
+            background-color: #2a2a2a;
+            border-bottom: 2px solid;
+            font-weight: 600;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .kanban-header.vigente {
+            border-color: #4caf50;
+            color: #4caf50;
+        }
+
+        .kanban-header.en-tramite {
+            border-color: #ff9800;
+            color: #ff9800;
+        }
+
+        .kanban-header.pendiente {
+            border-color: #9c27b0;
+            color: #9c27b0;
+        }
+
+        .kanban-header.vencido {
+            border-color: #f44336;
+            color: #f44336;
+        }
+
+        .kanban-tarjetas {
+            padding: 0.5rem;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .kanban-tarjeta {
+            background-color: #2a2a2a;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            border-left: 4px solid;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--color-border);
+        }
+
+        .kanban-tarjeta:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            border-color: var(--color-accent);
+        }
+
+        .kanban-tarjeta.vigente {
+            border-left-color: #4caf50;
+        }
+
+        .kanban-tarjeta.en-tramite {
+            border-left-color: #ff9800;
+        }
+
+        .kanban-tarjeta.pendiente {
+            border-left-color: #9c27b0;
+        }
+
+        .kanban-tarjeta.vencido {
+            border-left-color: #f44336;
+        }
+
+        .kanban-sucursal {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .kanban-info {
+            font-size: 0.9rem;
+            color: #ccc;
+            margin-bottom: 0.3rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .kanban-info strong {
+            color: white;
+            min-width: 120px;
+            display: inline-block;
+        }
+
+        .kanban-archivo {
+            margin-top: 0.8rem;
+            padding-top: 0.8rem;
+            border-top: 1px solid var(--color-border);
+        }
+
+        .kanban-sin-actividades {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 2rem;
+            font-size: 0.9rem;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .main-container {
+                padding: 1rem;
+            }
+
+            .header-logo {
+                font-size: 2rem;
+            }
+
+            .card-number {
+                font-size: 2rem;
+            }
+
+            .filter-row {
+                flex-direction: column;
+            }
+
+            .filter-group,
+            .search-box {
+                min-width: 100%;
+            }
+
+            .data-table {
+                display: block;
+                overflow-x: auto;
+            }
+
+            .form-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- NAVBAR (Mismo diseño) -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('home') }}">
+                LA POSTAL | PLANEACIÓN
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3">
+                    Hola, <span style="color: #b71c1c; font-weight: 500;" id="nombreUsuario">{{ current_user.nombre }}</span>
+                </span>
+                <a class="nav-link" href="{{ url_for('home') }}">Dashboard</a>
+                <a class="nav-link" href="{{ url_for('perfil') }}">Perfil</a>
+                <a class="nav-link" href="{{ url_for('logout') }}">Salir</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ENCABEZADO CORPORATIVO (Mismo diseño) -->
+    <div class="corporate-header">
+        <div class="container">
+            <div class="header-logo">LA POSTAL</div>
+            <div class="header-subtitle">Sistema de Gestión de Actividades</div>
+        </div>
+    </div>
+
+    <!-- CONTENEDOR PRINCIPAL (Mismo diseño) -->
+    <div class="main-container">
+        <!-- TARJETAS RESUMEN (Mismo diseño) -->
+        <div class="row summary-cards g-3 mt-0">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="summary-card sales">
+                        <div class="card-number" id="contadorVigentes">0</div>
+                        <div class="card-label">VIGENTES</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="summary-card customers">
+                        <div class="card-number" id="contadorVencidos">0</div>
+                        <div class="card-label">VENCIDOS</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="summary-card average">
+                        <div class="card-number" id="contadorTramite">0</div>
+                        <div class="card-label">EN TRÁMITE</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="summary-card target">
+                        <div class="card-number" id="contadorPendientes">0</div>
+                        <div class="card-label">PENDIENTES</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="summary-card" style="--card-color: #9c27b0;">
+                        <div class="card-number" id="contadorProximos">0</div>
+                        <div class="card-label">PRÓXIMOS A VENCER</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="summary-card" style="--card-color: #607d8b;">
+                        <div class="card-number" id="contadorTotal">0</div>
+                        <div class="card-label">TOTAL</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONTROLES DE VISTA (Mismo diseño) -->
+        <div class="view-controls">
+            <h6 class="mb-3" style="color: #aaa;">EJEMPLO</h6>
+            <div class="d-flex flex-wrap">
+                <button class="view-btn active" id="btnVistaTabla">
+                    <span class="kanji-header" style="font-size: 0.9rem;">板</span> Tabla
+                </button>
+                <button class="view-btn" id="btnVistaKanban">
+                    <span class="kanji-header" style="font-size: 0.7rem;">看板</span> Kanban
+                </button>
+            </div>
+        </div>
+
+        <!-- ÁREA DE FILTROS (Mismo diseño) -->
+        <div class="filter-section">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label class="filter-label">Bloque:</label>
+                    <select class="filter-select" id="blockFilter">
+                        <option value="all">Todas las Sucursales</option>
+                        <option value="1">Bloque 1</option>
+                        <option value="2">Bloque 2</option>
+                        <option value="3">Bloque 3</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">Sucursales:</label>
+                    <select class="filter-select" id="branchFilter">
+                        <option value="all">Todas las Sucursales</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">Permiso:</label>
+                    <select class="filter-select" id="permisoFilter">
+                        <option value="all">Todos</option>
+                        <option>Anuncios</option>
+                        <option>Atrapa la grasa</option>
+                        <option>Basura</option>
+                        <option>Bomberos</option>
+                        <option>Cofepris</option>
+                        <option>Dictamen de gas</option>
+                        <option>Dictamen termografico</option>
+                        <option>Impacto de anuencia ambiental</option>
+                        <option>Linea Amarilla</option>
+                        <option>Operaciones</option>
+                        <option>Plano</option>
+                        <option>Residuos solidos urbanos (RSU)</option>
+                        <option>Uso de suelo</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">Estatus:</label>
+                    <select class="filter-select" id="estatusFilter">
+                        <option value="all">Todos</option>
+                        <option value="vigente">Vigente</option>
+                        <option value="en-tramite">En trámite</option>
+                        <option value="vencido">Vencido</option>
+                        <option value="pendiente">Pendiente</option>
+                    </select>
+                </div>
+                <div class="search-box">
+                    <label class="filter-label">Búsqueda Avanzada</label>
+                    <input type="text" class="search-input" id="busquedaInput"
+                        placeholder="Buscar por producto, código, descripción...">
+                </div>
+            </div>
+        </div>
+
+        <!-- SEPARADOR (Mismo diseño) -->
+        <div class="section-divider"></div>
+
+        <!-- TABLA DE DATOS (Mismo diseño) -->
+        <div class="data-table-container" id="tablaContainer">
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 5%;">BLOQUE</th>
+                            <th style="width: 20%;">SUCURSAL</th>
+                            <th style="width: 10%;">PERMISO</th>
+                            <th style="width: 10%;">EXISTENCIA</th>
+                            <th style="width: 10%;">ESTATUS</th>
+                            <th style="width: 10%;">FECHA EXPEDICION</th>
+                            <th style="width: 10%;">FECHA RENOVACION</th>
+                            <th style="width: 10%;">ESTATUS LEGAL</th>
+                            <th style="width: 10%;">PERMISO LEGAL</th>
+                            <th style="width: 15%;">PERMISO DIGITAL</th>
+                            <th style="width: 15%;">ACCIONES</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaBody"></tbody>
+                </table>
+            </div>
+
+            <!-- PIE DE TABLA (Mismo diseño) -->
+            <div style="padding: 1rem 1.5rem; background-color: #1a1a1a; border-top: 1px solid var(--color-border);">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div style="color: #aaa; font-size: 0.9rem;">
+                        Mostrando <span id="contadorRegistros">0</span> registros
+                    </div>
+                    <div>
+                        <button id="btnAgregar" class="btn-secondary-custom">
+                            <i class="fas fa-plus me-1"></i> Agregar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONTENEDOR KANBAN (Mismo diseño) -->
+        <div id="kanbanContainer" class="data-table-container" style="display: none;">
+            <div id="kanbanView" class="kanban-view"></div>
+        </div>
+
+        <!-- MODAL AGREGAR REGISTRO (Mismo diseño) -->
+        <div id="modalAgregar" class="modal-overlay">
+            <div class="modal-box">
+                <div class="modal-header">
+                    <h3 id="modalTitulo" style="margin: 0; font-size: 1.3rem;">Agregar Permiso</h3>
+                </div>
+                <div class="modal-body">
+                    <div class="form-grid">
+                        <div>
+                            <label>Asigna</label>
+                            <select id="asigna">
+                                <option value="">Seleccionar</option>
+                                <option>Christian M</option>
+                                <option>Antonio S</option>
+                                <option>Omar R</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>Bloque</label>
+                            <select id="bloqueModal"></select>
+                        </div>
+                        <div>
+                            <label>Sucursal</label>
+                            <select id="sucursalModal"></select>
+                        </div>
+                        <div>
+                            <label>Permiso</label>
+                            <select id="permiso">
+                                <option>Anuncios</option>
+                                <option>Atrapa la grasa</option>
+                                <option>Basura</option>
+                                <option>Bomberos</option>
+                                <option>Cofepris</option>
+                                <option>Dictamen de gas</option>
+                                <option>Dictamen termografico</option>
+                                <option>Impacto de anuencia ambiental</option>
+                                <option>Linea Amarilla</option>
+                                <option>Operaciones</option>
+                                <option>Plano</option>
+                                <option>Residuos solidos urbanos (RSU)</option>
+                                <option>Uso de suelo</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>Existencia</label>
+                            <select id="existencia">
+                                <option>Recibo</option>
+                                <option>Recibo N/T</option>
+                                <option>Licencia</option>
+                                <option>Licencia N/T</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>Estatus</label>
+                            <select id="estatus">
+                                <option value="vigente">Vigente</option>
+                                <option value="en-tramite">En trámite</option>
+                                <option value="vencido">Vencido</option>
+                                <option value="pendiente">Pendiente</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>Fecha Expedición</label>
+                            <input type="date" id="fechaExpedicion">
+                        </div>
+                        <div>
+                            <label>Fecha Renovación</label>
+                            <input type="date" id="fechaRenovacion">
+                        </div>
+                        <div>
+                            <label>Estatus Legal</label>
+                            <select id="estatusLegal">
+                                <option>✓</option>
+                                <option>Dependencia a otro permiso</option>
+                                <option>En espera de legal</option>
+                                <option>En espero de permiso</option>
+                                <option>Falta pago</option>
+                                <option>Faltan Modificaciones</option>
+                                <option>Modificaciones</option>
+                                <option>Primer pago</option>
+                                <option>Segundo Pago</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>Documento Digital</label>
+                            <input type="file" id="permisoDigital" accept="*/*">
+                            <div class="file-info" id="fileInfo"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="cancelarModal" class="btn-secondary-custom">Cancelar</button>
+                    <button id="guardarRegistro" class="btn-primary-custom">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // CONFIGURACIÓN SUPABASE
+        const SUPABASE_URL = 'https://uooffrtjajluvhcauctk.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_ib_7iPl1ccS0PGo3yKzggQ_nWMi9CU8';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // DATOS Y VARIABLES GLOBALES
+        const branchData = [
+            { name: "5 Y 10", block: "3" }, { name: "ALEMÁN", block: "3" },
+            { name: "BRISAS", block: "1" }, { name: "CACHO", block: "1" },
+            { name: "CALIFORNIAS", block: "3" }, { name: "CAMPESTRE MURUA", block: "3" },
+            { name: "CAMPIÑA", block: "3" }, { name: "CAPISTRANO", block: "3" },
+            { name: "COLINA AZUL", block: "3" }, { name: "DARUMMITA LIBERTAD", block: "3" },
+            { name: "DARUMMITA PLAYAS", block: "2" }, { name: "ENSENADA", block: "1" },
+            { name: "FLORIDO", block: "3" }, { name: "INDEPENDENCIA", block: "3" },
+            { name: "LAGO", block: "3" }, { name: "LIBERTAD", block: "3" },
+            { name: "MALECÓN", block: "3" }, { name: "MALECÓN 2", block: "3" },
+            { name: "MARIANO MATAMOROS", block: "3" }, { name: "MATRIZ", block: "1" },
+            { name: "MURUA", block: "3" }, { name: "PANAMERICANO", block: "3" },
+            { name: "PLAYAS 1", block: "1" }, { name: "ROSARITO 3", block: "2" },
+            { name: "SOLER", block: "3" }, { name: "TORRES", block: "1" },
+            { name: "VENECIA", block: "3" }, { name: "ZONA NORTE", block: "3" },
+            { name: "ZONA RÍO", block: "3" }
+        ];
+
+        let permisosGuardados = [];
+        let editingIndex = -1;
+        let currentView = 'tabla';
+
+        // FUNCIONES PRINCIPALES
+        async function cargarDatosIniciales() {
+            try {
+                console.log('🔄 Cargando datos desde Supabase...');
+                const { data, error } = await supabaseClient
+                    .from('datos_financieros')
+                    .select('*')
+                    .order('creado_en', { ascending: false });
+
+                if (error) throw error;
+
+                if (data && data.length > 0) {
+                    permisosGuardados = data.map(item => ({
+                        id: item.id,
+                        asigna: item.anexa,
+                        bloque: item.bloque,
+                        sucursal: item.sucursal,
+                        permiso: item.tipo_permiso,
+                        existencia: item.existencia,
+                        estatus: item.estatus,
+                        fechaExpedicion: item.fecha_expedicion,
+                        fechaRenovacion: item.fecha_renovacion,
+                        estatusLegal: item.estatus_legal,
+                        permisoLegal: item.permiso_legal,
+                        archivoNombre: item.archive_nombre,
+                        archivoData: item.archive_data,
+                        archivoTipo: item.archive_tipo,
+                        fechaCreacion: item.creado_en
+                    }));
+                    console.log(`✅ Cargados ${permisosGuardados.length} registros`);
+                } else {
+                    console.log('ℹ️ No hay datos en Supabase');
+                    permisosGuardados = JSON.parse(localStorage.getItem('permisos')) || [];
+                }
+                localStorage.setItem('permisos', JSON.stringify(permisosGuardados));
+            } catch (error) {
+                console.error('❌ Error:', error);
+                permisosGuardados = JSON.parse(localStorage.getItem('permisos')) || [];
+            }
+            mostrarRegistrosEnTabla(permisosGuardados);
+            actualizarContadores();
+        }
+
+        function mostrarRegistrosEnTabla(registros) {
+            const tablaBody = document.getElementById('tablaBody');
+            if (!tablaBody) return;
+
+            tablaBody.innerHTML = '';
+            document.getElementById('contadorRegistros').textContent = registros.length;
+
+            if (registros.length === 0) {
+                tablaBody.innerHTML = `
+                    <tr><td colspan="11" style="text-align: center; color: #aaa; padding: 2rem;">
+                        No hay registros. Haz clic en "Agregar" para crear uno.
+                    </td></tr>`;
+                return;
+            }
+
+            registros.forEach((permiso, index) => {
+                let estadoColor = '#aaa';
+                if (permiso.estatus === 'vigente') estadoColor = '#4caf50';
+                if (permiso.estatus === 'en-tramite') estadoColor = '#ff9800';
+                if (permiso.estatus === 'vencido') estadoColor = '#f44336';
+
+                const archivoHTML = permiso.archivoNombre ? 
+                    `<a href="#" class="document-link ver-archivo-btn" data-index="${index}">
+                        <i class="fas fa-file"></i> ${permiso.archivoNombre}
+                    </a>` :
+                    '<span style="color: #666;">Sin archivo</span>';
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${permiso.bloque || ''}</td>
+                    <td>${permiso.sucursal || ''}</td>
+                    <td>${permiso.permiso || ''}</td>
+                    <td>${permiso.existencia || ''}</td>
+                    <td><span class="status-badge" style="background-color: ${estadoColor}20; color: ${estadoColor}; border-color: ${estadoColor}40;">
+                        ${(permiso.estatus || '').toUpperCase()}
+                    </span></td>
+                    <td>${permiso.fechaExpedicion || ''}</td>
+                    <td>${permiso.fechaRenovacion || ''}</td>
+                    <td>${permiso.estatusLegal || ''}</td>
+                    <td>${permiso.permisoLegal || ''}</td>
+                    <td>${archivoHTML}</td>
+                    <td>
+                        <button class="table-action-btn editar-btn" data-index="${index}">
+                            <i class="fas fa-edit"></i> Editar
+                        </button>
+                        <button class="table-action-btn eliminar-btn" data-index="${index}" style="color: #ff6b6b;">
+                            <i class="fas fa-trash"></i> Eliminar
+                        </button>
+                    </td>
+                `;
+                tablaBody.appendChild(row);
+            });
+
+            // Agregar eventos
+            document.querySelectorAll('.editar-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    abrirModal(parseInt(this.dataset.index));
+                });
+            });
+
+            document.querySelectorAll('.eliminar-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    if (confirm('¿Estás seguro de eliminar este registro?')) {
+                        eliminarRegistro(parseInt(this.dataset.index));
+                    }
+                });
+            });
+
+            document.querySelectorAll('.ver-archivo-btn').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    mostrarArchivoModal(parseInt(this.dataset.index));
+                });
+            });
+        }
+
+        function abrirModal(editarIndex = -1) {
+            editingIndex = editarIndex;
+            const modal = document.getElementById('modalAgregar');
+            const modalTitulo = document.getElementById('modalTitulo');
+            
+            modalTitulo.textContent = editarIndex >= 0 ? 'Editar Permiso' : 'Agregar Permiso';
+            
+            cargarBloquesModal();
+            cargarSucursalesModal();
+
+            if (editarIndex >= 0 && permisosGuardados[editarIndex]) {
+                const p = permisosGuardados[editarIndex];
+                document.getElementById('asigna').value = p.asigna || '';
+                document.getElementById('bloqueModal').value = p.bloque || '';
+                setTimeout(() => {
+                    document.getElementById('sucursalModal').value = p.sucursal || '';
+                }, 50);
+                document.getElementById('permiso').value = p.permiso || '';
+                document.getElementById('existencia').value = p.existencia || '';
+                document.getElementById('estatus').value = p.estatus || '';
+                document.getElementById('fechaExpedicion').value = p.fechaExpedicion || '';
+                document.getElementById('fechaRenovacion').value = p.fechaRenovacion || '';
+                document.getElementById('estatusLegal').value = p.estatusLegal || '';
+                document.getElementById('permisoDigital').value = '';
+                
+                const fileInfo = document.getElementById('fileInfo');
+                if (p.archivoNombre) {
+                    fileInfo.innerHTML = `<i class="fas fa-file"></i> Archivo actual: ${p.archivoNombre}`;
+                } else {
+                    fileInfo.innerHTML = '';
+                }
+            } else {
+                document.getElementById('asigna').value = 'Christian M';
+                document.getElementById('bloqueModal').value = '';
+                document.getElementById('sucursalModal').value = '';
+                document.getElementById('permiso').value = 'Anuncios';
+                document.getElementById('existencia').value = 'Recibo';
+                document.getElementById('estatus').value = 'vigente';
+                
+                const today = new Date();
+                const nextYear = new Date(today);
+                nextYear.setFullYear(today.getFullYear() + 1);
+                
+                document.getElementById('fechaExpedicion').value = today.toISOString().split('T')[0];
+                document.getElementById('fechaRenovacion').value = nextYear.toISOString().split('T')[0];
+                document.getElementById('estatusLegal').value = '✓';
+                document.getElementById('permisoDigital').value = '';
+                document.getElementById('fileInfo').innerHTML = '';
+            }
+
+            modal.style.display = 'flex';
+        }
+
+        function cerrarModal() {
+            document.getElementById('modalAgregar').style.display = 'none';
+            editingIndex = -1;
+        }
+
+        async function guardarPermiso() {
+            const asigna = document.getElementById('asigna').value;
+            const bloque = document.getElementById('bloqueModal').value;
+            const sucursal = document.getElementById('sucursalModal').value;
+            const permiso = document.getElementById('permiso').value;
+
+            if (!asigna || !bloque || !sucursal || !permiso) {
+                alert('Por favor complete todos los campos obligatorios: Asigna, Bloque, Sucursal y Permiso');
+                return;
+            }
+
+            const nuevoPermiso = {
+                id: editingIndex >= 0 ? permisosGuardados[editingIndex].id : Date.now(),
+                asigna: asigna,
+                bloque: bloque,
+                sucursal: sucursal,
+                permiso: permiso,
+                existencia: document.getElementById('existencia').value,
+                estatus: document.getElementById('estatus').value,
+                fechaExpedicion: document.getElementById('fechaExpedicion').value,
+                fechaRenovacion: document.getElementById('fechaRenovacion').value,
+                estatusLegal: document.getElementById('estatusLegal').value,
+                fechaCreacion: editingIndex >= 0 ? permisosGuardados[editingIndex].fechaCreacion : new Date().toISOString().split('T')[0],
+                archivoNombre: '',
+                archivoData: '',
+                archivoTipo: ''
+            };
+
+            const fileInput = document.getElementById('permisoDigital');
+            if (fileInput && fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    nuevoPermiso.archivoNombre = file.name;
+                    nuevoPermiso.archivoData = e.target.result.split(',')[1];
+                    nuevoPermiso.archivoTipo = file.type;
+                    finalizarGuardado(nuevoPermiso);
+                };
+                reader.readAsDataURL(file);
+            } else if (editingIndex >= 0 && permisosGuardados[editingIndex].archivoNombre) {
+                nuevoPermiso.archivoNombre = permisosGuardados[editingIndex].archivoNombre;
+                nuevoPermiso.archivoData = permisosGuardados[editingIndex].archivoData;
+                nuevoPermiso.archivoTipo = permisosGuardados[editingIndex].archivoTipo;
+                finalizarGuardado(nuevoPermiso);
+            } else {
+                finalizarGuardado(nuevoPermiso);
+            }
+        }
+
+        async function finalizarGuardado(nuevoPermiso) {
+            const datosSupabase = {
+                anexa: nuevoPermiso.asigna || '',
+                bloque: nuevoPermiso.bloque || '',
+                sucursal: nuevoPermiso.sucursal || '',
+                tipo_permiso: nuevoPermiso.permiso || '',
+                existencia: nuevoPermiso.existencia || '',
+                estatus: nuevoPermiso.estatus || '',
+                fecha_expedicion: nuevoPermiso.fechaExpedicion || null,
+                fecha_renovacion: nuevoPermiso.fechaRenovacion || null,
+                estatus_legal: nuevoPermiso.estatusLegal || '',
+                permiso_legal: nuevoPermiso.estatusLegal || '',
+                archive_nombre: nuevoPermiso.archivoNombre || null,
+                archive_data: nuevoPermiso.archivoData || null,
+                archive_tipo: nuevoPermiso.archivoTipo || null,
+                archivo_url: ''
+            };
+
+            try {
+                let resultadoSupabase;
+                if (editingIndex >= 0 && permisosGuardados[editingIndex].id) {
+                    console.log(`📝 Actualizando registro ID: ${permisosGuardados[editingIndex].id}`);
+                    const { data, error } = await supabaseClient
+                        .from('datos_financieros')
+                        .update(datosSupabase)
+                        .eq('id', permisosGuardados[editingIndex].id)
+                        .select();
+                    if (error) throw error;
+                    resultadoSupabase = data[0];
+                } else {
+                    console.log('➕ Insertando nuevo registro');
+                    const { data, error } = await supabaseClient
+                        .from('datos_financieros')
+                        .insert([datosSupabase])
+                        .select();
+                    if (error) throw error;
+                    resultadoSupabase = data[0];
+                }
+
+                const permisoActualizado = {
+                    ...nuevoPermiso,
+                    id: resultadoSupabase.id,
+                    fechaCreacion: resultadoSupabase.creado_en
+                };
+
+                if (editingIndex >= 0) {
+                    permisosGuardados[editingIndex] = permisoActualizado;
+                } else {
+                    permisosGuardados.push(permisoActualizado);
+                }
+
+                localStorage.setItem('permisos', JSON.stringify(permisosGuardados));
+                cerrarModal();
+                mostrarRegistrosEnTabla(permisosGuardados);
+                actualizarContadores();
+                alert('✅ Permiso guardado exitosamente');
+
+            } catch (error) {
+                console.error('❌ Error Supabase:', error);
+                if (editingIndex >= 0) {
+                    permisosGuardados[editingIndex] = nuevoPermiso;
+                } else {
+                    permisosGuardados.push(nuevoPermiso);
+                }
+                localStorage.setItem('permisos', JSON.stringify(permisosGuardados));
+                cerrarModal();
+                mostrarRegistrosEnTabla(permisosGuardados);
+                actualizarContadores();
+                alert('⚠️ Se guardó localmente debido a error en Supabase');
+            }
+        }
+
+        function eliminarRegistro(index) {
+            permisosGuardados.splice(index, 1);
+            localStorage.setItem('permisos', JSON.stringify(permisosGuardados));
+            mostrarRegistrosEnTabla(permisosGuardados);
+            actualizarContadores();
+        }
+
+        // FUNCIONES AUXILIARES
+        function cargarBloquesModal() {
+            const select = document.getElementById('bloqueModal');
+            const bloquesUnicos = [...new Set(branchData.map(b => b.block))].sort();
+            select.innerHTML = '<option value="">Seleccionar bloque</option>' +
+                bloquesUnicos.map(b => `<option value="${b}">Bloque ${b}</option>`).join('');
+        }
+
+        function cargarSucursalesModal() {
+            const bloque = document.getElementById('bloqueModal').value;
+            const select = document.getElementById('sucursalModal');
+            select.innerHTML = '<option value="">Seleccionar sucursal</option>';
+
+            let sucursales = [];
+            if (bloque) {
+                sucursales = branchData.filter(b => b.block === bloque)
+                    .sort((a, b) => a.name.localeCompare(b.name));
+            } else {
+                sucursales = [...new Set(branchData.map(b => b.name))].sort();
+            }
+
+            sucursales.forEach(s => {
+                const option = document.createElement('option');
+                option.value = typeof s === 'object' ? s.name : s;
+                option.textContent = typeof s === 'object' ? s.name : s;
+                select.appendChild(option);
+            });
+        }
+
+        function actualizarContadores() {
+            const vigentes = permisosGuardados.filter(p => p.estatus === 'vigente').length;
+            const vencidos = permisosGuardados.filter(p => p.estatus === 'vencido').length;
+            const enTramite = permisosGuardados.filter(p => p.estatus === 'en-tramite').length;
+            const pendientes = permisosGuardados.filter(p => !p.estatus || p.estatus === 'pendiente').length;
+            const total = permisosGuardados.length;
+
+            const hoy = new Date();
+            const proximos = permisosGuardados.filter(p => {
+                if (!p.fechaRenovacion) return false;
+                const fechaRen = new Date(p.fechaRenovacion);
+                const diffTime = fechaRen - hoy;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                return diffDays > 0 && diffDays <= 30;
+            }).length;
+
+            document.getElementById('contadorVigentes').textContent = vigentes;
+            document.getElementById('contadorVencidos').textContent = vencidos;
+            document.getElementById('contadorTramite').textContent = enTramite;
+            document.getElementById('contadorPendientes').textContent = pendientes;
+            document.getElementById('contadorProximos').textContent = proximos;
+            document.getElementById('contadorTotal').textContent = total;
+        }
+
+        function mostrarArchivoModal(index) {
+            const permiso = permisosGuardados[index];
+            if (!permiso.archivoData) {
+                alert('No hay archivo para mostrar');
+                return;
+            }
+
+            const fileData = `data:${permiso.archivoTipo};base64,${permiso.archivoData}`;
+            const win = window.open();
+            win.document.write(`
+                <html>
+                <head><title>${permiso.archivoNombre}</title></head>
+                <body style="margin:0;padding:0;">
+                    <iframe src="${fileData}" style="width:100%;height:100vh;border:none;"></iframe>
+                </body>
+                </html>
+            `);
+        }
+
+        // VISTAS KANBAN
+        function mostrarKanban(registros) {
+            const kanbanView = document.getElementById('kanbanView');
+            if (!kanbanView) return;
+
+            const columnas = [
+                { id: 'vigente', titulo: 'VIGENTE', filtro: p => p.estatus === 'vigente' },
+                { id: 'en-tramite', titulo: 'EN TRÁMITE', filtro: p => p.estatus === 'en-tramite' },
+                { id: 'pendiente', titulo: 'PENDIENTE', filtro: p => !p.estatus || p.estatus === 'pendiente' },
+                { id: 'vencido', titulo: 'VENCIDO', filtro: p => p.estatus === 'vencido' }
+            ];
+
+            kanbanView.innerHTML = '';
+            columnas.forEach(columna => {
+                const registrosColumna = registros.filter(columna.filtro);
+                const columnaHTML = document.createElement('div');
+                columnaHTML.className = 'kanban-columna';
+                
+                let contenido = `<div class="kanban-header ${columna.id}">${columna.titulo}</div><div class="kanban-tarjetas">`;
+                
+                if (registrosColumna.length === 0) {
+                    contenido += `<div class="kanban-sin-actividades">Sin actividades</div>`;
+                } else {
+                    registrosColumna.forEach(permiso => {
+                        const index = permisosGuardados.findIndex(p => p.id === permiso.id);
+                        contenido += `
+                            <div class="kanban-tarjeta ${columna.id}" data-index="${index}">
+                                <div class="kanban-sucursal">${permiso.sucursal || 'Sin sucursal'}</div>
+                                <div class="kanban-info"><strong>Permiso:</strong> ${permiso.permiso || ''}</div>
+                                <div class="kanban-info"><strong>Bloque:</strong> ${permiso.bloque || ''}</div>
+                                <div class="kanban-info"><strong>Estatus:</strong> ${permiso.estatus || ''}</div>
+                            </div>
+                        `;
+                    });
+                }
+                contenido += '</div>';
+                columnaHTML.innerHTML = contenido;
+                kanbanView.appendChild(columnaHTML);
+            });
+
+            document.querySelectorAll('.kanban-tarjeta').forEach(tarjeta => {
+                tarjeta.addEventListener('click', function() {
+                    abrirModal(parseInt(this.dataset.index));
+                });
+            });
+        }
+
+        function cambiarVista(vista) {
+            currentView = vista;
+            const tablaBtn = document.getElementById('btnVistaTabla');
+            const kanbanBtn = document.getElementById('btnVistaKanban');
+            const tablaContainer = document.getElementById('tablaContainer');
+            const kanbanContainer = document.getElementById('kanbanContainer');
+
+            if (vista === 'tabla') {
+                tablaBtn.classList.add('active');
+                kanbanBtn.classList.remove('active');
+                tablaContainer.style.display = 'block';
+                kanbanContainer.style.display = 'none';
+                mostrarRegistrosEnTabla(permisosGuardados);
+            } else {
+                tablaBtn.classList.remove('active');
+                kanbanBtn.classList.add('active');
+                tablaContainer.style.display = 'none';
+                kanbanContainer.style.display = 'block';
+                mostrarKanban(permisosGuardados);
+            }
+        }
+
+        // FILTROS
+        function inicializarFiltros() {
+            const blockFilter = document.getElementById('blockFilter');
+            const branchFilter = document.getElementById('branchFilter');
+
+            actualizarFiltroSucursales('all');
+
+            blockFilter.addEventListener('change', function() {
+                actualizarFiltroSucursales(this.value);
+                filtrarVistaActual();
+            });
+
+            ['branchFilter', 'permisoFilter', 'estatusFilter', 'estatusLegalFilter'].forEach(id => {
+                document.getElementById(id)?.addEventListener('change', filtrarVistaActual);
+            });
+
+            document.getElementById('busquedaInput')?.addEventListener('input', filtrarVistaActual);
+        }
+
+        function actualizarFiltroSucursales(blockValue) {
+            const branchFilter = document.getElementById('branchFilter');
+            branchFilter.innerHTML = '<option value="all">Todas las Sucursales</option>';
+
+            let sucursales = [];
+            if (blockValue === 'all') {
+                sucursales = [...new Set(branchData.map(b => b.name))].sort();
+            } else {
+                sucursales = branchData.filter(b => b.block === blockValue)
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                    .map(b => b.name);
+            }
+
+            sucursales.forEach(sucursal => {
+                const option = document.createElement('option');
+                option.value = sucursal;
+                option.textContent = sucursal;
+                branchFilter.appendChild(option);
+            });
+        }
+
+        function filtrarVistaActual() {
+            const blockFilter = document.getElementById('blockFilter').value;
+            const branchFilter = document.getElementById('branchFilter').value;
+            const permisoFilter = document.getElementById('permisoFilter').value;
+            const estatusFilter = document.getElementById('estatusFilter').value;
+            const estatusLegalFilter = document.getElementById('estatusLegalFilter')?.value || 'all';
+            const busqueda = document.getElementById('busquedaInput').value.toLowerCase();
+
+            let filtrados = [...permisosGuardados];
+
+            if (blockFilter !== 'all') filtrados = filtrados.filter(p => p.bloque === blockFilter);
+            if (branchFilter !== 'all') filtrados = filtrados.filter(p => p.sucursal === branchFilter);
+            if (permisoFilter !== 'all') filtrados = filtrados.filter(p => p.permiso === permisoFilter);
+            if (estatusFilter !== 'all') filtrados = filtrados.filter(p => p.estatus === estatusFilter);
+            if (estatusLegalFilter !== 'all') filtrados = filtrados.filter(p => p.estatusLegal === estatusLegalFilter);
+            if (busqueda) {
+                filtrados = filtrados.filter(p => 
+                    (p.sucursal && p.sucursal.toLowerCase().includes(busqueda)) ||
+                    (p.permiso && p.permiso.toLowerCase().includes(busqueda)) ||
+                    (p.existencia && p.existencia.toLowerCase().includes(busqueda)) ||
+                    (p.estatusLegal && p.estatusLegal.toLowerCase().includes(busqueda))
+                );
+            }
+
+            if (currentView === 'tabla') {
+                mostrarRegistrosEnTabla(filtrados);
+            } else {
+                mostrarKanban(filtrados);
+            }
+        }
+
+        // INICIALIZACIÓN
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('🚀 Iniciando aplicación...');
+            
+            await cargarDatosIniciales();
+            inicializarFiltros();
+
+            // Eventos de vista
+            document.getElementById('btnVistaTabla').addEventListener('click', () => cambiarVista('tabla'));
+            document.getElementById('btnVistaKanban').addEventListener('click', () => cambiarVista('kanban'));
+
+            // Eventos de modal
+            document.getElementById('btnAgregar').addEventListener('click', () => abrirModal());
+            document.getElementById('cancelarModal').addEventListener('click', cerrarModal);
+            document.getElementById('guardarRegistro').addEventListener('click', guardarPermiso);
+            
+            document.getElementById('modalAgregar').addEventListener('click', function(e) {
+                if (e.target === this) cerrarModal();
+            });
+
+            // Eventos de formulario
+            document.getElementById('bloqueModal').addEventListener('change', cargarSucursalesModal);
+            
+            document.getElementById('permisoDigital').addEventListener('change', function() {
+                const fileInfo = document.getElementById('fileInfo');
+                if (this.files.length > 0) {
+                    const file = this.files[0];
+                    const fileSize = (file.size / 1024).toFixed(2);
+                    fileInfo.innerHTML = `<i class="fas fa-file"></i> ${file.name} (${fileSize} KB)`;
+                } else {
+                    fileInfo.innerHTML = '';
+                }
+            });
+
+            console.log('✅ Aplicación inicializada correctamente');
+        });
+    </script>
+</body>
+</html>
