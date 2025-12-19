@@ -1006,7 +1006,7 @@
             { name: "ZONA RÍO", block: "3" }
         ];
 
-        // Iconos para archivos - DEVUELTO
+        // Iconos para archivos
         const fileIcons = {
             'pdf': 'fa-file-pdf',
             'doc': 'fa-file-word',
@@ -1026,63 +1026,153 @@
         let editingIndex = -1;
         let currentView = 'tabla';
 
-        // FUNCIONES PRINCIPALES
+        // FUNCIÓN DE DIAGNÓSTICO
+        async function diagnosticarSupabase() {
+            console.log('🔍 INICIANDO DIAGNÓSTICO SUPABASE');
+
+            try {
+                // 1. Verificar conexión
+                console.log('1. Verificando conexión a Supabase...');
+                const { data: connectionTest, error: connectionError } = await supabaseClient
+                    .from('datos_financieros')
+                    .select('count')
+                    .limit(1);
+
+                if (connectionError) {
+                    console.error('❌ Error de conexión:', connectionError);
+                    return false;
+                }
+                console.log('✅ Conexión a Supabase OK');
+
+                // 2. Verificar estructura de tabla
+                console.log('2. Verificando estructura de tabla...');
+                const { data: sampleData, error: sampleError } = await supabaseClient
+                    .from('datos_financieros')
+                    .select('*')
+                    .limit(2);
+
+                if (sampleError) {
+                    console.error('❌ Error al leer tabla:', sampleError);
+                    return false;
+                }
+
+                if (sampleData && sampleData.length > 0) {
+                    console.log('✅ Tabla contiene datos:', sampleData.length, 'registros');
+                    console.log('📋 Primer registro completo:', sampleData[0]);
+                    console.log('🗂️ Columnas disponibles:', Object.keys(sampleData[0]));
+
+                    // Mostrar todos los valores para debug
+                    Object.keys(sampleData[0]).forEach(key => {
+                        console.log(`   ${key}:`, sampleData[0][key], `(tipo: ${typeof sampleData[0][key]})`);
+                    });
+                } else {
+                    console.log('ℹ️ Tabla vacía');
+                }
+
+                return true;
+
+            } catch (error) {
+                console.error('❌ Error en diagnóstico:', error);
+                return false;
+            }
+        }
+
+        // FUNCIONES PRINCIPALES - VERSIÓN ÚNICA Y CORREGIDA
         async function cargarDatosIniciales() {
             try {
                 console.log('🔄 Cargando datos desde Supabase...');
+
+                // PRIMERO: Verifica la estructura real de la tabla
+                const { data: testData, error: testError } = await supabaseClient
+                    .from('datos_financieros')
+                    .select('*')
+                    .limit(1);
+
+                if (!testError && testData && testData.length > 0) {
+                    console.log('📊 DEBUG: Estructura del primer registro:', testData[0]);
+                    console.log('📊 DEBUG: Columnas disponibles:', Object.keys(testData[0]));
+                }
+
+                // SEGUNDO: Carga todos los datos
                 const { data, error } = await supabaseClient
                     .from('datos_financieros')
                     .select('*')
                     .order('creado_en', { ascending: false });
 
-                if (error) throw error;
+                if (error) {
+                    console.error('❌ Error en consulta Supabase:', error);
+                    throw error;
+                }
+
+                console.log('✅ DEBUG: Datos crudos de Supabase:', data);
 
                 if (data && data.length > 0) {
-                    permisosGuardados = data.map(item => ({
-                        id: item.id,
-                        asigna: item.anexa,
-                        bloque: item.bloque,
-                        sucursal: item.sucursal,
-                        permiso: item.tipo_permiso,
-                        existencia: item.existencia,
-                        estatus: item.estatus,
-                        fechaExpedicion: item.fecha_expedicion,
-                        fechaRenovacion: item.fecha_renovacion,
-                        estatusLegal: item.estatus_legal,
-                        permisoLegal: item.permiso_legal,
-                        archivoNombre: item.archive_nombre,
-                        archivoData: item.archive_data,
-                        archivoTipo: item.archive_tipo,
-                        fechaCreacion: item.creado_en
-                    }));
-                    console.log(`✅ Cargados ${permisosGuardados.length} registros`);
+                    // Mapeo CORREGIDO con valores por defecto
+                    permisosGuardados = data.map(item => {
+                        // Debug de cada item
+                        console.log('📋 Procesando item ID:', item.id, item);
+
+                        return {
+                            id: item.id,
+                            asigna: item.anexa || item.asigna || '',
+                            bloque: item.bloque || '',
+                            sucursal: item.sucursal || '',
+                            permiso: item.tipo_permiso || item.permiso || '',
+                            existencia: item.existencia || '',
+                            estatus: item.estatus || '',
+                            fechaExpedicion: item.fecha_expedicion || '',
+                            fechaRenovacion: item.fecha_renovacion || '',
+                            estatusLegal: item.estatus_legal || '',
+                            permisoLegal: item.permiso_legal || item.estatus_legal || '',
+                            archivoNombre: item.archive_nombre || '',
+                            archivoData: item.archive_data || '',
+                            archivoTipo: item.archive_tipo || '',
+                            fechaCreacion: item.creado_en || new Date().toISOString()
+                        };
+                    });
+
+                    console.log(`✅ Cargados ${permisosGuardados.length} registros mapeados`);
+                    console.log('📊 Ejemplo del primer registro mapeado:', permisosGuardados[0]);
                 } else {
                     console.log('ℹ️ No hay datos en Supabase');
                     permisosGuardados = JSON.parse(localStorage.getItem('permisos')) || [];
                 }
+
+                // Guarda copia local por si acaso
                 localStorage.setItem('permisos', JSON.stringify(permisosGuardados));
+
             } catch (error) {
-                console.error('❌ Error:', error);
+                console.error('❌ Error cargando datos:', error);
+                console.error('Detalles del error:', error.message);
+
+                // Fallback a localStorage
                 permisosGuardados = JSON.parse(localStorage.getItem('permisos')) || [];
+                console.log('⚠️ Usando datos de localStorage:', permisosGuardados.length);
             }
+
             mostrarRegistrosEnTabla(permisosGuardados);
             actualizarContadores();
         }
 
         function mostrarRegistrosEnTabla(registros) {
             const tablaBody = document.getElementById('tablaBody');
-            if (!tablaBody) return;
+            if (!tablaBody) {
+                console.error('❌ No se encontró tablaBody');
+                return;
+            }
 
             tablaBody.innerHTML = '';
             document.getElementById('contadorRegistros').textContent = registros.length;
 
             if (registros.length === 0) {
                 tablaBody.innerHTML = `
-                    <tr><td colspan="11" style="text-align: center; color: #aaa; padding: 2rem;">
-                        No hay registros. Haz clic en "Agregar" para crear uno.
-                    </td></tr>`;
+                <tr><td colspan="11" style="text-align: center; color: #aaa; padding: 2rem;">
+                    No hay registros. Haz clic en "Agregar" para crear uno.
+                </td></tr>`;
                 return;
             }
+
+            console.log('📊 Mostrando', registros.length, 'registros en tabla');
 
             registros.forEach((permiso, index) => {
                 let estadoColor = '#aaa';
@@ -1090,44 +1180,44 @@
                 if (permiso.estatus === 'en-tramite') estadoColor = '#ff9800';
                 if (permiso.estatus === 'vencido') estadoColor = '#f44336';
 
-                // Archivo con icono - DEVUELTO
+                // Archivo con icono
                 let archivoHTML = '<span style="color: #666;">Sin archivo</span>';
-                if (permiso.archivoNombre) {
+                if (permiso.archivoNombre && permiso.archivoNombre !== 'null' && permiso.archivoNombre.trim() !== '') {
                     const fileIcon = getFileIcon(permiso.archivoNombre);
                     archivoHTML = `
-                        <a href="#" class="document-link ver-archivo-btn" data-index="${index}">
-                            <i class="fas ${fileIcon}"></i> ${permiso.archivoNombre}
-                        </a>
-                    `;
+                    <a href="#" class="document-link ver-archivo-btn" data-index="${index}">
+                        <i class="fas ${fileIcon}"></i> ${permiso.archivoNombre}
+                    </a>
+                `;
                 }
 
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${permiso.bloque || ''}</td>
-                    <td>${permiso.sucursal || ''}</td>
-                    <td>${permiso.permiso || ''}</td>
-                    <td>${permiso.existencia || ''}</td>
-                    <td><span class="status-badge" style="background-color: ${estadoColor}20; color: ${estadoColor}; border-color: ${estadoColor}40;">
-                        ${(permiso.estatus || '').toUpperCase()}
-                    </span></td>
-                    <td>${permiso.fechaExpedicion || ''}</td>
-                    <td>${permiso.fechaRenovacion || ''}</td>
-                    <td>${permiso.estatusLegal || ''}</td>
-                    <td>${permiso.permisoLegal || ''}</td>
-                    <td>${archivoHTML}</td>
-                    <td>
-                        <button class="table-action-btn editar-btn" data-index="${index}">
-                            <i class="fas fa-edit"></i> Editar
-                        </button>
-                        <button class="table-action-btn eliminar-btn" data-index="${index}" style="color: #ff6b6b;">
-                            <i class="fas fa-trash"></i> Eliminar
-                        </button>
-                    </td>
-                `;
+                <td>${permiso.bloque || ''}</td>
+                <td>${permiso.sucursal || ''}</td>
+                <td>${permiso.permiso || ''}</td>
+                <td>${permiso.existencia || ''}</td>
+                <td><span class="status-badge" style="background-color: ${estadoColor}20; color: ${estadoColor}; border-color: ${estadoColor}40;">
+                    ${(permiso.estatus || '').toUpperCase()}
+                </span></td>
+                <td>${permiso.fechaExpedicion || ''}</td>
+                <td>${permiso.fechaRenovacion || ''}</td>
+                <td>${permiso.estatusLegal || ''}</td>
+                <td>${permiso.permisoLegal || ''}</td>
+                <td>${archivoHTML}</td>
+                <td>
+                    <button class="table-action-btn editar-btn" data-index="${index}">
+                        <i class="fas fa-edit"></i> Editar
+                    </button>
+                    <button class="table-action-btn eliminar-btn" data-index="${index}" style="color: #ff6b6b;">
+                        <i class="fas fa-trash"></i> Eliminar
+                    </button>
+                </td>
+            `;
                 tablaBody.appendChild(row);
             });
 
-            // Eventos - DEVUELTOS
+            // Eventos
             document.querySelectorAll('.editar-btn').forEach(btn => {
                 btn.addEventListener('click', function () {
                     abrirModal(parseInt(this.dataset.index));
@@ -1150,17 +1240,17 @@
             });
         }
 
-        // FUNCIÓN PARA OBTENER ICONO DE ARCHIVO - DEVUELTA
+        // FUNCIÓN PARA OBTENER ICONO DE ARCHIVO
         function getFileIcon(filename) {
-            if (!filename) return fileIcons.default;
+            if (!filename || filename === 'null') return fileIcons.default;
             const extension = filename.split('.').pop().toLowerCase();
             return fileIcons[extension] || fileIcons.default;
         }
 
-        // MODAL DE ARCHIVOS COMPLETO - DEVUELTO
+        // MODAL DE ARCHIVOS COMPLETO
         function mostrarArchivoModal(index) {
             const permiso = permisosGuardados[index];
-            if (!permiso.archivoData) {
+            if (!permiso.archivoData || permiso.archivoData === 'null') {
                 alert('No hay archivo para mostrar');
                 return;
             }
@@ -1188,23 +1278,23 @@
             }
 
             modal.innerHTML = `
-                <div class="modal-box" style="max-width: 800px;">
-                    <div class="modal-header">
-                        <h3 style="margin: 0; font-size: 1.3rem;">
-                            <i class="fas ${getFileIcon(permiso.archivoNombre)}"></i> ${permiso.archivoNombre}
-                        </h3>
-                        <button class="modal-close cerrar-archivo-modal">&times;</button>
-                    </div>
-                    <div class="modal-body" style="text-align: center;">
-                        ${contenido}
-                    </div>
-                    <div class="modal-footer">
-                        <button onclick="descargarArchivoDirecto(${index})" class="btn-primary-custom">
-                            <i class="fas fa-download"></i> Descargar Archivo
-                        </button>
-                    </div>
+            <div class="modal-box" style="max-width: 800px;">
+                <div class="modal-header">
+                    <h3 style="margin: 0; font-size: 1.3rem;">
+                        <i class="fas ${getFileIcon(permiso.archivoNombre)}"></i> ${permiso.archivoNombre}
+                    </h3>
+                    <button class="modal-close cerrar-archivo-modal">&times;</button>
                 </div>
-            `;
+                <div class="modal-body" style="text-align: center;">
+                    ${contenido}
+                </div>
+                <div class="modal-footer">
+                    <button onclick="descargarArchivoDirecto(${index})" class="btn-primary-custom">
+                        <i class="fas fa-download"></i> Descargar Archivo
+                    </button>
+                </div>
+            </div>
+        `;
 
             document.body.appendChild(modal);
 
@@ -1219,10 +1309,10 @@
             });
         }
 
-        // FUNCIÓN PARA DESCARGAR ARCHIVO - DEVUELTA
+        // FUNCIÓN PARA DESCARGAR ARCHIVO
         function descargarArchivoDirecto(index) {
             const permiso = permisosGuardados[index];
-            if (!permiso.archivoData) {
+            if (!permiso.archivoData || permiso.archivoData === 'null') {
                 alert('No hay archivo para descargar');
                 return;
             }
@@ -1263,7 +1353,7 @@
                 document.getElementById('permisoDigital').value = '';
 
                 const fileInfo = document.getElementById('fileInfo');
-                if (p.archivoNombre) {
+                if (p.archivoNombre && p.archivoNombre !== 'null') {
                     fileInfo.innerHTML = `<i class="fas ${getFileIcon(p.archivoNombre)}"></i> Archivo actual: ${p.archivoNombre}`;
                 } else {
                     fileInfo.innerHTML = '';
@@ -1468,83 +1558,34 @@
             }
         }
 
-        async function finalizarGuardado(nuevoPermiso) {
-            const datosSupabase = {
-                anexa: nuevoPermiso.asigna || '',
-                bloque: nuevoPermiso.bloque || '',
-                sucursal: nuevoPermiso.sucursal || '',
-                tipo_permiso: nuevoPermiso.permiso || '',
-                existencia: nuevoPermiso.existencia || '',
-                estatus: nuevoPermiso.estatus || '',
-                fecha_expedicion: nuevoPermiso.fechaExpedicion || null,
-                fecha_renovacion: nuevoPermiso.fechaRenovacion || null,
-                estatus_legal: nuevoPermiso.estatusLegal || '',
-                permiso_legal: nuevoPermiso.estatusLegal || '',
-                archive_nombre: nuevoPermiso.archivoNombre || null,
-                archive_data: nuevoPermiso.archivoData || null,
-                archive_tipo: nuevoPermiso.archivoTipo || null,
-                archivo_url: ''
-            };
-
-            try {
-                let resultadoSupabase;
-                if (editingIndex >= 0 && permisosGuardados[editingIndex].id) {
-                    console.log(`📝 Actualizando registro ID: ${permisosGuardados[editingIndex].id}`);
-                    const { data, error } = await supabaseClient
-                        .from('datos_financieros')
-                        .update(datosSupabase)
-                        .eq('id', permisosGuardados[editingIndex].id)
-                        .select();
-                    if (error) throw error;
-                    resultadoSupabase = data[0];
-                } else {
-                    console.log('➕ Insertando nuevo registro');
-                    const { data, error } = await supabaseClient
-                        .from('datos_financieros')
-                        .insert([datosSupabase])
-                        .select();
-                    if (error) throw error;
-                    resultadoSupabase = data[0];
-                }
-
-                const permisoActualizado = {
-                    ...nuevoPermiso,
-                    id: resultadoSupabase.id,
-                    fechaCreacion: resultadoSupabase.creado_en
-                };
-
-                if (editingIndex >= 0) {
-                    permisosGuardados[editingIndex] = permisoActualizado;
-                } else {
-                    permisosGuardados.push(permisoActualizado);
-                }
-
-                localStorage.setItem('permisos', JSON.stringify(permisosGuardados));
-                cerrarModal();
-                mostrarRegistrosEnTabla(permisosGuardados);
-                actualizarContadores();
-                alert('✅ Permiso guardado exitosamente');
-
-            } catch (error) {
-                console.error('❌ Error Supabase:', error);
-                if (editingIndex >= 0) {
-                    permisosGuardados[editingIndex] = nuevoPermiso;
-                } else {
-                    permisosGuardados.push(nuevoPermiso);
-                }
-                localStorage.setItem('permisos', JSON.stringify(permisosGuardados));
-                cerrarModal();
-                mostrarRegistrosEnTabla(permisosGuardados);
-                actualizarContadores();
-                alert('⚠️ Se guardó localmente debido a error en Supabase');
-            }
-        }
-
         function eliminarRegistro(index) {
-            permisosGuardados.splice(index, 1);
-            localStorage.setItem('permisos', JSON.stringify(permisosGuardados));
-            mostrarRegistrosEnTabla(permisosGuardados);
-            actualizarContadores();
+            const permiso = permisosGuardados[index];
+            if (permiso && permiso.id) {
+                // Si tiene ID de Supabase, intenta eliminar también allá
+                if (confirm('¿Estás seguro de eliminar este registro? También se eliminará de Supabase.')) {
+                    supabaseClient
+                        .from('datos_financieros')
+                        .delete()
+                        .eq('id', permiso.id)
+                        .then(({ error }) => {
+                            if (error) {
+                                console.error('❌ Error eliminando de Supabase:', error);
+                                alert('Error eliminando de Supabase, pero se eliminará localmente.');
+                            }
+                            permisosGuardados.splice(index, 1);
+                            localStorage.setItem('permisos', JSON.stringify(permisosGuardados));
+                            mostrarRegistrosEnTabla(permisosGuardados);
+                            actualizarContadores();
+                        });
+                }
+            } else {
+                if (confirm('¿Estás seguro de eliminar este registro?')) {
+                    permisosGuardados.splice(index, 1);
+                    localStorage.setItem('permisos', JSON.stringify(permisosGuardados));
+                    mostrarRegistrosEnTabla(permisosGuardados);
+                    actualizarContadores();
+                }
+            }
         }
 
         function actualizarContadores() {
@@ -1571,7 +1612,7 @@
             document.getElementById('contadorTotal').textContent = total;
         }
 
-        // VISTAS KANBAN COMPLETAS - DEVUELTAS
+        // VISTAS KANBAN
         function mostrarKanban(registros) {
             const kanbanView = document.getElementById('kanbanView');
             if (!kanbanView) return;
@@ -1599,29 +1640,29 @@
                         const fileIcon = permiso.archivoNombre ? getFileIcon(permiso.archivoNombre) : 'fa-file';
 
                         contenido += `
-                            <div class="kanban-tarjeta ${columna.id}" data-index="${index}">
-                                <div class="kanban-sucursal">
-                                    ${permiso.sucursal || 'Sin sucursal'}
-                                    <i class="fas fa-chevron-right"></i>
-                                </div>
-                                <div class="kanban-info">
-                                    <strong>Permiso:</strong> ${permiso.permiso || ''}
-                                </div>
-                                <div class="kanban-info">
-                                    <strong>Bloque:</strong> ${permiso.bloque || ''}
-                                </div>
-                                <div class="kanban-info">
-                                    <strong>Existencia:</strong> ${permiso.existencia || ''}
-                                </div>
-                                ${permiso.archivoNombre ? `
-                                <div class="kanban-archivo">
-                                    <a href="#" class="document-link ver-archivo-kanban" data-index="${index}">
-                                        <i class="fas ${fileIcon}"></i> Ver ${permiso.archivoNombre.split('.').pop().toUpperCase()}
-                                    </a>
-                                </div>
-                                ` : ''}
+                        <div class="kanban-tarjeta ${columna.id}" data-index="${index}">
+                            <div class="kanban-sucursal">
+                                ${permiso.sucursal || 'Sin sucursal'}
+                                <i class="fas fa-chevron-right"></i>
                             </div>
-                        `;
+                            <div class="kanban-info">
+                                <strong>Permiso:</strong> ${permiso.permiso || ''}
+                            </div>
+                            <div class="kanban-info">
+                                <strong>Bloque:</strong> ${permiso.bloque || ''}
+                            </div>
+                            <div class="kanban-info">
+                                <strong>Existencia:</strong> ${permiso.existencia || ''}
+                            </div>
+                            ${permiso.archivoNombre && permiso.archivoNombre !== 'null' ? `
+                            <div class="kanban-archivo">
+                                <a href="#" class="document-link ver-archivo-kanban" data-index="${index}">
+                                    <i class="fas ${fileIcon}"></i> Ver ${permiso.archivoNombre.split('.').pop().toUpperCase()}
+                                </a>
+                            </div>
+                            ` : ''}
+                        </div>
+                    `;
                     });
                 }
                 contenido += '</div>';
@@ -1629,7 +1670,7 @@
                 kanbanView.appendChild(columnaHTML);
             });
 
-            // Eventos para Kanban - DEVUELTOS
+            // Eventos para Kanban
             document.querySelectorAll('.kanban-tarjeta').forEach(tarjeta => {
                 tarjeta.addEventListener('click', function (e) {
                     if (!e.target.closest('.document-link')) {
@@ -1647,7 +1688,7 @@
             });
         }
 
-        // MODAL DE DETALLES COMPLETO - DEVUELTO
+        // MODAL DE DETALLES
         function mostrarDetalleModal(index) {
             const permiso = permisosGuardados[index];
             if (!permiso) return;
@@ -1663,94 +1704,94 @@
             const fileIcon = permiso.archivoNombre ? getFileIcon(permiso.archivoNombre) : 'fa-file';
 
             let contenidoHTML = `
-                <div style="margin-bottom: 1.5rem;">
-                    <div style="display: flex; align-items: center; margin-bottom: 1rem;">
-                        <span class="status-badge" style="
-                            background-color: ${colorEstatus}20; 
-                            color: ${colorEstatus}; 
-                            border-color: ${colorEstatus}40;
-                            font-size: 0.9rem;
-                        ">
-                            ${permiso.estatus ? permiso.estatus.toUpperCase() : 'SIN ESTATUS'}
-                        </span>
-                        <span style="margin-left: auto; color: #aaa; font-size: 0.9rem;">
-                            ID: ${permiso.id}
-                        </span>
+            <div style="margin-bottom: 1.5rem;">
+                <div style="display: flex; align-items: center; margin-bottom: 1rem;">
+                    <span class="status-badge" style="
+                        background-color: ${colorEstatus}20; 
+                        color: ${colorEstatus}; 
+                        border-color: ${colorEstatus}40;
+                        font-size: 0.9rem;
+                    ">
+                        ${permiso.estatus ? permiso.estatus.toUpperCase() : 'SIN ESTATUS'}
+                    </span>
+                    <span style="margin-left: auto; color: #aaa; font-size: 0.9rem;">
+                        ID: ${permiso.id}
+                    </span>
+                </div>
+                
+                <div style="background-color: #2a2a2a; border-radius: 8px; padding: 1.5rem;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                        <div>
+                            <div style="color: #aaa; font-size: 0.85rem; margin-bottom: 0.3rem;">Asigna</div>
+                            <div style="color: white; font-weight: 500;">${permiso.asigna || 'No asignado'}</div>
+                        </div>
+                        <div>
+                            <div style="color: #aaa; font-size: 0.85rem; margin-bottom: 0.3rem;">Permiso</div>
+                            <div style="color: white; font-weight: 500;">${permiso.permiso || 'Sin permiso'}</div>
+                        </div>
                     </div>
                     
-                    <div style="background-color: #2a2a2a; border-radius: 8px; padding: 1.5rem;">
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-                            <div>
-                                <div style="color: #aaa; font-size: 0.85rem; margin-bottom: 0.3rem;">Asigna</div>
-                                <div style="color: white; font-weight: 500;">${permiso.asigna || 'No asignado'}</div>
-                            </div>
-                            <div>
-                                <div style="color: #aaa; font-size: 0.85rem; margin-bottom: 0.3rem;">Permiso</div>
-                                <div style="color: white; font-weight: 500;">${permiso.permiso || 'Sin permiso'}</div>
-                            </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                        <div>
+                            <div style="color: #aaa; font-size: 0.85rem; margin-bottom: 0.3rem;">Bloque</div>
+                            <div style="color: white; font-weight: 500;">${permiso.bloque || ''}</div>
                         </div>
-                        
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-                            <div>
-                                <div style="color: #aaa; font-size: 0.85rem; margin-bottom: 0.3rem;">Bloque</div>
-                                <div style="color: white; font-weight: 500;">${permiso.bloque || ''}</div>
-                            </div>
-                            <div>
-                                <div style="color: #aaa; font-size: 0.85rem; margin-bottom: 0.3rem;">Sucursal</div>
-                                <div style="color: white; font-weight: 500;">${permiso.sucursal || 'Sin sucursal'}</div>
-                            </div>
+                        <div>
+                            <div style="color: #aaa; font-size: 0.85rem; margin-bottom: 0.3rem;">Sucursal</div>
+                            <div style="color: white; font-weight: 500;">${permiso.sucursal || 'Sin sucursal'}</div>
                         </div>
-                        
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-                            <div>
-                                <div style="color: #aaa; font-size: 0.85rem; margin-bottom: 0.3rem;">Existencia</div>
-                                <div style="color: white; font-weight: 500;">${permiso.existencia || 'Sin información'}</div>
-                            </div>
-                            <div>
-                                <div style="color: #aaa; font-size: 0.85rem; margin-bottom: 0.3rem;">Estatus Legal</div>
-                                <div style="color: white; font-weight: 500;">${permiso.estatusLegal || 'Sin estatus legal'}</div>
-                            </div>
-                        </div>
-                        
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-                            <div>
-                                <div style="color: #aaa; font-size: 0.85rem; margin-bottom: 0.3rem;">Fecha Expedición</div>
-                                <div style="color: white; font-weight: 500;">${permiso.fechaExpedicion || 'No especificada'}</div>
-                            </div>
-                            <div>
-                                <div style="color: #aaa; font-size: 0.85rem; margin-bottom: 0.3rem;">Fecha Renovación</div>
-                                <div style="color: white; font-weight: 500;">${permiso.fechaRenovacion || 'No especificada'}</div>
-                            </div>
-                        </div>
-                        
-                        <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--color-border);">
-                            <div style="color: #aaa; font-size: 0.85rem; margin-bottom: 0.5rem;">Documento</div>
-            `;
-
-            if (permiso.archivoNombre) {
-                contenidoHTML += `
-                    <div style="display: flex; align-items: center; gap: 1rem;">
-                        <a href="#" class="document-link ver-archivo-detalle" data-index="${index}" style="flex: 1;">
-                            <i class="fas ${fileIcon}"></i> ${permiso.archivoNombre}
-                        </a>
-                        <button class="btn-secondary-custom" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;" onclick="descargarArchivoDirecto(${index})">
-                            <i class="fas fa-download"></i>
-                        </button>
                     </div>
-                `;
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                        <div>
+                            <div style="color: #aaa; font-size: 0.85rem; margin-bottom: 0.3rem;">Existencia</div>
+                            <div style="color: white; font-weight: 500;">${permiso.existencia || 'Sin información'}</div>
+                        </div>
+                        <div>
+                            <div style="color: #aaa; font-size: 0.85rem; margin-bottom: 0.3rem;">Estatus Legal</div>
+                            <div style="color: white; font-weight: 500;">${permiso.estatusLegal || 'Sin estatus legal'}</div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                        <div>
+                            <div style="color: #aaa; font-size: 0.85rem; margin-bottom: 0.3rem;">Fecha Expedición</div>
+                            <div style="color: white; font-weight: 500;">${permiso.fechaExpedicion || 'No especificada'}</div>
+                        </div>
+                        <div>
+                            <div style="color: #aaa; font-size: 0.85rem; margin-bottom: 0.3rem;">Fecha Renovación</div>
+                            <div style="color: white; font-weight: 500;">${permiso.fechaRenovacion || 'No especificada'}</div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--color-border);">
+                        <div style="color: #aaa; font-size: 0.85rem; margin-bottom: 0.5rem;">Documento</div>
+        `;
+
+            if (permiso.archivoNombre && permiso.archivoNombre !== 'null') {
+                contenidoHTML += `
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <a href="#" class="document-link ver-archivo-detalle" data-index="${index}" style="flex: 1;">
+                        <i class="fas ${fileIcon}"></i> ${permiso.archivoNombre}
+                    </a>
+                    <button class="btn-secondary-custom" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;" onclick="descargarArchivoDirecto(${index})">
+                        <i class="fas fa-download"></i>
+                    </button>
+                </div>
+            `;
             } else {
                 contenidoHTML += `
-                    <div style="color: #666; font-style: italic;">
-                        No hay documento adjunto
-                    </div>
-                `;
+                <div style="color: #666; font-style: italic;">
+                    No hay documento adjunto
+                </div>
+            `;
             }
 
             contenidoHTML += `
-                        </div>
                     </div>
                 </div>
-            `;
+            </div>
+        `;
 
             contenido.innerHTML = contenidoHTML;
 
@@ -1884,6 +1925,10 @@
         document.addEventListener('DOMContentLoaded', async function () {
             console.log('🚀 Iniciando aplicación...');
 
+            // Ejecuta diagnóstico
+            await diagnosticarSupabase();
+
+            // Luego carga los datos
             await cargarDatosIniciales();
             inicializarFiltros();
 
@@ -1921,138 +1966,23 @@
 
             console.log('✅ Aplicación inicializada correctamente');
         });
-        async function cargarDatosIniciales() {
-            try {
-                console.log('🔄 Cargando datos desde Supabase...');
 
-                // PRIMERO: Verifica la estructura real de la tabla
-                const { data: testData, error: testError } = await supabaseClient
-                    .from('datos_financieros')
-                    .select('*')
-                    .limit(1);
+        // Funciones de debug adicionales
+        function verEstadoActual() {
+            console.log('📊 ESTADO ACTUAL:');
+            console.log('Permisos en memoria:', permisosGuardados);
+            console.log('Total registros:', permisosGuardados.length);
+            console.log('Vista actual:', currentView);
 
-                if (!testError && testData && testData.length > 0) {
-                    console.log('📊 Estructura del primer registro:', testData[0]);
-                    console.log('📊 Columnas disponibles:', Object.keys(testData[0]));
-                }
-
-                // SEGUNDO: Carga todos los datos
-                const { data, error } = await supabaseClient
-                    .from('datos_financieros')
-                    .select('*')
-                    .order('creado_en', { ascending: false });
-
-                if (error) throw error;
-
-                console.log('✅ Datos crudos de Supabase:', data);
-
-                if (data && data.length > 0) {
-                    // Mapeo CORREGIDO - usa los nombres reales de las columnas
-                    permisosGuardados = data.map(item => {
-                        console.log('📋 Procesando item:', item); // Debug
-
-                        return {
-                            id: item.id,
-                            asigna: item.anexa || item.asigna || '',
-                            bloque: item.bloque || '',
-                            sucursal: item.sucursal || '',
-                            permiso: item.tipo_permiso || item.permiso || '',
-                            existencia: item.existencia || '',
-                            estatus: item.estatus || '',
-                            fechaExpedicion: item.fecha_expedicion || '',
-                            fechaRenovacion: item.fecha_renovacion || '',
-                            estatusLegal: item.estatus_legal || '',
-                            permisoLegal: item.permiso_legal || '',
-                            archivoNombre: item.archive_nombre || '',
-                            archivoData: item.archive_data || '',
-                            archivoTipo: item.archive_tipo || '',
-                            fechaCreacion: item.creado_en || new Date().toISOString()
-                        };
-                    });
-
-                    console.log(`✅ Cargados ${permisosGuardados.length} registros mapeados:`, permisosGuardados);
-                } else {
-                    console.log('ℹ️ No hay datos en Supabase');
-                    permisosGuardados = JSON.parse(localStorage.getItem('permisos')) || [];
-                }
-
-                // Guarda copia local por si acaso
-                localStorage.setItem('permisos', JSON.stringify(permisosGuardados));
-
-            } catch (error) {
-                console.error('❌ Error cargando datos:', error);
-                console.error('Detalles del error:', error.message);
-
-                // Fallback a localStorage
-                permisosGuardados = JSON.parse(localStorage.getItem('permisos')) || [];
-                console.log('⚠️ Usando datos de localStorage:', permisosGuardados.length);
-            }
-
-            mostrarRegistrosEnTabla(permisosGuardados);
-            actualizarContadores();
-        }
-
-        // FUNCIÓN DE DIAGNÓSTICO - Agrega al inicio del script
-        async function diagnosticarSupabase() {
-            console.log('🔍 INICIANDO DIAGNÓSTICO SUPABASE');
-
-            try {
-                // 1. Verificar conexión
-                console.log('1. Verificando conexión a Supabase...');
-                const { data: connectionTest, error: connectionError } = await supabaseClient
-                    .from('datos_financieros')
-                    .select('count')
-                    .limit(1);
-
-                if (connectionError) {
-                    console.error('❌ Error de conexión:', connectionError);
-                    return false;
-                }
-                console.log('✅ Conexión a Supabase OK');
-
-                // 2. Verificar estructura de tabla
-                console.log('2. Verificando estructura de tabla...');
-                const { data: sampleData, error: sampleError } = await supabaseClient
-                    .from('datos_financieros')
-                    .select('*')
-                    .limit(2);
-
-                if (sampleError) {
-                    console.error('❌ Error al leer tabla:', sampleError);
-                    return false;
-                }
-
-                if (sampleData && sampleData.length > 0) {
-                    console.log('✅ Tabla contiene datos:', sampleData.length, 'registros');
-                    console.log('📋 Primer registro:', sampleData[0]);
-                    console.log('🗂️ Columnas disponibles:', Object.keys(sampleData[0]));
-                } else {
-                    console.log('ℹ️ Tabla vacía');
-                }
-
-                return true;
-
-            } catch (error) {
-                console.error('❌ Error en diagnóstico:', error);
-                return false;
+            if (permisosGuardados.length > 0) {
+                console.log('Ejemplo de primer registro:', permisosGuardados[0]);
             }
         }
 
-        // Llama al diagnóstico al cargar la página
-        document.addEventListener('DOMContentLoaded', async function () {
-            console.log('🚀 Iniciando aplicación...');
-
-            // Ejecuta diagnóstico
-            await diagnosticarSupabase();
-
-            // Luego carga los datos
-            await cargarDatosIniciales();
-            inicializarFiltros();
-
-            // ... resto del código de inicialización ...
-        });
-
-
+        function recargarDatosForzado() {
+            console.log('🔄 Recarga forzada de datos...');
+            cargarDatosIniciales();
+        }
     </script>
 </body>
 
