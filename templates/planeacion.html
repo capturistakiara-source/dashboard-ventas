@@ -427,22 +427,26 @@
             transition: all 0.2s;
             min-width: 40px;
             text-align: center;
+            font-family: inherit;
         }
 
         .pagination-btn:hover:not(.disabled):not(.active) {
             border-color: var(--color-accent);
             color: var(--color-accent);
+            background-color: rgba(183, 28, 28, 0.1);
         }
 
         .pagination-btn.active {
             background-color: var(--color-accent);
             border-color: var(--color-accent);
             color: white;
+            font-weight: 600;
         }
 
         .pagination-btn.disabled {
-            opacity: 0.5;
+            opacity: 0.4;
             cursor: not-allowed;
+            pointer-events: none;
         }
 
         .pagination-select {
@@ -452,6 +456,11 @@
             padding: 0.4rem 0.8rem;
             border-radius: 4px;
             font-size: 0.85rem;
+            cursor: pointer;
+        }
+
+        .pagination-select:hover {
+            border-color: var(--color-accent);
         }
 
         .items-per-page {
@@ -1145,14 +1154,18 @@
         let filteredData = [];
         let totalPages = 1;
 
-        // FUNCIONES DE PAGINACIÓN
+        // FUNCIONES DE PAGINACIÓN CORREGIDAS
         function updatePaginationInfo(totalItems, startItem, endItem) {
             const infoElement = currentView === 'tabla' 
                 ? document.getElementById('paginationInfo')
                 : document.getElementById('kanbanPaginationInfo');
                 
             if (infoElement) {
-                infoElement.textContent = `Mostrando ${startItem + 1} a ${endItem} de ${totalItems} registros`;
+                if (totalItems === 0) {
+                    infoElement.textContent = `No hay registros`;
+                } else {
+                    infoElement.textContent = `Mostrando ${startItem + 1} a ${endItem} de ${totalItems} registros`;
+                }
             }
         }
 
@@ -1165,14 +1178,18 @@
             
             buttonsContainer.innerHTML = '';
             
+            // Si no hay páginas, no mostrar botones
+            if (totalPages <= 1) return;
+            
             // Botón Anterior
             const prevButton = document.createElement('button');
             prevButton.className = `pagination-btn ${currentPage === 1 ? 'disabled' : ''}`;
             prevButton.innerHTML = '<i class="fas fa-chevron-left"></i>';
-            prevButton.onclick = () => {
+            prevButton.onclick = (e) => {
+                e.preventDefault();
                 if (currentPage > 1) {
                     currentPage--;
-                    filtrarVistaActual();
+                    updateView();
                 }
             };
             buttonsContainer.appendChild(prevButton);
@@ -1190,16 +1207,18 @@
                 const firstButton = document.createElement('button');
                 firstButton.className = 'pagination-btn';
                 firstButton.textContent = '1';
-                firstButton.onclick = () => {
+                firstButton.onclick = (e) => {
+                    e.preventDefault();
                     currentPage = 1;
-                    filtrarVistaActual();
+                    updateView();
                 };
                 buttonsContainer.appendChild(firstButton);
                 
                 if (startPage > 2) {
-                    const ellipsis = document.createElement('span');
+                    const ellipsis = document.createElement('button');
                     ellipsis.className = 'pagination-btn disabled';
                     ellipsis.textContent = '...';
+                    ellipsis.disabled = true;
                     buttonsContainer.appendChild(ellipsis);
                 }
             }
@@ -1208,27 +1227,30 @@
                 const pageButton = document.createElement('button');
                 pageButton.className = `pagination-btn ${i === currentPage ? 'active' : ''}`;
                 pageButton.textContent = i;
-                pageButton.onclick = () => {
+                pageButton.onclick = (e) => {
+                    e.preventDefault();
                     currentPage = i;
-                    filtrarVistaActual();
+                    updateView();
                 };
                 buttonsContainer.appendChild(pageButton);
             }
             
             if (endPage < totalPages) {
                 if (endPage < totalPages - 1) {
-                    const ellipsis = document.createElement('span');
+                    const ellipsis = document.createElement('button');
                     ellipsis.className = 'pagination-btn disabled';
                     ellipsis.textContent = '...';
+                    ellipsis.disabled = true;
                     buttonsContainer.appendChild(ellipsis);
                 }
                 
                 const lastButton = document.createElement('button');
                 lastButton.className = 'pagination-btn';
                 lastButton.textContent = totalPages;
-                lastButton.onclick = () => {
+                lastButton.onclick = (e) => {
+                    e.preventDefault();
                     currentPage = totalPages;
-                    filtrarVistaActual();
+                    updateView();
                 };
                 buttonsContainer.appendChild(lastButton);
             }
@@ -1237,42 +1259,55 @@
             const nextButton = document.createElement('button');
             nextButton.className = `pagination-btn ${currentPage === totalPages ? 'disabled' : ''}`;
             nextButton.innerHTML = '<i class="fas fa-chevron-right"></i>';
-            nextButton.onclick = () => {
+            nextButton.onclick = (e) => {
+                e.preventDefault();
                 if (currentPage < totalPages) {
                     currentPage++;
-                    filtrarVistaActual();
+                    updateView();
                 }
             };
             buttonsContainer.appendChild(nextButton);
         }
 
-        function getCurrentPageData(data) {
+        function getCurrentPageData() {
+            if (!filteredData || filteredData.length === 0) return [];
+            
             const startIndex = (currentPage - 1) * itemsPerPage;
             const endIndex = startIndex + itemsPerPage;
-            return data.slice(startIndex, endIndex);
+            return filteredData.slice(startIndex, endIndex);
         }
 
-        function applyPagination(data) {
-            if (!data || data.length === 0) {
+        function updatePagination() {
+            if (!filteredData || filteredData.length === 0) {
                 totalPages = 1;
                 currentPage = 1;
-                return [];
+                updatePaginationInfo(0, 0, 0);
+                createPaginationButtons(1, 1);
+                return;
             }
             
-            totalPages = Math.ceil(data.length / itemsPerPage);
+            totalPages = Math.ceil(filteredData.length / itemsPerPage);
             
+            // Asegurar que currentPage esté dentro del rango válido
             if (currentPage > totalPages) {
                 currentPage = totalPages > 0 ? totalPages : 1;
             }
             
-            const pageData = getCurrentPageData(data);
+            const pageData = getCurrentPageData();
             const startItem = (currentPage - 1) * itemsPerPage;
-            const endItem = Math.min(startItem + itemsPerPage, data.length);
+            const endItem = Math.min(startItem + itemsPerPage, filteredData.length);
             
-            updatePaginationInfo(data.length, startItem, endItem);
+            updatePaginationInfo(filteredData.length, startItem, endItem);
             createPaginationButtons(totalPages, currentPage);
-            
-            return pageData;
+        }
+
+        // FUNCIÓN PRINCIPAL PARA ACTUALIZAR LA VISTA
+        function updateView() {
+            if (currentView === 'tabla') {
+                mostrarRegistrosEnTabla();
+            } else {
+                mostrarKanban();
+            }
         }
 
         // FUNCIONES PRINCIPALES
@@ -1315,8 +1350,9 @@
                 permisosGuardados = JSON.parse(localStorage.getItem('permisos')) || [];
             }
             
+            // Inicializar filteredData con todos los datos
             filteredData = [...permisosGuardados];
-            mostrarRegistrosEnTabla();
+            updateView();
             actualizarContadores();
         }
 
@@ -1324,7 +1360,11 @@
             const tablaBody = document.getElementById('tablaBody');
             if (!tablaBody) return;
 
-            const pageData = applyPagination(filteredData);
+            // Primero actualizar la paginación
+            updatePagination();
+            
+            // Obtener datos de la página actual
+            const pageData = getCurrentPageData();
             
             tablaBody.innerHTML = '';
 
@@ -1336,7 +1376,8 @@
                 return;
             }
 
-            pageData.forEach((permiso, index) => {
+            pageData.forEach((permiso, indexInPage) => {
+                // Encontrar el índice original en permisosGuardados
                 const originalIndex = permisosGuardados.findIndex(p => p.id === permiso.id);
                 let estadoColor = '#aaa';
                 if (permiso.estatus === 'vigente') estadoColor = '#4caf50';
@@ -1379,7 +1420,7 @@
                 tablaBody.appendChild(row);
             });
 
-            // Eventos
+            // Eventos - Agregar event listeners
             document.querySelectorAll('.editar-btn').forEach(btn => {
                 btn.addEventListener('click', function () {
                     abrirModal(parseInt(this.dataset.index));
@@ -1677,6 +1718,7 @@
 
                 localStorage.setItem('permisos', JSON.stringify(permisosGuardados));
                 cerrarModal();
+                // Re-filtrar y actualizar la vista
                 filtrarVistaActual();
                 actualizarContadores();
                 alert('✅ Permiso guardado exitosamente');
@@ -1697,10 +1739,12 @@
         }
 
         function eliminarRegistro(index) {
-            permisosGuardados.splice(index, 1);
-            localStorage.setItem('permisos', JSON.stringify(permisosGuardados));
-            filtrarVistaActual();
-            actualizarContadores();
+            if (confirm('¿Estás seguro de eliminar este registro?')) {
+                permisosGuardados.splice(index, 1);
+                localStorage.setItem('permisos', JSON.stringify(permisosGuardados));
+                filtrarVistaActual();
+                actualizarContadores();
+            }
         }
 
         function actualizarContadores() {
@@ -1732,7 +1776,11 @@
             const kanbanView = document.getElementById('kanbanView');
             if (!kanbanView) return;
 
-            const pageData = applyPagination(filteredData);
+            // Primero actualizar la paginación
+            updatePagination();
+            
+            // Obtener datos de la página actual
+            const pageData = getCurrentPageData();
             
             const columnas = [
                 { id: 'vigente', titulo: 'VIGENTE', filtro: p => p.estatus === 'vigente' },
@@ -1753,11 +1801,11 @@
                     contenido += `<div class="kanban-sin-actividades">Sin actividades</div>`;
                 } else {
                     registrosColumna.forEach(permiso => {
-                        const index = permisosGuardados.findIndex(p => p.id === permiso.id);
+                        const originalIndex = permisosGuardados.findIndex(p => p.id === permiso.id);
                         const fileIcon = permiso.archivoNombre ? getFileIcon(permiso.archivoNombre) : 'fa-file';
 
                         contenido += `
-                            <div class="kanban-tarjeta ${columna.id}" data-index="${index}">
+                            <div class="kanban-tarjeta ${columna.id}" data-index="${originalIndex}">
                                 <div class="kanban-sucursal">
                                     ${permiso.sucursal || 'Sin sucursal'}
                                     <i class="fas fa-chevron-right"></i>
@@ -1773,7 +1821,7 @@
                                 </div>
                                 ${permiso.archivoNombre ? `
                                 <div class="kanban-archivo">
-                                    <a href="#" class="document-link ver-archivo-kanban" data-index="${index}">
+                                    <a href="#" class="document-link ver-archivo-kanban" data-index="${originalIndex}">
                                         <i class="fas ${fileIcon}"></i> Ver ${permiso.archivoNombre.split('.').pop().toUpperCase()}
                                     </a>
                                 </div>
@@ -1949,6 +1997,8 @@
 
         function cambiarVista(vista) {
             currentView = vista;
+            currentPage = 1; // Resetear a la primera página al cambiar de vista
+            
             const tablaBtn = document.getElementById('btnVistaTabla');
             const kanbanBtn = document.getElementById('btnVistaKanban');
             const tablaContainer = document.getElementById('tablaContainer');
@@ -1959,13 +2009,13 @@
                 kanbanBtn.classList.remove('active');
                 tablaContainer.style.display = 'block';
                 kanbanContainer.style.display = 'none';
-                mostrarRegistrosEnTabla();
+                updateView();
             } else {
                 tablaBtn.classList.remove('active');
                 kanbanBtn.classList.add('active');
                 tablaContainer.style.display = 'none';
                 kanbanContainer.style.display = 'block';
-                mostrarKanban();
+                updateView();
             }
         }
 
@@ -1991,7 +2041,7 @@
             document.getElementById('itemsPerPage').addEventListener('change', function() {
                 itemsPerPage = parseInt(this.value);
                 currentPage = 1; // Resetear a la primera página
-                filtrarVistaActual();
+                updateView();
             });
         }
 
@@ -2023,6 +2073,9 @@
             const estatusFilter = document.getElementById('estatusFilter').value;
             const busqueda = document.getElementById('busquedaInput').value.toLowerCase();
 
+            // Resetear a la primera página cuando se aplica un filtro
+            currentPage = 1;
+            
             filteredData = [...permisosGuardados];
 
             if (blockFilter !== 'all') filteredData = filteredData.filter(p => p.bloque === blockFilter);
@@ -2038,11 +2091,7 @@
                 );
             }
 
-            if (currentView === 'tabla') {
-                mostrarRegistrosEnTabla();
-            } else {
-                mostrarKanban();
-            }
+            updateView();
         }
 
         // INICIALIZACIÓN
