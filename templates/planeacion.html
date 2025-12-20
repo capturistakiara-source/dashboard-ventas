@@ -390,6 +390,78 @@
             color: var(--color-accent);
         }
 
+        /* ESTILOS PARA PAGINACIÓN */
+        .pagination-container {
+            padding: 1rem 1.5rem;
+            background-color: #1a1a1a;
+            border-top: 1px solid var(--color-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .pagination-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .pagination-info {
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+
+        .pagination-buttons {
+            display: flex;
+            gap: 0.3rem;
+        }
+
+        .pagination-btn {
+            background-color: #2a2a2a;
+            border: 1px solid var(--color-border);
+            color: var(--color-text);
+            padding: 0.5rem 0.9rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        .pagination-btn:hover:not(.disabled):not(.active) {
+            border-color: var(--color-accent);
+            color: var(--color-accent);
+        }
+
+        .pagination-btn.active {
+            background-color: var(--color-accent);
+            border-color: var(--color-accent);
+            color: white;
+        }
+
+        .pagination-btn.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination-select {
+            background-color: #2a2a2a;
+            border: 1px solid var(--color-border);
+            color: var(--color-text);
+            padding: 0.4rem 0.8rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+
+        .items-per-page {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -669,11 +741,25 @@
             .form-grid {
                 grid-template-columns: repeat(2, 1fr);
             }
+
+            .pagination-container {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: flex-start;
+            }
+
+            .pagination-controls {
+                flex-wrap: wrap;
+            }
         }
 
         @media (max-width: 480px) {
             .form-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .pagination-buttons {
+                flex-wrap: wrap;
             }
         }
     </style>
@@ -844,17 +930,32 @@
                 </table>
             </div>
 
-            <!-- PIE DE TABLA -->
-            <div style="padding: 1rem 1.5rem; background-color: #1a1a1a; border-top: 1px solid var(--color-border);">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div style="color: #aaa; font-size: 0.9rem;">
-                        Mostrando <span id="contadorRegistros">0</span> registros
+            <!-- PAGINACIÓN -->
+            <div class="pagination-container">
+                <div class="pagination-controls">
+                    <div class="items-per-page">
+                        <span>Mostrar:</span>
+                        <select class="pagination-select" id="itemsPerPage">
+                            <option value="10">10</option>
+                            <option value="25" selected>25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                            <option value="250">250</option>
+                        </select>
                     </div>
-                    <div>
-                        <button id="btnAgregar" class="btn-secondary-custom">
-                            <i class="fas fa-plus me-1"></i> Agregar
-                        </button>
+                    <div class="pagination-info" id="paginationInfo">
+                        Mostrando 0 de 0 registros
                     </div>
+                </div>
+                <div class="pagination-controls">
+                    <div class="pagination-buttons" id="paginationButtons">
+                        <!-- Los botones de paginación se generarán aquí -->
+                    </div>
+                </div>
+                <div>
+                    <button id="btnAgregar" class="btn-secondary-custom">
+                        <i class="fas fa-plus me-1"></i> Agregar
+                    </button>
                 </div>
             </div>
         </div>
@@ -862,9 +963,23 @@
         <!-- CONTENEDOR KANBAN -->
         <div id="kanbanContainer" class="data-table-container" style="display: none;">
             <div id="kanbanView" class="kanban-view"></div>
+            
+            <!-- PAGINACIÓN PARA KANBAN -->
+            <div class="pagination-container">
+                <div class="pagination-controls">
+                    <div class="pagination-info" id="kanbanPaginationInfo">
+                        Mostrando 0 de 0 registros
+                    </div>
+                </div>
+                <div class="pagination-controls">
+                    <div class="pagination-buttons" id="kanbanPaginationButtons">
+                        <!-- Los botones de paginación para Kanban se generarán aquí -->
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <!-- MODAL VER DETALLES (para Kanban) - DEVUELTO -->
+        <!-- MODAL VER DETALLES (para Kanban) -->
         <div id="modalDetalle" class="modal-overlay">
             <div class="modal-box" style="max-width: 500px;">
                 <div class="modal-header">
@@ -1004,7 +1119,7 @@
             { name: "ZONA RÍO", block: "3" }
         ];
 
-        // Iconos para archivos - DEVUELTO
+        // Iconos para archivos
         const fileIcons = {
             'pdf': 'fa-file-pdf',
             'doc': 'fa-file-word',
@@ -1023,6 +1138,142 @@
         let permisosGuardados = [];
         let editingIndex = -1;
         let currentView = 'tabla';
+        
+        // Variables para paginación
+        let currentPage = 1;
+        let itemsPerPage = 25;
+        let filteredData = [];
+        let totalPages = 1;
+
+        // FUNCIONES DE PAGINACIÓN
+        function updatePaginationInfo(totalItems, startItem, endItem) {
+            const infoElement = currentView === 'tabla' 
+                ? document.getElementById('paginationInfo')
+                : document.getElementById('kanbanPaginationInfo');
+                
+            if (infoElement) {
+                infoElement.textContent = `Mostrando ${startItem + 1} a ${endItem} de ${totalItems} registros`;
+            }
+        }
+
+        function createPaginationButtons(totalPages, currentPage) {
+            const buttonsContainer = currentView === 'tabla'
+                ? document.getElementById('paginationButtons')
+                : document.getElementById('kanbanPaginationButtons');
+                
+            if (!buttonsContainer) return;
+            
+            buttonsContainer.innerHTML = '';
+            
+            // Botón Anterior
+            const prevButton = document.createElement('button');
+            prevButton.className = `pagination-btn ${currentPage === 1 ? 'disabled' : ''}`;
+            prevButton.innerHTML = '<i class="fas fa-chevron-left"></i>';
+            prevButton.onclick = () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    filtrarVistaActual();
+                }
+            };
+            buttonsContainer.appendChild(prevButton);
+            
+            // Botones de página
+            const maxVisiblePages = 5;
+            let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+            
+            if (endPage - startPage + 1 < maxVisiblePages) {
+                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+            }
+            
+            if (startPage > 1) {
+                const firstButton = document.createElement('button');
+                firstButton.className = 'pagination-btn';
+                firstButton.textContent = '1';
+                firstButton.onclick = () => {
+                    currentPage = 1;
+                    filtrarVistaActual();
+                };
+                buttonsContainer.appendChild(firstButton);
+                
+                if (startPage > 2) {
+                    const ellipsis = document.createElement('span');
+                    ellipsis.className = 'pagination-btn disabled';
+                    ellipsis.textContent = '...';
+                    buttonsContainer.appendChild(ellipsis);
+                }
+            }
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const pageButton = document.createElement('button');
+                pageButton.className = `pagination-btn ${i === currentPage ? 'active' : ''}`;
+                pageButton.textContent = i;
+                pageButton.onclick = () => {
+                    currentPage = i;
+                    filtrarVistaActual();
+                };
+                buttonsContainer.appendChild(pageButton);
+            }
+            
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    const ellipsis = document.createElement('span');
+                    ellipsis.className = 'pagination-btn disabled';
+                    ellipsis.textContent = '...';
+                    buttonsContainer.appendChild(ellipsis);
+                }
+                
+                const lastButton = document.createElement('button');
+                lastButton.className = 'pagination-btn';
+                lastButton.textContent = totalPages;
+                lastButton.onclick = () => {
+                    currentPage = totalPages;
+                    filtrarVistaActual();
+                };
+                buttonsContainer.appendChild(lastButton);
+            }
+            
+            // Botón Siguiente
+            const nextButton = document.createElement('button');
+            nextButton.className = `pagination-btn ${currentPage === totalPages ? 'disabled' : ''}`;
+            nextButton.innerHTML = '<i class="fas fa-chevron-right"></i>';
+            nextButton.onclick = () => {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    filtrarVistaActual();
+                }
+            };
+            buttonsContainer.appendChild(nextButton);
+        }
+
+        function getCurrentPageData(data) {
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            return data.slice(startIndex, endIndex);
+        }
+
+        function applyPagination(data) {
+            if (!data || data.length === 0) {
+                totalPages = 1;
+                currentPage = 1;
+                return [];
+            }
+            
+            totalPages = Math.ceil(data.length / itemsPerPage);
+            
+            if (currentPage > totalPages) {
+                currentPage = totalPages > 0 ? totalPages : 1;
+            }
+            
+            const pageData = getCurrentPageData(data);
+            const startItem = (currentPage - 1) * itemsPerPage;
+            const endItem = Math.min(startItem + itemsPerPage, data.length);
+            
+            updatePaginationInfo(data.length, startItem, endItem);
+            createPaginationButtons(totalPages, currentPage);
+            
+            return pageData;
+        }
 
         // FUNCIONES PRINCIPALES
         async function cargarDatosIniciales() {
@@ -1063,18 +1314,21 @@
                 console.error('❌ Error:', error);
                 permisosGuardados = JSON.parse(localStorage.getItem('permisos')) || [];
             }
-            mostrarRegistrosEnTabla(permisosGuardados);
+            
+            filteredData = [...permisosGuardados];
+            mostrarRegistrosEnTabla();
             actualizarContadores();
         }
 
-        function mostrarRegistrosEnTabla(registros) {
+        function mostrarRegistrosEnTabla() {
             const tablaBody = document.getElementById('tablaBody');
             if (!tablaBody) return;
 
+            const pageData = applyPagination(filteredData);
+            
             tablaBody.innerHTML = '';
-            document.getElementById('contadorRegistros').textContent = registros.length;
 
-            if (registros.length === 0) {
+            if (pageData.length === 0) {
                 tablaBody.innerHTML = `
                     <tr><td colspan="11" style="text-align: center; color: #aaa; padding: 2rem;">
                         No hay registros. Haz clic en "Agregar" para crear uno.
@@ -1082,18 +1336,18 @@
                 return;
             }
 
-            registros.forEach((permiso, index) => {
+            pageData.forEach((permiso, index) => {
+                const originalIndex = permisosGuardados.findIndex(p => p.id === permiso.id);
                 let estadoColor = '#aaa';
                 if (permiso.estatus === 'vigente') estadoColor = '#4caf50';
                 if (permiso.estatus === 'en-tramite') estadoColor = '#ff9800';
                 if (permiso.estatus === 'vencido') estadoColor = '#f44336';
 
-                // Archivo con icono - DEVUELTO
                 let archivoHTML = '<span style="color: #666;">Sin archivo</span>';
                 if (permiso.archivoNombre) {
                     const fileIcon = getFileIcon(permiso.archivoNombre);
                     archivoHTML = `
-                        <a href="#" class="document-link ver-archivo-btn" data-index="${index}">
+                        <a href="#" class="document-link ver-archivo-btn" data-index="${originalIndex}">
                             <i class="fas ${fileIcon}"></i> ${permiso.archivoNombre}
                         </a>
                     `;
@@ -1114,10 +1368,10 @@
                     <td>${permiso.permisoLegal || ''}</td>
                     <td>${archivoHTML}</td>
                     <td>
-                        <button class="table-action-btn editar-btn" data-index="${index}">
+                        <button class="table-action-btn editar-btn" data-index="${originalIndex}">
                             <i class="fas fa-edit"></i> Editar
                         </button>
-                        <button class="table-action-btn eliminar-btn" data-index="${index}" style="color: #ff6b6b;">
+                        <button class="table-action-btn eliminar-btn" data-index="${originalIndex}" style="color: #ff6b6b;">
                             <i class="fas fa-trash"></i> Eliminar
                         </button>
                     </td>
@@ -1125,7 +1379,7 @@
                 tablaBody.appendChild(row);
             });
 
-            // Eventos - DEVUELTOS
+            // Eventos
             document.querySelectorAll('.editar-btn').forEach(btn => {
                 btn.addEventListener('click', function () {
                     abrirModal(parseInt(this.dataset.index));
@@ -1148,14 +1402,14 @@
             });
         }
 
-        // FUNCIÓN PARA OBTENER ICONO DE ARCHIVO - DEVUELTA
+        // FUNCIÓN PARA OBTENER ICONO DE ARCHIVO
         function getFileIcon(filename) {
             if (!filename) return fileIcons.default;
             const extension = filename.split('.').pop().toLowerCase();
             return fileIcons[extension] || fileIcons.default;
         }
 
-        // MODAL DE ARCHIVOS COMPLETO - DEVUELTO
+        // MODAL DE ARCHIVOS COMPLETO
         function mostrarArchivoModal(index) {
             const permiso = permisosGuardados[index];
             if (!permiso.archivoData) {
@@ -1217,7 +1471,7 @@
             });
         }
 
-        // FUNCIÓN PARA DESCARGAR ARCHIVO - DEVUELTA
+        // FUNCIÓN PARA DESCARGAR ARCHIVO
         function descargarArchivoDirecto(index) {
             const permiso = permisosGuardados[index];
             if (!permiso.archivoData) {
@@ -1423,7 +1677,7 @@
 
                 localStorage.setItem('permisos', JSON.stringify(permisosGuardados));
                 cerrarModal();
-                mostrarRegistrosEnTabla(permisosGuardados);
+                filtrarVistaActual();
                 actualizarContadores();
                 alert('✅ Permiso guardado exitosamente');
 
@@ -1436,7 +1690,7 @@
                 }
                 localStorage.setItem('permisos', JSON.stringify(permisosGuardados));
                 cerrarModal();
-                mostrarRegistrosEnTabla(permisosGuardados);
+                filtrarVistaActual();
                 actualizarContadores();
                 alert('⚠️ Se guardó localmente debido a error en Supabase');
             }
@@ -1445,7 +1699,7 @@
         function eliminarRegistro(index) {
             permisosGuardados.splice(index, 1);
             localStorage.setItem('permisos', JSON.stringify(permisosGuardados));
-            mostrarRegistrosEnTabla(permisosGuardados);
+            filtrarVistaActual();
             actualizarContadores();
         }
 
@@ -1473,11 +1727,13 @@
             document.getElementById('contadorTotal').textContent = total;
         }
 
-        // VISTAS KANBAN COMPLETAS - DEVUELTAS
-        function mostrarKanban(registros) {
+        // VISTAS KANBAN COMPLETAS
+        function mostrarKanban() {
             const kanbanView = document.getElementById('kanbanView');
             if (!kanbanView) return;
 
+            const pageData = applyPagination(filteredData);
+            
             const columnas = [
                 { id: 'vigente', titulo: 'VIGENTE', filtro: p => p.estatus === 'vigente' },
                 { id: 'en-tramite', titulo: 'EN TRÁMITE', filtro: p => p.estatus === 'en-tramite' },
@@ -1487,7 +1743,7 @@
 
             kanbanView.innerHTML = '';
             columnas.forEach(columna => {
-                const registrosColumna = registros.filter(columna.filtro);
+                const registrosColumna = pageData.filter(columna.filtro);
                 const columnaHTML = document.createElement('div');
                 columnaHTML.className = 'kanban-columna';
 
@@ -1531,7 +1787,7 @@
                 kanbanView.appendChild(columnaHTML);
             });
 
-            // Eventos para Kanban - DEVUELTOS
+            // Eventos para Kanban
             document.querySelectorAll('.kanban-tarjeta').forEach(tarjeta => {
                 tarjeta.addEventListener('click', function (e) {
                     if (!e.target.closest('.document-link')) {
@@ -1549,7 +1805,7 @@
             });
         }
 
-        // MODAL DE DETALLES COMPLETO - DEVUELTO
+        // MODAL DE DETALLES COMPLETO
         function mostrarDetalleModal(index) {
             const permiso = permisosGuardados[index];
             if (!permiso) return;
@@ -1703,13 +1959,13 @@
                 kanbanBtn.classList.remove('active');
                 tablaContainer.style.display = 'block';
                 kanbanContainer.style.display = 'none';
-                mostrarRegistrosEnTabla(permisosGuardados);
+                mostrarRegistrosEnTabla();
             } else {
                 tablaBtn.classList.remove('active');
                 kanbanBtn.classList.add('active');
                 tablaContainer.style.display = 'none';
                 kanbanContainer.style.display = 'block';
-                mostrarKanban(permisosGuardados);
+                mostrarKanban();
             }
         }
 
@@ -1730,6 +1986,13 @@
             });
 
             document.getElementById('busquedaInput')?.addEventListener('input', filtrarVistaActual);
+            
+            // Cambiar items por página
+            document.getElementById('itemsPerPage').addEventListener('change', function() {
+                itemsPerPage = parseInt(this.value);
+                currentPage = 1; // Resetear a la primera página
+                filtrarVistaActual();
+            });
         }
 
         function actualizarFiltroSucursales(blockValue) {
@@ -1760,14 +2023,14 @@
             const estatusFilter = document.getElementById('estatusFilter').value;
             const busqueda = document.getElementById('busquedaInput').value.toLowerCase();
 
-            let filtrados = [...permisosGuardados];
+            filteredData = [...permisosGuardados];
 
-            if (blockFilter !== 'all') filtrados = filtrados.filter(p => p.bloque === blockFilter);
-            if (branchFilter !== 'all') filtrados = filtrados.filter(p => p.sucursal === branchFilter);
-            if (permisoFilter !== 'all') filtrados = filtrados.filter(p => p.permiso === permisoFilter);
-            if (estatusFilter !== 'all') filtrados = filtrados.filter(p => p.estatus === estatusFilter);
+            if (blockFilter !== 'all') filteredData = filteredData.filter(p => p.bloque === blockFilter);
+            if (branchFilter !== 'all') filteredData = filteredData.filter(p => p.sucursal === branchFilter);
+            if (permisoFilter !== 'all') filteredData = filteredData.filter(p => p.permiso === permisoFilter);
+            if (estatusFilter !== 'all') filteredData = filteredData.filter(p => p.estatus === estatusFilter);
             if (busqueda) {
-                filtrados = filtrados.filter(p =>
+                filteredData = filteredData.filter(p =>
                     (p.sucursal && p.sucursal.toLowerCase().includes(busqueda)) ||
                     (p.permiso && p.permiso.toLowerCase().includes(busqueda)) ||
                     (p.existencia && p.existencia.toLowerCase().includes(busqueda)) ||
@@ -1776,9 +2039,9 @@
             }
 
             if (currentView === 'tabla') {
-                mostrarRegistrosEnTabla(filtrados);
+                mostrarRegistrosEnTabla();
             } else {
-                mostrarKanban(filtrados);
+                mostrarKanban();
             }
         }
 
