@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <title>Planeación - La Postal</title>
@@ -7,7 +8,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* TODOS LOS ESTILOS ORIGINALES COMPLETOS */
         :root {
             --color-bg: #000000;
             --color-card: #1a1a1a;
@@ -113,6 +113,7 @@
             transition: transform 0.3s, box-shadow 0.3s;
             position: relative;
             overflow: hidden;
+            cursor: pointer;
         }
 
         .summary-card:hover {
@@ -477,7 +478,6 @@
             color: var(--color-accent);
         }
 
-        /* Mejoras para el modal de archivos */
         .modal-body iframe {
             border-radius: 6px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
@@ -503,7 +503,7 @@
             object-fit: contain;
         }
 
-        /* ================= ESTILOS KANBAN ================= */
+        /* ESTILOS KANBAN */
         .kanban-view {
             display: flex;
             gap: 1rem;
@@ -637,6 +637,91 @@
             font-size: 0.9rem;
         }
 
+        /* ESTILOS MODAL REPORTES */
+        #reporteModal .modal-dialog {
+            max-width: 95%;
+            min-height: 80vh;
+        }
+
+        #reporteModal .modal-content {
+            background-color: #111;
+            border: 1px solid #333;
+            border-radius: 10px;
+            color: #fff;
+        }
+
+        #reporteModal .modal-header {
+            background: linear-gradient(135deg, #b71c1c 0%, #8b0000 100%);
+            border-bottom: 2px solid #333;
+            padding: 1.2rem 1.5rem;
+        }
+
+        #reporteModal .modal-title {
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        #reporteModal .modal-body {
+            max-height: 70vh;
+            overflow-y: auto;
+            padding: 1.5rem;
+        }
+
+        #reporteModal .table {
+            color: #ddd;
+            margin-bottom: 0;
+        }
+
+        #reporteModal .table th {
+            background-color: #2a2a2a;
+            color: #ccc;
+            border-bottom: 2px solid #b71c1c;
+            font-weight: 500;
+            padding: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        #reporteModal .table td {
+            padding: 0.8rem 1rem;
+            border-bottom: 1px solid #333;
+            vertical-align: middle;
+        }
+
+        #reporteModal .table tbody tr:hover {
+            background-color: rgba(183, 28, 28, 0.05);
+        }
+
+        #reporteModal .badge {
+            font-size: 0.85rem;
+            padding: 0.35em 0.65em;
+            font-weight: 500;
+        }
+
+        #reporteModal .bg-success {
+            background-color: #2e7d32 !important;
+        }
+
+        #reporteModal .bg-danger {
+            background-color: #c62828 !important;
+        }
+
+        #reporteModal .bg-warning {
+            background-color: #ef6c00 !important;
+            color: #fff !important;
+        }
+
+        #reporteModal .bg-secondary {
+            background-color: #616161 !important;
+        }
+
+        #reporteModal .bg-info {
+            background-color: #0277bd !important;
+        }
+
         /* RESPONSIVE */
         @media (max-width: 768px) {
             .main-container {
@@ -668,6 +753,24 @@
             .form-grid {
                 grid-template-columns: repeat(2, 1fr);
             }
+
+            #reporteModal .modal-dialog {
+                max-width: 100%;
+                margin: 0.5rem;
+            }
+
+            #reporteModal .modal-body {
+                padding: 1rem;
+            }
+
+            #reporteModal .table {
+                font-size: 0.85rem;
+            }
+
+            #reporteModal .table th,
+            #reporteModal .table td {
+                padding: 0.5rem;
+            }
         }
 
         @media (max-width: 480px) {
@@ -675,10 +778,33 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        /* ANIMACIONES */
+        @keyframes modalSlideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal.fade .modal-dialog {
+            animation: modalSlideIn 0.3s ease-out;
+        }
+
+        .summary-card.clicked {
+            transform: scale(0.98);
+            transition: transform 0.1s;
+        }
     </style>
 </head>
+
 <body>
-    <!-- NAVBAR (Mismo diseño) -->
+    <!-- NAVBAR -->
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container">
             <a class="navbar-brand" href="{{ url_for('home') }}">
@@ -686,7 +812,8 @@
             </a>
             <div class="navbar-nav ms-auto">
                 <span class="navbar-text me-3">
-                    Hola, <span style="color: #b71c1c; font-weight: 500;" id="nombreUsuario">{{ current_user.nombre }}</span>
+                    Hola, <span style="color: #b71c1c; font-weight: 500;" id="nombreUsuario">{{ current_user.nombre
+                        }}</span>
                 </span>
                 <a class="nav-link" href="{{ url_for('home') }}">Dashboard</a>
                 <a class="nav-link" href="{{ url_for('perfil') }}">Perfil</a>
@@ -709,37 +836,44 @@
         <div class="row summary-cards g-3 mt-0">
             <div class="row g-3">
                 <div class="col-md-4">
-                    <div class="summary-card sales">
+                    <div class="summary-card sales" onclick="generarReporte('vigentes')" style="cursor: pointer;">
                         <div class="card-number" id="contadorVigentes">0</div>
                         <div class="card-label">VIGENTES</div>
                     </div>
                 </div>
+
                 <div class="col-md-4">
-                    <div class="summary-card customers">
+                    <div class="summary-card customers" onclick="generarReporte('vencidos')" style="cursor: pointer;">
                         <div class="card-number" id="contadorVencidos">0</div>
                         <div class="card-label">VENCIDOS</div>
                     </div>
                 </div>
+
                 <div class="col-md-4">
-                    <div class="summary-card average">
+                    <div class="summary-card average" onclick="generarReporte('en-tramite')" style="cursor: pointer;">
                         <div class="card-number" id="contadorTramite">0</div>
                         <div class="card-label">EN TRÁMITE</div>
                     </div>
                 </div>
+
                 <div class="col-md-4">
-                    <div class="summary-card target">
+                    <div class="summary-card target" onclick="generarReporte('pendientes')" style="cursor: pointer;">
                         <div class="card-number" id="contadorPendientes">0</div>
                         <div class="card-label">PENDIENTES</div>
                     </div>
                 </div>
+
                 <div class="col-md-4">
-                    <div class="summary-card" style="--card-color: #9c27b0;">
+                    <div class="summary-card" style="--card-color: #9c27b0; cursor: pointer;"
+                        onclick="generarReporte('proximos-a-vencer')">
                         <div class="card-number" id="contadorProximos">0</div>
                         <div class="card-label">PRÓXIMOS A VENCER</div>
                     </div>
                 </div>
+
                 <div class="col-md-4">
-                    <div class="summary-card" style="--card-color: #607d8b;">
+                    <div class="summary-card" style="--card-color: #607d8b; cursor: pointer;"
+                        onclick="generarReporte('todos')">
                         <div class="card-number" id="contadorTotal">0</div>
                         <div class="card-label">TOTAL</div>
                     </div>
@@ -861,7 +995,7 @@
             <div id="kanbanView" class="kanban-view"></div>
         </div>
 
-        <!-- MODAL VER DETALLES (para Kanban) - DEVUELTO -->
+        <!-- MODAL VER DETALLES -->
         <div id="modalDetalle" class="modal-overlay">
             <div class="modal-box" style="max-width: 500px;">
                 <div class="modal-header">
@@ -974,7 +1108,24 @@
                 </div>
             </div>
         </div>
+
+        <!-- MODAL REPORTES -->
+        <div class="modal fade" id="reporteModal" tabindex="-1" aria-labelledby="reporteModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="text-center py-5" id="modalLoading">
+                        <div class="spinner-border text-danger" role="status">
+                            <span class="visually-hidden">Cargando...</span>
+                        </div>
+                        <p class="mt-3">Generando reporte...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
         // CONFIGURACIÓN SUPABASE
@@ -1001,7 +1152,7 @@
             { name: "ZONA RÍO", block: "3" }
         ];
 
-        // Iconos para archivos - DEVUELTO
+        // Iconos para archivos
         const fileIcons = {
             'pdf': 'fa-file-pdf',
             'doc': 'fa-file-word',
@@ -1020,6 +1171,7 @@
         let permisosGuardados = [];
         let editingIndex = -1;
         let currentView = 'tabla';
+        let reporteActual = '';
 
         // FUNCIONES PRINCIPALES
         async function cargarDatosIniciales() {
@@ -1073,64 +1225,110 @@
 
             if (registros.length === 0) {
                 tablaBody.innerHTML = `
-                    <tr><td colspan="11" style="text-align: center; color: #aaa; padding: 2rem;">
-                        No hay registros. Haz clic en "Agregar" para crear uno.
-                    </td></tr>`;
+            <tr><td colspan="11" style="text-align: center; color: #aaa; padding: 2rem;">
+                No hay registros. Haz clic en "Agregar" para crear uno.
+            </td></tr>`;
                 return;
             }
 
             registros.forEach((permiso, index) => {
                 let estadoColor = '#aaa';
-                if (permiso.estatus === 'vigente') estadoColor = '#4caf50';
-                if (permiso.estatus === 'en-tramite') estadoColor = '#ff9800';
-                if (permiso.estatus === 'vencido') estadoColor = '#f44336';
+                let estadoTexto = 'PENDIENTE';
 
-                // Archivo con icono - DEVUELTO
+                // Asignar colores según estatus
+                switch (permiso.estatus) {
+                    case 'vigente':
+                        estadoColor = '#4caf50';
+                        estadoTexto = 'VIGENTE';
+                        break;
+                    case 'en-tramite':
+                        estadoColor = '#ff9800';
+                        estadoTexto = 'EN TRÁMITE';
+                        break;
+                    case 'vencido':
+                        estadoColor = '#f44336';
+                        estadoTexto = 'VENCIDO';
+                        break;
+                    case 'proximo-a-vencer':
+                        estadoColor = '#ff9800';
+                        estadoTexto = 'PRÓXIMO A VENCER';
+                        break;
+                    default:
+                        estadoColor = '#9c27b0';
+                        estadoTexto = 'PENDIENTE';
+                }
+
+                // Archivo con icono
                 let archivoHTML = '<span style="color: #666;">Sin archivo</span>';
                 if (permiso.archivoNombre) {
                     const fileIcon = getFileIcon(permiso.archivoNombre);
                     archivoHTML = `
-                        <a href="#" class="document-link ver-archivo-btn" data-index="${index}">
-                            <i class="fas ${fileIcon}"></i> ${permiso.archivoNombre}
-                        </a>
-                    `;
+                <a href="#" class="document-link ver-archivo-btn" data-index="${index}">
+                    <i class="fas ${fileIcon}"></i> ${permiso.archivoNombre}
+                </a>
+            `;
+                }
+
+                // Calcular días restantes si tiene fecha de renovación
+                let diasInfo = '';
+                if (permiso.fechaRenovacion) {
+                    const hoy = new Date();
+                    const fechaVen = new Date(permiso.fechaRenovacion);
+                    const diffTime = fechaVen - hoy;
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                    if (diffDays > 0) {
+                        diasInfo = `<br><small style="color: #aaa; font-size: 0.8rem;">Vence en ${diffDays} días</small>`;
+                    } else if (diffDays === 0) {
+                        diasInfo = `<br><small style="color: #ff9800; font-size: 0.8rem;">¡Vence hoy!</small>`;
+                    } else {
+                        diasInfo = `<br><small style="color: #f44336; font-size: 0.8rem;">Vencido hace ${Math.abs(diffDays)} días</small>`;
+                    }
                 }
 
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${permiso.bloque || ''}</td>
-                    <td>${permiso.sucursal || ''}</td>
-                    <td>${permiso.permiso || ''}</td>
-                    <td>${permiso.existencia || ''}</td>
-                    <td><span class="status-badge" style="background-color: ${estadoColor}20; color: ${estadoColor}; border-color: ${estadoColor}40;">
-                        ${(permiso.estatus || '').toUpperCase()}
-                    </span></td>
-                    <td>${permiso.fechaExpedicion || ''}</td>
-                    <td>${permiso.fechaRenovacion || ''}</td>
-                    <td>${permiso.estatusLegal || ''}</td>
-                    <td>${permiso.permisoLegal || ''}</td>
-                    <td>${archivoHTML}</td>
-                    <td>
-                        <button class="table-action-btn editar-btn" data-index="${index}">
-                            <i class="fas fa-edit"></i> Editar
-                        </button>
-                        <button class="table-action-btn eliminar-btn" data-index="${index}" style="color: #ff6b6b;">
-                            <i class="fas fa-trash"></i> Eliminar
-                        </button>
-                    </td>
-                `;
+            <td>${permiso.bloque || ''}</td>
+            <td>${permiso.sucursal || ''}</td>
+            <td>${permiso.permiso || ''}</td>
+            <td>${permiso.existencia || ''}</td>
+            <td>
+                <span class="status-badge" style="
+                    background-color: ${estadoColor}20; 
+                    color: ${estadoColor}; 
+                    border-color: ${estadoColor}40;
+                    ${permiso.estatus === 'proximo-a-vencer' ? 'font-weight: bold;' : ''}
+                ">
+                    ${estadoTexto}
+                </span>
+                ${diasInfo}
+            </td>
+            <td>${permiso.fechaExpedicion || ''}</td>
+            <td>${permiso.fechaRenovacion || ''}</td>
+            <td>${permiso.estatusLegal || ''}</td>
+            <td>${permiso.permisoLegal || ''}</td>
+            <td>${archivoHTML}</td>
+            <td>
+                <button class="table-action-btn editar-btn" data-index="${index}">
+                    <i class="fas fa-edit"></i> Editar
+                </button>
+                <button class="table-action-btn eliminar-btn" data-index="${index}" style="color: #ff6b6b;">
+                    <i class="fas fa-trash"></i> Eliminar
+                </button>
+            </td>
+        `;
                 tablaBody.appendChild(row);
             });
 
-            // Eventos - DEVUELTOS
+            // Eventos
             document.querySelectorAll('.editar-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
+                btn.addEventListener('click', function () {
                     abrirModal(parseInt(this.dataset.index));
                 });
             });
 
             document.querySelectorAll('.eliminar-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
+                btn.addEventListener('click', function () {
                     if (confirm('¿Estás seguro de eliminar este registro?')) {
                         eliminarRegistro(parseInt(this.dataset.index));
                     }
@@ -1138,21 +1336,21 @@
             });
 
             document.querySelectorAll('.ver-archivo-btn').forEach(link => {
-                link.addEventListener('click', function(e) {
+                link.addEventListener('click', function (e) {
                     e.preventDefault();
                     mostrarArchivoModal(parseInt(this.dataset.index));
                 });
             });
         }
 
-        // FUNCIÓN PARA OBTENER ICONO DE ARCHIVO - DEVUELTA
+        // FUNCIÓN PARA OBTENER ICONO DE ARCHIVO
         function getFileIcon(filename) {
             if (!filename) return fileIcons.default;
             const extension = filename.split('.').pop().toLowerCase();
             return fileIcons[extension] || fileIcons.default;
         }
 
-        // MODAL DE ARCHIVOS COMPLETO - DEVUELTO
+        // MODAL DE ARCHIVOS
         function mostrarArchivoModal(index) {
             const permiso = permisosGuardados[index];
             if (!permiso.archivoData) {
@@ -1166,7 +1364,7 @@
 
             const fileData = `data:${permiso.archivoTipo};base64,${permiso.archivoData}`;
             let contenido = '';
-            
+
             if (permiso.archivoTipo.startsWith('image/')) {
                 contenido = `<img src="${fileData}" style="max-width: 100%; max-height: 70vh;" alt="${permiso.archivoNombre}">`;
             } else if (permiso.archivoTipo === 'application/pdf') {
@@ -1214,7 +1412,7 @@
             });
         }
 
-        // FUNCIÓN PARA DESCARGAR ARCHIVO - DEVUELTA
+        // FUNCIÓN PARA DESCARGAR ARCHIVO
         function descargarArchivoDirecto(index) {
             const permiso = permisosGuardados[index];
             if (!permiso.archivoData) {
@@ -1232,13 +1430,14 @@
             document.body.removeChild(link);
         }
 
+        // MODAL AGREGAR/EDITAR
         function abrirModal(editarIndex = -1) {
             editingIndex = editarIndex;
             const modal = document.getElementById('modalAgregar');
             const modalTitulo = document.getElementById('modalTitulo');
-            
+
             modalTitulo.textContent = editarIndex >= 0 ? 'Editar Permiso' : 'Agregar Permiso';
-            
+
             cargarBloquesModal();
             cargarSucursalesModal();
 
@@ -1256,7 +1455,7 @@
                 document.getElementById('fechaRenovacion').value = p.fechaRenovacion || '';
                 document.getElementById('estatusLegal').value = p.estatusLegal || '';
                 document.getElementById('permisoDigital').value = '';
-                
+
                 const fileInfo = document.getElementById('fileInfo');
                 if (p.archivoNombre) {
                     fileInfo.innerHTML = `<i class="fas ${getFileIcon(p.archivoNombre)}"></i> Archivo actual: ${p.archivoNombre}`;
@@ -1270,11 +1469,11 @@
                 document.getElementById('permiso').value = 'Anuncios';
                 document.getElementById('existencia').value = 'Recibo';
                 document.getElementById('estatus').value = 'vigente';
-                
+
                 const today = new Date();
                 const nextYear = new Date(today);
                 nextYear.setFullYear(today.getFullYear() + 1);
-                
+
                 document.getElementById('fechaExpedicion').value = today.toISOString().split('T')[0];
                 document.getElementById('fechaRenovacion').value = nextYear.toISOString().split('T')[0];
                 document.getElementById('estatusLegal').value = '✓';
@@ -1323,11 +1522,15 @@
             const bloque = document.getElementById('bloqueModal').value;
             const sucursal = document.getElementById('sucursalModal').value;
             const permiso = document.getElementById('permiso').value;
+            const fechaRenovacion = document.getElementById('fechaRenovacion').value;
 
             if (!asigna || !bloque || !sucursal || !permiso) {
                 alert('Por favor complete todos los campos obligatorios: Asigna, Bloque, Sucursal y Permiso');
                 return;
             }
+
+            // CALCULAR ESTATUS AUTOMÁTICAMENTE
+            const estatusCalculado = calcularEstatusAlGuardar(fechaRenovacion);
 
             const nuevoPermiso = {
                 id: editingIndex >= 0 ? permisosGuardados[editingIndex].id : Date.now(),
@@ -1336,9 +1539,9 @@
                 sucursal: sucursal,
                 permiso: permiso,
                 existencia: document.getElementById('existencia').value,
-                estatus: document.getElementById('estatus').value,
+                estatus: estatusCalculado,
                 fechaExpedicion: document.getElementById('fechaExpedicion').value,
-                fechaRenovacion: document.getElementById('fechaRenovacion').value,
+                fechaRenovacion: fechaRenovacion,
                 estatusLegal: document.getElementById('estatusLegal').value,
                 fechaCreacion: editingIndex >= 0 ? permisosGuardados[editingIndex].fechaCreacion : new Date().toISOString().split('T')[0],
                 archivoNombre: '',
@@ -1346,11 +1549,13 @@
                 archivoTipo: ''
             };
 
+            console.log(`📝 Estatus calculado automáticamente: ${estatusCalculado}`);
+
             const fileInput = document.getElementById('permisoDigital');
             if (fileInput && fileInput.files.length > 0) {
                 const file = fileInput.files[0];
                 const reader = new FileReader();
-                reader.onload = function(e) {
+                reader.onload = function (e) {
                     nuevoPermiso.archivoNombre = file.name;
                     nuevoPermiso.archivoData = e.target.result.split(',')[1];
                     nuevoPermiso.archivoTipo = file.type;
@@ -1451,16 +1656,8 @@
             const vencidos = permisosGuardados.filter(p => p.estatus === 'vencido').length;
             const enTramite = permisosGuardados.filter(p => p.estatus === 'en-tramite').length;
             const pendientes = permisosGuardados.filter(p => !p.estatus || p.estatus === 'pendiente').length;
+            const proximos = permisosGuardados.filter(p => p.estatus === 'proximo-a-vencer').length;
             const total = permisosGuardados.length;
-
-            const hoy = new Date();
-            const proximos = permisosGuardados.filter(p => {
-                if (!p.fechaRenovacion) return false;
-                const fechaRen = new Date(p.fechaRenovacion);
-                const diffTime = fechaRen - hoy;
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                return diffDays > 0 && diffDays <= 30;
-            }).length;
 
             document.getElementById('contadorVigentes').textContent = vigentes;
             document.getElementById('contadorVencidos').textContent = vencidos;
@@ -1470,13 +1667,14 @@
             document.getElementById('contadorTotal').textContent = total;
         }
 
-        // VISTAS KANBAN COMPLETAS - DEVUELTAS
+        // VISTAS KANBAN
         function mostrarKanban(registros) {
             const kanbanView = document.getElementById('kanbanView');
             if (!kanbanView) return;
 
             const columnas = [
                 { id: 'vigente', titulo: 'VIGENTE', filtro: p => p.estatus === 'vigente' },
+                { id: 'proximo-a-vencer', titulo: 'PRÓXIMO A VENCER', filtro: p => p.estatus === 'proximo-a-vencer' },
                 { id: 'en-tramite', titulo: 'EN TRÁMITE', filtro: p => p.estatus === 'en-tramite' },
                 { id: 'pendiente', titulo: 'PENDIENTE', filtro: p => !p.estatus || p.estatus === 'pendiente' },
                 { id: 'vencido', titulo: 'VENCIDO', filtro: p => p.estatus === 'vencido' }
@@ -1487,9 +1685,9 @@
                 const registrosColumna = registros.filter(columna.filtro);
                 const columnaHTML = document.createElement('div');
                 columnaHTML.className = 'kanban-columna';
-                
+
                 let contenido = `<div class="kanban-header ${columna.id}">${columna.titulo}</div><div class="kanban-tarjetas">`;
-                
+
                 if (registrosColumna.length === 0) {
                     contenido += `<div class="kanban-sin-actividades">Sin actividades</div>`;
                 } else {
@@ -1497,30 +1695,43 @@
                         const index = permisosGuardados.findIndex(p => p.id === permiso.id);
                         const fileIcon = permiso.archivoNombre ? getFileIcon(permiso.archivoNombre) : 'fa-file';
 
+                        // Calcular días restantes
+                        let diasTexto = '';
+                        if (permiso.fechaRenovacion && columna.id === 'proximo-a-vencer') {
+                            const hoy = new Date();
+                            const fechaVen = new Date(permiso.fechaRenovacion);
+                            const diffTime = fechaVen - hoy;
+                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                            diasTexto = `<div style="color: #ff9800; font-size: 0.8rem; margin-top: 0.3rem;">
+                        <i class="fas fa-clock"></i> Vence en ${diffDays} días
+                    </div>`;
+                        }
+
                         contenido += `
-                            <div class="kanban-tarjeta ${columna.id}" data-index="${index}">
-                                <div class="kanban-sucursal">
-                                    ${permiso.sucursal || 'Sin sucursal'}
-                                    <i class="fas fa-chevron-right"></i>
-                                </div>
-                                <div class="kanban-info">
-                                    <strong>Permiso:</strong> ${permiso.permiso || ''}
-                                </div>
-                                <div class="kanban-info">
-                                    <strong>Bloque:</strong> ${permiso.bloque || ''}
-                                </div>
-                                <div class="kanban-info">
-                                    <strong>Existencia:</strong> ${permiso.existencia || ''}
-                                </div>
-                                ${permiso.archivoNombre ? `
-                                <div class="kanban-archivo">
-                                    <a href="#" class="document-link ver-archivo-kanban" data-index="${index}">
-                                        <i class="fas ${fileIcon}"></i> Ver ${permiso.archivoNombre.split('.').pop().toUpperCase()}
-                                    </a>
-                                </div>
-                                ` : ''}
-                            </div>
-                        `;
+                    <div class="kanban-tarjeta ${columna.id}" data-index="${index}">
+                        <div class="kanban-sucursal">
+                            ${permiso.sucursal || 'Sin sucursal'}
+                            <i class="fas fa-chevron-right"></i>
+                        </div>
+                        <div class="kanban-info">
+                            <strong>Permiso:</strong> ${permiso.permiso || ''}
+                        </div>
+                        <div class="kanban-info">
+                            <strong>Bloque:</strong> ${permiso.bloque || ''}
+                        </div>
+                        <div class="kanban-info">
+                            <strong>Existencia:</strong> ${permiso.existencia || ''}
+                        </div>
+                        ${diasTexto}
+                        ${permiso.archivoNombre ? `
+                        <div class="kanban-archivo">
+                            <a href="#" class="document-link ver-archivo-kanban" data-index="${index}">
+                                <i class="fas ${fileIcon}"></i> Ver ${permiso.archivoNombre.split('.').pop().toUpperCase()}
+                            </a>
+                        </div>
+                        ` : ''}
+                    </div>
+                `;
                     });
                 }
                 contenido += '</div>';
@@ -1528,9 +1739,9 @@
                 kanbanView.appendChild(columnaHTML);
             });
 
-            // Eventos para Kanban - DEVUELTOS
+            // Eventos para Kanban
             document.querySelectorAll('.kanban-tarjeta').forEach(tarjeta => {
-                tarjeta.addEventListener('click', function(e) {
+                tarjeta.addEventListener('click', function (e) {
                     if (!e.target.closest('.document-link')) {
                         mostrarDetalleModal(parseInt(this.dataset.index));
                     }
@@ -1538,7 +1749,7 @@
             });
 
             document.querySelectorAll('.ver-archivo-kanban').forEach(link => {
-                link.addEventListener('click', function(e) {
+                link.addEventListener('click', function (e) {
                     e.preventDefault();
                     e.stopPropagation();
                     mostrarArchivoModal(parseInt(this.dataset.index));
@@ -1546,7 +1757,7 @@
             });
         }
 
-        // MODAL DE DETALLES COMPLETO - DEVUELTO
+        // MODAL DE DETALLES
         function mostrarDetalleModal(index) {
             const permiso = permisosGuardados[index];
             if (!permiso) return;
@@ -1653,7 +1864,7 @@
 
             contenido.innerHTML = contenidoHTML;
 
-            btnEditar.onclick = function() {
+            btnEditar.onclick = function () {
                 cerrarDetalleModal();
                 setTimeout(() => {
                     abrirModal(index);
@@ -1665,7 +1876,7 @@
             // Evento para el enlace de archivo en el detalle
             const archivoLink = document.querySelector('.ver-archivo-detalle');
             if (archivoLink) {
-                archivoLink.addEventListener('click', function(e) {
+                archivoLink.addEventListener('click', function (e) {
                     e.preventDefault();
                     mostrarArchivoModal(index);
                 });
@@ -1717,7 +1928,7 @@
 
             actualizarFiltroSucursales('all');
 
-            blockFilter.addEventListener('change', function() {
+            blockFilter.addEventListener('change', function () {
                 actualizarFiltroSucursales(this.value);
                 filtrarVistaActual();
             });
@@ -1764,7 +1975,7 @@
             if (permisoFilter !== 'all') filtrados = filtrados.filter(p => p.permiso === permisoFilter);
             if (estatusFilter !== 'all') filtrados = filtrados.filter(p => p.estatus === estatusFilter);
             if (busqueda) {
-                filtrados = filtrados.filter(p => 
+                filtrados = filtrados.filter(p =>
                     (p.sucursal && p.sucursal.toLowerCase().includes(busqueda)) ||
                     (p.permiso && p.permiso.toLowerCase().includes(busqueda)) ||
                     (p.existencia && p.existencia.toLowerCase().includes(busqueda)) ||
@@ -1779,47 +1990,666 @@
             }
         }
 
-        // INICIALIZACIÓN
-        document.addEventListener('DOMContentLoaded', async function() {
+        // MODAL DE REPORTES - FUNCIONES COMPLETAS
+        function generarReporte(estatus) {
+            console.log(`Generando reporte en modal para: ${estatus}`);
+            reporteActual = estatus;
+
+            // Mostrar el modal
+            const modal = new bootstrap.Modal(document.getElementById('reporteModal'));
+            modal.show();
+
+            // Cargar los datos del reporte
+            cargarDatosReporte(estatus);
+        }
+
+        function cargarDatosReporte(tipoReporte) {
+            let permisosFiltrados = [];
+
+            switch (tipoReporte) {
+                case 'vigentes':
+                    permisosFiltrados = permisosGuardados.filter(p => p.estatus === 'vigente');
+                    break;
+                case 'vencidos':
+                    permisosFiltrados = permisosGuardados.filter(p => p.estatus === 'vencido');
+                    break;
+                case 'en-tramite':
+                    permisosFiltrados = permisosGuardados.filter(p => p.estatus === 'en-tramite');
+                    break;
+                case 'pendientes':
+                    permisosFiltrados = permisosGuardados.filter(p => !p.estatus || p.estatus === 'pendiente');
+                    break;
+                case 'proximos-a-vencer':
+                    permisosFiltrados = permisosGuardados.filter(p => p.estatus === 'proximo-a-vencer');
+                    break;
+                case 'todos':
+                default:
+                    permisosFiltrados = permisosGuardados;
+            }
+
+            // Generar el HTML del reporte
+            generarHTMLReporte(permisosFiltrados, tipoReporte);
+        }
+
+        function generarHTMLReporte(permisos, tipo) {
+            const modalContent = document.querySelector('#reporteModal .modal-content');
+            const nombreReporte = obtenerNombreReporte(tipo);
+
+            // Determinar si hay permisos para mostrar botones
+            const tienePermisos = permisos.length > 0;
+
+            modalContent.innerHTML = `
+                <div class="modal-header">
+                    <h5 class="modal-title" id="reporteModalLabel">
+                        <i class="fas fa-file-alt me-2"></i>
+                        REPORTE DE PERMISOS - ${nombreReporte.toUpperCase()}
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <span class="badge bg-secondary me-2">Total: ${permisos.length}</span>
+                            <span class="badge bg-success me-2">Vigentes: ${permisos.filter(p => p.estatus === 'vigente').length}</span>
+                            <span class="badge bg-danger">Vencidos: ${permisos.filter(p => p.estatus === 'vencido').length}</span>
+                        </div>
+                        <div class="text-muted small">
+                            ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}
+                        </div>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover table-striped">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>BLOQUE</th>
+                                    <th>SUCURSAL</th>
+                                    <th>PERMISO</th>
+                                    <th>EXISTENCIA</th>
+                                    <th>FECHA EXP.</th>
+                                    <th>FECHA REN.</th>
+                                    <th>ESTATUS</th>
+                                    <th>ESTATUS LEGAL</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tablaReporteBody">
+                                ${generarFilasReporte(permisos)}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    ${permisos.length === 0 ?
+                    '<div class="alert alert-warning text-center"><i class="fas fa-exclamation-triangle me-2"></i>No hay registros para mostrar en este reporte.</div>' :
+                    ''
+                }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i> Cerrar
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="imprimirReporte()" ${!tienePermisos ? 'disabled' : ''}>
+                        <i class="fas fa-print me-1"></i> Imprimir
+                    </button>
+                    <button type="button" class="btn btn-success" onclick="exportarReporteACSV()" ${!tienePermisos ? 'disabled' : ''}>
+                        <i class="fas fa-download me-1"></i> Exportar CSV
+                    </button>
+                </div>
+            `;
+
+            console.log(`Reporte generado: ${permisos.length} registros, botón imprimir: ${tienePermisos ? 'ACTIVO' : 'DESACTIVADO'}`);
+        }
+
+        function generarFilasReporte(permisos) {
+            if (permisos.length === 0) {
+                return '<tr><td colspan="9" class="text-center py-4"><i class="fas fa-inbox fa-2x text-muted mb-2"></i><p class="text-muted">No hay datos para mostrar</p></td></tr>';
+            }
+
+            return permisos.map((permiso, index) => {
+                const colorEstatus = getColorEstatusBadge(permiso.estatus);
+                const textoEstatus = getTextoEstatus(permiso.estatus);
+
+                return `<tr>
+                    <td class="text-center">${index + 1}</td>
+                    <td>${permiso.bloque || 'N/A'}</td>
+                    <td><strong>${permiso.sucursal || 'Sin sucursal'}</strong></td>
+                    <td>${permiso.permiso || 'Sin permiso'}</td>
+                    <td>${permiso.existencia || 'N/A'}</td>
+                    <td>${permiso.fechaExpedicion || 'N/A'}</td>
+                    <td>${permiso.fechaRenovacion || 'N/A'}</td>
+                    <td><span class="badge ${colorEstatus}">${textoEstatus}</span></td>
+                    <td>${permiso.estatusLegal || 'N/A'}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        function imprimirReporte() {
+            if (!reporteActual) {
+                alert('No hay reporte actual para imprimir');
+                return;
+            }
+
+            const permisos = permisosGuardados.filter(p => filtrarPorReporte(p, reporteActual));
+
+            if (permisos.length === 0) {
+                alert('No hay datos para imprimir');
+                return;
+            }
+
+            const rowsHtml = permisos.map((permiso, index) => {
+                const textoEstatus = getTextoEstatus(permiso.estatus);
+
+                return `
+      <tr>
+        <td class="c">${index + 1}</td>
+        <td class="c">${permiso.bloque || 'N/A'}</td>
+        <td><strong>${permiso.sucursal || 'Sin sucursal'}</strong></td>
+        <td>${permiso.permiso || 'Sin permiso'}</td>
+        <td>${permiso.existencia || 'N/A'}</td>
+        <td class="c">${permiso.fechaExpedicion || 'N/A'}</td>
+        <td class="c">${permiso.fechaRenovacion || 'N/A'}</td>
+        <td class="c"><span class="badge b-${permiso.estatus || 'pendiente'}">${textoEstatus}</span></td>
+        <td>${permiso.estatusLegal || 'N/A'}</td>
+      </tr>
+    `;
+            }).join('');
+
+            const titulo = `Reporte de Permisos - ${obtenerNombreReporte(reporteActual)}`;
+            const fecha = new Date().toLocaleString('es-MX');
+
+            const total = permisos.length;
+            const vigentes = permisos.filter(p => p.estatus === 'vigente').length;
+            const vencidos = permisos.filter(p => p.estatus === 'vencido').length;
+            const tramite = permisos.filter(p => p.estatus === 'en-tramite').length;
+            const pendientes = permisos.filter(p => !p.estatus || p.estatus === 'pendiente').length;
+            const proximos = permisos.filter(p => p.estatus === 'proximo-a-vencer').length;
+
+            const printWindow = window.open('', '_blank', 'width=1100,height=800');
+            if (!printWindow) {
+                alert('Tu navegador bloqueó la ventana de impresión. Permite pop-ups para este sitio.');
+                return;
+            }
+
+            const generadoPor = (document.getElementById('nombreUsuario')?.textContent || '').trim() || 'Sistema';
+            const departamento = 'Gestion Juridica'; 
+
+            const filtroAplicado = (() => {
+                switch (reporteActual) {
+                    case 'vigentes': return 'Vigente';
+                    case 'vencidos': return 'Vencido';
+                    case 'en-tramite': return 'En trámite';
+                    case 'pendientes': return 'Pendiente';
+                    case 'proximos-a-vencer': return 'Próximo a vencer';
+                    case 'todos': return 'Todos';
+                    default: return 'Todos';
+                }
+            })();
+
+            printWindow.document.open();
+            printWindow.document.write(`
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>${titulo}</title>
+  <style>
+    @page { size: letter; margin: 12mm; } /* Cambia a A4 si quieres */
+    body{
+      font-family: Arial, sans-serif;
+      color:#111;
+      background:#fff;
+      margin:0;
+    }
+
+    .header{
+      border-bottom: 3px solid #b71c1c;
+      padding: 0 0 10px 0;
+      margin-bottom: 12px;
+    }
+    .brand{
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: .5px;
+      color:#b71c1c;
+      margin:0;
+    }
+    .title{
+      font-size: 14px;
+      font-weight: 700;
+      margin: 6px 0 0 0;
+      color:#111;
+    }
+    .meta{
+      font-size: 11px;
+      color:#555;
+      margin-top: 4px;
+    }
+
+    .stats{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin: 10px 0 14px 0;
+    }
+    .stat{
+      border:1px solid #ddd;
+      border-radius: 8px;
+      padding: 8px 10px;
+      min-width: 140px;
+      background:#fafafa;
+    }
+    .stat .n{
+      font-size: 16px;
+      font-weight: 700;
+      color:#b71c1c;
+      line-height: 1.1;
+    }
+    .stat .l{
+      font-size: 10px;
+      color:#666;
+      letter-spacing: .8px;
+      text-transform: uppercase;
+    }
+
+    table{
+      width:100%;
+      border-collapse: collapse;
+      font-size: 10.5px;
+    }
+    thead{
+      display: table-header-group; /* Repite encabezado por página */
+    }
+    th, td{
+      border:1px solid #ddd;
+      padding: 6px 6px;
+      vertical-align: middle;
+    }
+    th{
+      background:#f1f1f1;
+      text-transform: uppercase;
+      font-size: 10px;
+      letter-spacing: .6px;
+    }
+    tr:nth-child(even) td{
+      background:#fcfcfc;
+    }
+    .c{ text-align:center; white-space:nowrap; }
+
+    /* badges */
+    .badge{
+      display:inline-block;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .4px;
+      border: 1px solid rgba(0,0,0,.12);
+    }
+    .b-vigente{ background:#e9f7ef; color:#1e7e34; }
+    .b-en-tramite{ background:#e8f4fd; color:#0b7285; }
+    .b-vencido{ background:#fdeaea; color:#c92a2a; }
+    .b-pendiente{ background:#f3f3f3; color:#444; }
+    .b-proximo-a-vencer{ background:#fff3cd; color:#8a6d3b; }
+
+    /* Evitar cortes feos */
+    tr{ page-break-inside: avoid; }
+    .footer{
+      margin-top: 14px;
+      font-size: 10px;
+      color:#666;
+      border-top: 1px solid #ddd;
+      padding-top: 8px;
+      text-align:center;
+    }
+
+    /* Oculta cualquier cosa no imprimible */
+    @media print{
+      .no-print{ display:none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+  <p class="brand">Reporte de Permisos - La Postal</p>
+  <p class="title">${filtroAplicado}</p>
+  <div class="meta">Fecha de generación: ${fecha}</div>
+</div>
+
+<div class="meta" style="margin: 12px 0 14px 0;">
+  <div><strong>Filtro aplicado:</strong> ${filtroAplicado}</div>
+  <div><strong>Total de registros:</strong> ${total}</div>
+  <div><strong>Generado por:</strong> ${generadoPor}</div>
+  <div><strong>Departamento:</strong> ${departamento}</div>
+</div>
+
+</div>
+
+  <div class="stats">
+    <div class="stat"><div class="n">${total}</div><div class="l">Total</div></div>
+    <div class="stat"><div class="n">${vigentes}</div><div class="l">Vigentes</div></div>
+    <div class="stat"><div class="n">${proximos}</div><div class="l">Próximos</div></div>
+    <div class="stat"><div class="n">${tramite}</div><div class="l">En trámite</div></div>
+    <div class="stat"><div class="n">${pendientes}</div><div class="l">Pendientes</div></div>
+    <div class="stat"><div class="n">${vencidos}</div><div class="l">Vencidos</div></div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:30px;">#</th>
+        <th style="width:55px;">Bloque</th>
+        <th>Sucursal</th>
+        <th>Permiso</th>
+        <th>Existencia</th>
+        <th style="width:92px;">Fecha Exp.</th>
+        <th style="width:92px;">Fecha Ren.</th>
+        <th style="width:95px;">Estatus</th>
+        <th>Estatus Legal</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rowsHtml}
+    </tbody>
+  </table>
+
+<div class="meta" style="margin-top: 10px; text-align: right;">
+  <strong>Total de permisos:</strong> ${total}
+</div>
+
+  <div class="footer">
+  Sistema de Gestión de Permisos - La Postal © 2026<br>
+  Este reporte fue generado automáticamente por el sistema.
+</div>
+
+
+  <script>
+    window.onload = function () {
+      window.focus();
+      window.print();
+      window.onafterprint = function () { window.close(); };
+    };
+  <\/script>
+
+</body>
+
+</html>
+`);
+            printWindow.document.close();
+        }
+
+        function exportarReporteACSV() {
+            if (!reporteActual) {
+                alert('No hay reporte actual para exportar');
+                return;
+            }
+
+            const permisos = permisosGuardados.filter(p => filtrarPorReporte(p, reporteActual));
+
+            if (permisos.length === 0) {
+                alert('No hay datos para exportar');
+                return;
+            }
+
+            // Crear cabeceras CSV
+            let csvContent = "BLOQUE,SUCURSAL,PERMISO,EXISTENCIA,ESTATUS,FECHA EXPEDICION,FECHA RENOVACION,ESTATUS LEGAL\\n";
+
+            // Agregar datos
+            permisos.forEach(permiso => {
+                const fila = [
+                    `"${permiso.bloque || ''}"`,
+                    `"${permiso.sucursal || ''}"`,
+                    `"${permiso.permiso || ''}"`,
+                    `"${permiso.existencia || ''}"`,
+                    `"${getTextoEstatus(permiso.estatus)}"`,
+                    `"${permiso.fechaExpedicion || ''}"`,
+                    `"${permiso.fechaRenovacion || ''}"`,
+                    `"${permiso.estatusLegal || ''}"`
+                ];
+                csvContent += fila.join(',') + "\\n";
+            });
+
+            // Crear enlace de descarga
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `reporte_${reporteActual}_${new Date().toISOString().slice(0, 10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            alert(`Reporte exportado: ${permisos.length} registros`);
+        }
+
+        // Funciones auxiliares
+        function filtrarPorReporte(permiso, tipo) {
+            switch (tipo) {
+                case 'vigentes': return permiso.estatus === 'vigente';
+                case 'vencidos': return permiso.estatus === 'vencido';
+                case 'en-tramite': return permiso.estatus === 'en-tramite';
+                case 'pendientes': return !permiso.estatus || permiso.estatus === 'pendiente';
+                case 'proximos-a-vencer': return permiso.estatus === 'proximo-a-vencer';
+                case 'todos': return true;
+                default: return true;
+            }
+        }
+
+        function obtenerNombreReporte(tipo) {
+            const nombres = {
+                'vigentes': 'Permisos Vigentes',
+                'vencidos': 'Permisos Vencidos',
+                'en-tramite': 'Permisos en Trámite',
+                'pendientes': 'Permisos Pendientes',
+                'proximos-a-vencer': 'Permisos Próximos a Vencer',
+                'todos': 'Todos los Permisos'
+            };
+            return nombres[tipo] || tipo;
+        }
+
+        function getColorEstatusBadge(estatus) {
+            switch (estatus) {
+                case 'vigente': return 'bg-success';
+                case 'en-tramite': return 'bg-info';
+                case 'vencido': return 'bg-danger';
+                case 'pendiente': return 'bg-secondary';
+                case 'proximo-a-vencer': return 'bg-warning';
+                default: return 'bg-secondary';
+            }
+        }
+
+        function getTextoEstatus(estatus) {
+            switch (estatus) {
+                case 'vigente': return 'VIGENTE';
+                case 'en-tramite': return 'EN TRÁMITE';
+                case 'vencido': return 'VENCIDO';
+                case 'pendiente': return 'PENDIENTE';
+                case 'proximo-a-vencer': return 'PRÓXIMO A VENCER';
+                default: return estatus?.toUpperCase() || 'PENDIENTE';
+            }
+        }
+
+        // FUNCIÓN PARA CALCULAR ESTATUS AUTOMÁTICO BASADO EN FECHAS
+        function calcularEstatusAutomatico(fechaRenovacion, estatusActual) {
+            if (!fechaRenovacion) return estatusActual || 'pendiente';
+
+            const hoy = new Date();
+            const fechaVen = new Date(fechaRenovacion);
+
+            // Si ya pasó la fecha de renovación
+            if (fechaVen < hoy) return 'vencido';
+
+            // Calcular días faltantes
+            const diffTime = fechaVen - hoy;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            // Si faltan 7 días o menos
+            if (diffDays <= 7) return 'proximo-a-vencer';
+
+            // Si está vigente pero no próximo a vencer
+            return estatusActual === 'vigente' ? 'vigente' : (estatusActual || 'pendiente');
+        }
+
+        // FUNCIÓN PARA ACTUALIZAR ESTATUS DE TODOS LOS REGISTROS
+        async function actualizarEstatusAutomaticamente() {
+            console.log('🔄 Actualizando estatus automáticamente...');
+
+            const cambios = [];
+            const hoy = new Date();
+
+            // Recorrer todos los permisos y calcular nuevo estatus
+            for (let i = 0; i < permisosGuardados.length; i++) {
+                const permiso = permisosGuardados[i];
+                if (!permiso.fechaRenovacion) continue;
+
+                const fechaVen = new Date(permiso.fechaRenovacion);
+                const diffTime = fechaVen - hoy;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                let nuevoEstatus = permiso.estatus;
+
+                // REGLA 1: Si ya venció
+                if (fechaVen < hoy && permiso.estatus !== 'vencido') {
+                    nuevoEstatus = 'vencido';
+                }
+                // REGLA 2: Si faltan 7 días o menos
+                else if (diffDays <= 7 && diffDays > 0 && permiso.estatus !== 'proximo-a-vencer') {
+                    nuevoEstatus = 'proximo-a-vencer';
+                }
+                // REGLA 3: Si ya no está próximo a vencer (pasaron los 7 días)
+                else if (permiso.estatus === 'proximo-a-vencer' && diffDays > 7) {
+                    nuevoEstatus = 'vigente';
+                }
+
+                // Si cambió el estatus
+                if (nuevoEstatus !== permiso.estatus) {
+                    cambios.push({
+                        id: permiso.id,
+                        index: i,
+                        anterior: permiso.estatus,
+                        nuevo: nuevoEstatus,
+                        sucursal: permiso.sucursal,
+                        dias: diffDays
+                    });
+
+                    permisosGuardados[i].estatus = nuevoEstatus;
+
+                    // Actualizar en Supabase
+                    try {
+                        const { error } = await supabaseClient
+                            .from('datos_financieros')
+                            .update({
+                                estatus: nuevoEstatus,
+                                actualizado_en: new Date().toISOString()
+                            })
+                            .eq('id', permiso.id);
+
+                        if (error) {
+                            console.error(`❌ Error actualizando ${permiso.sucursal}:`, error);
+                        }
+                    } catch (error) {
+                        console.error(`❌ Error Supabase para ${permiso.sucursal}:`, error);
+                    }
+                }
+            }
+
+            // Guardar en localStorage
+            localStorage.setItem('permisos', JSON.stringify(permisosGuardados));
+
+            // Refrescar vista
+            if (cambios.length > 0) {
+                if (currentView === 'tabla') mostrarRegistrosEnTabla(permisosGuardados);
+                else mostrarKanban(permisosGuardados);
+                actualizarContadores();
+            }
+
+            return cambios.length;
+        }
+
+        // FUNCIÓN PARA CALCULAR ESTATUS AL GUARDAR (antes de enviar a Supabase)
+        function calcularEstatusAlGuardar(fechaRenovacion) {
+            if (!fechaRenovacion) return 'pendiente';
+
+            const hoy = new Date();
+            const fechaVen = new Date(fechaRenovacion);
+            const diffTime = fechaVen - hoy;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            // Si ya venció
+            if (fechaVen < hoy) { return 'vencido'; } // Si faltan 7 días o menos if (diffDays <=7) { return 'proximo-a-vencer'
+            ;
+        } // Por defecto, vigente return 'vigente' ; } // INICIALIZACIÓN document.addEventListener('DOMContentLoaded',
+        document.addEventListener('DOMContentLoaded', async function () {
             console.log('🚀 Iniciando aplicación...');
-            
+
             await cargarDatosIniciales();
             inicializarFiltros();
 
-            // Eventos de vista
-            document.getElementById('btnVistaTabla').addEventListener('click', () => cambiarVista('tabla'));
-            document.getElementById('btnVistaKanban').addEventListener('click', () => cambiarVista('kanban'));
+            // Actualizar estatus automáticamente después de cargar
+            setTimeout(() => {
+                actualizarEstatusAutomaticamente();
+            }, 2000);
 
-            // Eventos de modal principal
-            document.getElementById('btnAgregar').addEventListener('click', () => abrirModal());
-            document.getElementById('cancelarModal').addEventListener('click', cerrarModal);
-            document.getElementById('guardarRegistro').addEventListener('click', guardarPermiso);
-            
-            document.getElementById('modalAgregar').addEventListener('click', function(e) {
-                if (e.target === this) cerrarModal();
-            });
-
-            // Eventos de formulario
-            document.getElementById('bloqueModal').addEventListener('change', cargarSucursalesModal);
-            
-            document.getElementById('permisoDigital').addEventListener('change', function() {
-                const fileInfo = document.getElementById('fileInfo');
-                if (this.files.length > 0) {
-                    const file = this.files[0];
-                    const fileSize = (file.size / 1024).toFixed(2);
-                    fileInfo.innerHTML = `<i class="fas ${getFileIcon(file.name)}"></i> ${file.name} (${fileSize} KB)`;
-                } else {
-                    fileInfo.innerHTML = '';
-                }
-            });
-
-            // Eventos modal detalle
-            document.getElementById('modalDetalle').addEventListener('click', function(e) {
-                if (e.target === this) cerrarDetalleModal();
-            });
-
-            console.log('✅ Aplicación inicializada correctamente');
+            // Actualizar estatus cada hora
+            setInterval(() => {
+                actualizarEstatusAutomaticamente();
+            }, 60 * 60 * 1000);
         });
+
+
+        // Eventos de vista
+        document.getElementById('btnVistaTabla').addEventListener('click', () => cambiarVista('tabla'));
+        document.getElementById('btnVistaKanban').addEventListener('click', () => cambiarVista('kanban'));
+
+        // Eventos de modal principal
+        document.getElementById('btnAgregar').addEventListener('click', () => abrirModal());
+        document.getElementById('cancelarModal').addEventListener('click', cerrarModal);
+        document.getElementById('guardarRegistro').addEventListener('click', guardarPermiso);
+
+        document.getElementById('modalAgregar').addEventListener('click', function (e) {
+            if (e.target === this) cerrarModal();
+        });
+
+        // Eventos de formulario
+        document.getElementById('bloqueModal').addEventListener('change', cargarSucursalesModal);
+
+        document.getElementById('permisoDigital').addEventListener('change', function () {
+            const fileInfo = document.getElementById('fileInfo');
+            if (this.files.length > 0) {
+                const file = this.files[0];
+                const fileSize = (file.size / 1024).toFixed(2);
+                fileInfo.innerHTML = `<i class="fas ${getFileIcon(file.name)}"></i> ${file.name} (${fileSize} KB)`;
+            } else {
+                fileInfo.innerHTML = '';
+            }
+        });
+
+        // Eventos modal detalle
+        document.getElementById('modalDetalle').addEventListener('click', function (e) {
+            if (e.target === this) cerrarDetalleModal();
+        });
+
+        // Eventos modal reporte
+        const reporteModal = document.getElementById('reporteModal');
+        if (reporteModal) {
+            reporteModal.addEventListener('hidden.bs.modal', function () {
+                // Limpiar el contenido cuando se cierra
+                const modalContent = this.querySelector('.modal-content');
+                modalContent.innerHTML = `
+        <div class="text-center py-5" id="modalLoading">
+            <div class="spinner-border text-danger" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+            <p class="mt-3">Generando reporte...</p>
+        </div>
+        `;
+                reporteActual = '';
+            });
+        }
+
+        console.log('✅ Aplicación inicializada correctamente');
+
     </script>
 </body>
+
 </html>

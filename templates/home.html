@@ -324,7 +324,7 @@
                 <a href="/planeacion" class="btn btn-dashboard btn-with-kanji">
                     <div class="kanji-circle kanji-circle-sm">計</div>
                     <div class="btn-content">
-                        <div class="btn-title">Planeación</div>
+                        <div class="btn-title">Gestión Juridica</div>
                         <div class="btn-desc">Planificación estratégica y proyecciones</div>
                     </div>
                 </a>
@@ -349,6 +349,77 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+     <script>
+        // Variable para controlar si está en movimiento
+        let estaHuyendo = false;
+
+        function huirDelCursor(evt) {
+            if (estaHuyendo) return; // Evita múltiples llamados simultáneos
+
+            estaHuyendo = true;
+            let target = evt.target;
+
+            // Dimensiones de la ventana
+            let maxWidth = window.innerWidth - target.offsetWidth;
+            let maxHeight = window.innerHeight - target.offsetHeight;
+
+            // Posición aleatoria
+            let randomX = getRandomInt(0, maxWidth);
+            let randomY = getRandomInt(0, maxHeight);
+
+            // Movimiento más rápido sin transición
+            target.style.transition = 'none';
+            target.style.position = 'fixed'; // Usamos fixed para que sea relativo al viewport
+            target.style.left = randomX + 'px';
+            target.style.top = randomY + 'px';
+
+            // Pequeña animación de "huida"
+            target.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                target.style.transform = 'scale(1)';
+                estaHuyendo = false;
+            }, 200);
+
+            // Evitar el comportamiento por defecto
+            evt.preventDefault();
+            evt.stopPropagation();
+        }
+
+        function evitarClick(evt) {
+            // Intenta mover la imagen cuando hagan click
+            huirDelCursor(evt);
+
+            // Previene el click real
+            evt.preventDefault();
+            evt.stopPropagation();
+            return false;
+        }
+
+        function getRandomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        // También hace huir al Daruma si el cursor está cerca (sin tocar)
+        document.addEventListener('mousemove', function (evt) {
+            const daruma = document.querySelector('.team-watermark-photo');
+            if (!daruma || estaHuyendo) return;
+
+            const rect = daruma.getBoundingClientRect();
+            const darumaCenterX = rect.left + rect.width / 2;
+            const darumaCenterY = rect.top + rect.height / 2;
+
+            // Calcula distancia entre cursor y Daruma
+            const distanciaX = evt.clientX - darumaCenterX;
+            const distanciaY = evt.clientY - darumaCenterY;
+            const distancia = Math.sqrt(distanciaX * distanciaX + distanciaY * distanciaY);
+
+            // Si el cursor está muy cerca (150px), huye
+            if (distancia < 150) {
+                const eventoSimulado = { target: daruma };
+                huirDelCursor(eventoSimulado);
+            }
+        });
+    </script>
 </body>
 
 </html>

@@ -2,7 +2,6 @@ import os
 import json
 import unicodedata
 import gspread
-from datetime import datetime
 import time
 from flask import Flask, render_template, request, jsonify, send_from_directory, redirect, url_for, flash
 from google.oauth2.service_account import Credentials
@@ -10,6 +9,10 @@ from werkzeug.exceptions import HTTPException
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from datetime import datetime, timedelta
 from dotenv import load_dotenv, find_dotenv
+import pytz
+import csv
+import io
+from flask import send_file
 
 # ==================== CONFIGURACIÓN INICIAL ====================
 app = Flask(__name__)
@@ -88,12 +91,12 @@ USUARIOS = {
         'nombre': 'Garcia Rodriguez Genesis Clarise',
         'rol': 'Gerente RH'
     },
-        'Ingenierio': {
+    'Ingenierio': {
         'password': 'Iapostal01',
         'nombre': 'Sanchez Gomez Jose Antonio',
         'rol': 'Ing de Proyectos/Procesos'
     },
-        'Licenciado': {
+    'Licenciado': {
         'password': 'Lcapostal01',
         'nombre': 'Martinez Peralta Christian Ignacio',
         'rol': ''
@@ -279,6 +282,7 @@ def normalizar_nombre_sucursal(nombre: str) -> str:
     nombre = " ".join(nombre.strip().split())
     
     return nombre
+
 # ==================== RUTAS DE AUTENTICACIÓN ====================
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -321,6 +325,7 @@ def perfil():
 @app.route('/planeacion')
 def planeacion():
     return render_template('planeacion.html')
+
 # ==================== RUTA HOME PRINCIPAL ====================
 @app.route("/")
 @login_required
@@ -417,10 +422,11 @@ def resumen_mensual():
     spreadsheet = client.open(SHEET_NAME)
     sucursales = [ws.title for ws in spreadsheet.worksheets()]
     sucursal_seleccionada = request.form.get("sucursal") or sucursales[0]
+    year_seleccionado = request.form.get("year") or "Todos"
     sheet = spreadsheet.worksheet(sucursal_seleccionada)
 
     columnas_resumen = [
-        'G.MES', 'G.TOTAL VENTA C/IVA', 'G.EFECTIVO', 'G.T.C.', 'G.UBER', 'G.PEDIDOS UBER',
+        'G.AÑO', 'G.MES', 'G.TOTAL VENTA C/IVA', 'G.EFECTIVO', 'G.T.C.', 'G.UBER', 'G.PEDIDOS UBER',
         'G.DIDI TC', 'G.PEDIDOS DIDI', 'G.RAPPI TC', 'G.PEDIDOS RAPPI', 'G.TOTAL APPS',
         'G.TOTAL SUCURSAL', 'G.VENTA COMEDOR', 'G.CUENTAS COMEDOR', 'G.VENTA DOMICILIO',
         'G.CUENTAS DOMICILIO', 'G.VENTA RAPIDO', 'G.CUENTAS RAPIDO', 'G.TICKET PROMEDIO'
@@ -430,26 +436,196 @@ def resumen_mensual():
     headers = [_norm(h) for h in all_rows[0]] if all_rows else []
 
     try:
-        start_index = headers.index(_norm("G.MES"))
-    except ValueError:
-        return f"La hoja '{sucursal_seleccionada}' no contiene la columna 'G.MES'", 400
+        # Buscar índice de G.MES (la primera columna del resumen)
+        mes_index = headers.index(_norm("G.MES"))
+        # El índice de G.AÑO debería estar justo antes de G.MES
+        year_index = mes_index - 1
+        # Verificar que efectivamente es G.AÑO
+        if _norm(all_rows[0][year_index]) != _norm("G.AÑO"):
+            raise ValueError("La estructura de columnas no es la esperada")
+    except (ValueError, IndexError):
+        return f"La hoja '{sucursal_seleccionada}' no tiene la estructura correcta (G.AÑO, G.MES, ...)", 400
 
-    end_index = start_index + len(columnas_resumen)
-    indices = list(range(start_index, end_index))
-    headers_finales = [ _norm(h) for h in columnas_resumen ]
+    # Calcular índices automáticamente basado en columnas_resumen
+    indices = []
+    headers_finales = []
+    
+    for col_name in columnas_resumen:
+        try:
+            idx = headers.index(_norm(col_name))
+            indices.append(idx)
+            headers_finales.append(_norm(col_name))
+        except ValueError:
+            # Si falta una columna, la omitimos
+            continue
 
+    # Obtener todos los años disponibles de los datos reales
+    years_disponibles = set()
     data = []
+    
     for row in all_rows[1:]:
+        if len(row) <= max(indices, default=0):
+            continue
+            
+        year_valor = row[year_index].strip() if year_index < len(row) else ""
+        mes_valor = row[mes_index].strip().upper() if mes_index < len(row) else ""
+        
+        # Solo procesar filas con año y mes válidos
+        if not year_valor or mes_valor not in ORDEN_MESES:
+            continue
+            
+        # Agregar año a la lista de disponibles
+        if year_valor.isdigit():
+            years_disponibles.add(year_valor)
+        
+        # Filtrar por año seleccionado
+        if year_seleccionado != "Todos" and year_valor != year_seleccionado:
+            continue
+        
+        # Construir fila de datos
         fila = {}
-        mes_valor = row[start_index].strip().upper() if start_index < len(row) else ""
-        if mes_valor in ORDEN_MESES:
-            for j, idx in enumerate(indices):
-                fila[headers_finales[j]] = row[idx] if idx < len(row) else ""
-            if any(fila.values()):
-                data.append(fila)
+        for j, idx in enumerate(indices):
+            if idx < len(row):
+                fila[headers_finales[j]] = row[idx]
+            else:
+                fila[headers_finales[j]] = ""
+        
+        # Solo agregar si tiene algún dato (no solo encabezados vacíos)
+        if any(value for key, value in fila.items() if key not in ['G.AÑO', 'G.MES']):
+            data.append(fila)
 
-    data = sorted(data, key=lambda x: ORDEN_MESES.index(x[_norm("G.MES")].upper()) if x.get(_norm("G.MES")) in ORDEN_MESES else 99)
-    return render_template("resumen.html", sucursales=sucursales, sucursal_actual=sucursal_seleccionada, data=data)
+    # Ordenar años disponibles (más reciente primero)
+    years_disponibles = sorted(years_disponibles, key=int, reverse=True)
+    
+    # Ordenar datos por año y mes
+    data = sorted(data, key=lambda x: (
+        int(x.get(_norm("G.AÑO"), 0)),
+        ORDEN_MESES.index(x[_norm("G.MES")].upper()) if x.get(_norm("G.MES")) in ORDEN_MESES else 99
+    ))
+
+    # Preparar datos para gráficos (solo del año seleccionado o todos)
+    datos_graficos = preparar_datos_para_graficos(data, year_seleccionado)
+    
+    return render_template("resumen.html", 
+                         sucursales=sucursales, 
+                         sucursal_actual=sucursal_seleccionada,
+                         years=years_disponibles,
+                         year_actual=year_seleccionado,
+                         data=data,
+                         datos_graficos=datos_graficos)
+
+
+def preparar_datos_para_graficos(data, year_seleccionado):
+    """Prepara datos para gráficos filtrando por año y organizando por mes"""
+    
+    # Agrupar datos por año y mes
+    datos_agrupados = {}
+    
+    for fila in data:
+        año = fila.get(_norm("G.AÑO"), "")
+        mes = fila.get(_norm("G.MES"), "")
+        
+        if not año or not mes:
+            continue
+            
+        if año not in datos_agrupados:
+            datos_agrupados[año] = {}
+        
+        # Convertir valores numéricos
+        try:
+            venta = float(fila.get(_norm("G.TOTAL VENTA C/IVA"), 0) or 0)
+            efectivo = float(fila.get(_norm("G.EFECTIVO"), 0) or 0)
+            tarjeta = float(fila.get(_norm("G.T.C."), 0) or 0)
+            apps = float(fila.get(_norm("G.TOTAL APPS"), 0) or 0)
+            uber = float(fila.get(_norm("G.UBER"), 0) or 0)
+            didi = float(fila.get(_norm("G.DIDI TC"), 0) or 0)
+            rappi = float(fila.get(_norm("G.RAPPI TC"), 0) or 0)
+        except (ValueError, TypeError):
+            continue
+            
+        datos_agrupados[año][mes] = {
+            'venta': venta,
+            'efectivo': efectivo,
+            'tarjeta': tarjeta,
+            'apps': apps,
+            'uber': uber,
+            'didi': didi,
+            'rappi': rappi
+        }
+    
+    # Preparar estructura para gráficos
+    resultado = {
+        'labels': [],          # Meses
+        'ventas_totales': [],  # Ventas por mes
+        'efectivo': [],        # Efectivo por mes
+        'tarjeta': [],         # Tarjeta por mes
+        'apps_totales': [],    # Apps por mes
+        'por_año': {}          # Datos separados por año (para comparativa)
+    }
+    
+    # Si se seleccionó "Todos", combinar todos los años
+    if year_seleccionado == "Todos":
+        # Combinar todos los meses de todos los años
+        todos_meses = set()
+        for año, meses_data in datos_agrupados.items():
+            todos_meses.update(meses_data.keys())
+        
+        # Ordenar meses
+        meses_ordenados = sorted(todos_meses, 
+                               key=lambda m: ORDEN_MESES.index(m) if m in ORDEN_MESES else 99)
+        
+        for mes in meses_ordenados:
+            venta_total = 0
+            efectivo_total = 0
+            tarjeta_total = 0
+            apps_total = 0
+            
+            for año, meses_data in datos_agrupados.items():
+                if mes in meses_data:
+                    venta_total += meses_data[mes]['venta']
+                    efectivo_total += meses_data[mes]['efectivo']
+                    tarjeta_total += meses_data[mes]['tarjeta']
+                    apps_total += meses_data[mes]['apps']
+            
+            resultado['labels'].append(f"{mes}")
+            resultado['ventas_totales'].append(venta_total)
+            resultado['efectivo'].append(efectivo_total)
+            resultado['tarjeta'].append(tarjeta_total)
+            resultado['apps_totales'].append(apps_total)
+            
+        # También guardar datos por año separados
+        for año in sorted(datos_agrupados.keys(), key=int):
+            resultado['por_año'][año] = {
+                'labels': [],
+                'ventas': [],
+                'efectivo': [],
+                'tarjeta': [],
+                'apps': []
+            }
+            
+            for mes in ORDEN_MESES:
+                if mes in datos_agrupados[año]:
+                    resultado['por_año'][año]['labels'].append(mes)
+                    resultado['por_año'][año]['ventas'].append(datos_agrupados[año][mes]['venta'])
+                    resultado['por_año'][año]['efectivo'].append(datos_agrupados[año][mes]['efectivo'])
+                    resultado['por_año'][año]['tarjeta'].append(datos_agrupados[año][mes]['tarjeta'])
+                    resultado['por_año'][año]['apps'].append(datos_agrupados[año][mes]['apps'])
+    
+    else:
+        # Solo un año específico
+        if year_seleccionado in datos_agrupados:
+            año_data = datos_agrupados[year_seleccionado]
+            
+            for mes in ORDEN_MESES:
+                if mes in año_data:
+                    resultado['labels'].append(mes)
+                    resultado['ventas_totales'].append(año_data[mes]['venta'])
+                    resultado['efectivo'].append(año_data[mes]['efectivo'])
+                    resultado['tarjeta'].append(año_data[mes]['tarjeta'])
+                    resultado['apps_totales'].append(año_data[mes]['apps'])
+    
+    return resultado
+
 
 # ==================== COMPARATIVA ENTRE SUCURSALES ====================
 @app.route("/comparativa", methods=["GET", "POST"])
@@ -564,47 +740,130 @@ def comparativa():
                              error=f"Error: {str(e)}")
 
 # ==================== DATOS PARA GRÁFICAS ====================
-@app.route("/datos_grafica/<path:sucursal>")
+@app.route("/datos_grafica/<sucursal>")
 @login_required
 def datos_grafica(sucursal):
+    """API que devuelve datos para gráficas - MESES siempre de 2025, datos del año seleccionado"""
+    
+    year_seleccionado = request.args.get('year', '2025')
+    
+    if year_seleccionado == "Todos":
+        year_seleccionado = "2025"
+    
+    spreadsheet = client.open(SHEET_NAME)
+    sheet = spreadsheet.worksheet(sucursal)
+    
+    all_rows = sheet.get_all_values()
+    if not all_rows:
+        return jsonify({'error': 'Hoja vacía'}), 400
+    
+    headers = [_norm(h) for h in all_rows[0]]
+    
     try:
-        sheet = client.open(SHEET_NAME).worksheet(sucursal)
-        data = sheet.get_all_records()
-
-        meses = [fila.get('G.MES') for fila in data if fila.get('G.MES')]
-        uber = [num(fila.get('G.UBER', 0)) for fila in data if fila.get('G.MES')]
-        didi = [num(fila.get('G.DIDI TC', 0)) for fila in data if fila.get('G.MES')]
-        rappi = [num(fila.get('G.RAPPI TC', 0)) for fila in data if fila.get('G.MES')]
-        comedor = [num(fila.get('G.VENTA COMEDOR', 0)) for fila in data if fila.get('G.MES')]
-        domicilio = [num(fila.get('G.VENTA DOMICILIO', 0)) for fila in data if fila.get('G.MES')]
-        rapido = [num(fila.get('G.VENTA RAPIDO', 0)) for fila in data if fila.get('G.MES')]
-
-        pedidos_uber = [num_int(fila.get('G.PEDIDOS UBER', 0)) for fila in data if fila.get('G.MES')]
-        pedidos_didi = [num_int(fila.get('G.PEDIDOS DIDI', 0)) for fila in data if fila.get('G.MES')]
-        pedidos_rappi = [num_int(fila.get('G.PEDIDOS RAPPI', 0)) for fila in data if fila.get('G.MES')]
-
-        cuentas_comedor = [num_int(fila.get('G.CUENTAS COMEDOR', 0)) for fila in data if fila.get('G.MES')]
-        cuentas_domicilio = [num_int(fila.get('G.CUENTAS DOMICILIO', 0)) for fila in data if fila.get('G.MES')]
-        cuentas_rapido = [num_int(fila.get('G.CUENTAS RAPIDO', 0)) for fila in data if fila.get('G.MES')]
-
-        return jsonify({
-            "meses": meses,
-            "uber": uber,
-            "didi": didi,
-            "rappi": rappi,
-            "comedor": comedor,
-            "domicilio": domicilio,
-            "rapido": rapido,
-            "pedidos_uber": pedidos_uber,
-            "pedidos_didi": pedidos_didi,
-            "pedidos_rappi": pedidos_rappi,
-            "cuentas_comedor": cuentas_comedor,
-            "cuentas_domicilio": cuentas_domicilio,
-            "cuentas_rapido": cuentas_rapido
-        })
-    except Exception as e:
-        print("ERROR EN /datos_grafica:", e)
-        return jsonify({"error": str(e)}), 500
+        mes_idx = headers.index(_norm("G.MES"))
+        year_idx = headers.index(_norm("G.AÑO"))
+        uber_idx = headers.index(_norm("G.UBER"))
+        didi_idx = headers.index(_norm("G.DIDI TC"))
+        rappi_idx = headers.index(_norm("G.RAPPI TC"))
+        comedor_idx = headers.index(_norm("G.VENTA COMEDOR"))
+        domicilio_idx = headers.index(_norm("G.VENTA DOMICILIO"))
+        rapido_idx = headers.index(_norm("G.VENTA RAPIDO"))
+        pedidos_uber_idx = headers.index(_norm("G.PEDIDOS UBER"))
+        pedidos_didi_idx = headers.index(_norm("G.PEDIDOS DIDI"))
+        pedidos_rappi_idx = headers.index(_norm("G.PEDIDOS RAPPI"))
+        cuentas_comedor_idx = headers.index(_norm("G.CUENTAS COMEDOR"))
+        cuentas_domicilio_idx = headers.index(_norm("G.CUENTAS DOMICILIO"))
+        cuentas_rapido_idx = headers.index(_norm("G.CUENTAS RAPIDO"))
+    except ValueError as e:
+        return jsonify({'error': f'Columna no encontrada: {e}'}), 400
+    
+    
+    meses_2025 = []
+    for row in all_rows[1:]:
+        if len(row) <= max(mes_idx, year_idx):
+            continue
+            
+        year_valor = row[year_idx].strip() if year_idx < len(row) else ""
+        mes_valor = row[mes_idx].strip().upper() if mes_idx < len(row) else ""
+        
+        if year_valor == "2025" and mes_valor in ORDEN_MESES:
+            if mes_valor not in meses_2025:
+                meses_2025.append(mes_valor)
+    
+   
+    meses_2025.sort(key=lambda m: ORDEN_MESES.index(m) if m in ORDEN_MESES else 99)
+    
+   
+    if not meses_2025:
+        meses_2025 = ORDEN_MESES.copy()
+    
+  
+    respuesta = {
+        'meses': meses_2025,
+        'uber': [0] * len(meses_2025),
+        'didi': [0] * len(meses_2025),
+        'rappi': [0] * len(meses_2025),
+        'comedor': [0] * len(meses_2025),
+        'domicilio': [0] * len(meses_2025),
+        'rapido': [0] * len(meses_2025),
+        'pedidos_uber': [0] * len(meses_2025),
+        'pedidos_didi': [0] * len(meses_2025),
+        'pedidos_rappi': [0] * len(meses_2025),
+        'cuentas_comedor': [0] * len(meses_2025),
+        'cuentas_domicilio': [0] * len(meses_2025),
+        'cuentas_rapido': [0] * len(meses_2025),
+        'filtro_aplicado': year_seleccionado,
+        'year_meses': "2025"  
+    }
+    
+   
+    for row in all_rows[1:]:
+        if len(row) <= max(mes_idx, year_idx, uber_idx, didi_idx, rappi_idx):
+            continue
+            
+        year_valor = row[year_idx].strip() if year_idx < len(row) else ""
+        mes_valor = row[mes_idx].strip().upper() if mes_idx < len(row) else ""
+        
+        if year_valor != year_seleccionado or mes_valor not in meses_2025:
+            continue
+        
+      
+        if mes_valor in meses_2025:
+            idx = meses_2025.index(mes_valor)
+        else:
+            continue
+        
+        
+        def to_float(val, default=0):
+            try:
+                if isinstance(val, str):
+                    val = val.replace('$', '').replace(',', '').strip()
+                return float(val) if val else default
+            except:
+                return default
+        
+        def to_int(val, default=0):
+            try:
+                return int(to_float(val, default))
+            except:
+                return default
+        
+       
+        respuesta['uber'][idx] = to_float(row[uber_idx] if uber_idx < len(row) else 0)
+        respuesta['didi'][idx] = to_float(row[didi_idx] if didi_idx < len(row) else 0)
+        respuesta['rappi'][idx] = to_float(row[rappi_idx] if rappi_idx < len(row) else 0)
+        respuesta['comedor'][idx] = to_float(row[comedor_idx] if comedor_idx < len(row) else 0)
+        respuesta['domicilio'][idx] = to_float(row[domicilio_idx] if domicilio_idx < len(row) else 0)
+        respuesta['rapido'][idx] = to_float(row[rapido_idx] if rapido_idx < len(row) else 0)
+        
+        respuesta['pedidos_uber'][idx] = to_int(row[pedidos_uber_idx] if pedidos_uber_idx < len(row) else 0)
+        respuesta['pedidos_didi'][idx] = to_int(row[pedidos_didi_idx] if pedidos_didi_idx < len(row) else 0)
+        respuesta['pedidos_rappi'][idx] = to_int(row[pedidos_rappi_idx] if pedidos_rappi_idx < len(row) else 0)
+        respuesta['cuentas_comedor'][idx] = to_int(row[cuentas_comedor_idx] if cuentas_comedor_idx < len(row) else 0)
+        respuesta['cuentas_domicilio'][idx] = to_int(row[cuentas_domicilio_idx] if cuentas_domicilio_idx < len(row) else 0)
+        respuesta['cuentas_rapido'][idx] = to_int(row[cuentas_rapido_idx] if cuentas_rapido_idx < len(row) else 0)
+    
+    return jsonify(respuesta)
 
 # ==================== DATOS GLOBAL ====================
 @app.route("/datos_grafica_global")
@@ -727,9 +986,7 @@ def obtener_ultima_semana():
     return lunes.strftime("%Y-%m-%d")
 
 def obtener_datos_ranking(semana):
-    """
-    Obtiene los datos del ranking para una semana específica
-    """
+    """Obtiene los datos del ranking para una semana específica"""
     try:
         sheets_data = get_spreadsheet_data()
         sucursales = list(sheets_data.keys()) if sheets_data else []
@@ -784,9 +1041,7 @@ def obtener_datos_ranking(semana):
         return []
 
 def procesar_comparacion_automatica(datos_actual, datos_anterior, semana_actual, semana_anterior):
-    """
-    Combina los datos de ambas semanas para la comparación
-    """
+    """Combina los datos de ambas semanas para la comparación"""
     datos_comparacion = []
     
     # Crear diccionarios para acceso rápido
@@ -833,9 +1088,7 @@ def procesar_comparacion_automatica(datos_actual, datos_anterior, semana_actual,
     return datos_comparacion
 
 def obtener_fechas_semana(semana):
-    """
-    Obtiene las fechas de inicio y fin para una semana específica
-    """
+    """Obtiene las fechas de inicio y fin para una semana específica"""
     try:
         fecha_inicio = datetime.strptime(semana, "%Y-%m-%d").date()
         fecha_fin = fecha_inicio + timedelta(days=6)
@@ -1003,6 +1256,1241 @@ def reporte_semanal_grafica():
                              datos_semana_anterior=[],
                              rango_semana="Error",
                              error=f"Error: {str(e)}")
+
+# ==================== ACTUALIZAR ESTATUS AUTOMÁTICO ====================
+@app.route("/actualizar_estatus_automatico", methods=["POST"])
+@login_required
+def actualizar_estatus_automatico():
+    """Función que cambia automáticamente el estatus de permisos próximos a vencer"""
+    
+    try:
+        # Conectar a Supabase
+        supabase_url = 'https://uooffrtjajluvhcauctk.supabase.co'
+        supabase_key = 'sb_publishable_ib_7iPl1ccS0PGo3yKzggQ_nWMi9CU8'
+        
+        # Usar supabase-py o requests
+        import requests
+        
+        headers = {
+            'apikey': supabase_key,
+            'Authorization': f'Bearer {supabase_key}',
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal'
+        }
+        
+        # Fecha actual (hora de México)
+        timezone_mx = pytz.timezone('America/Mexico_City')
+        hoy = datetime.now(timezone_mx).date()
+        fecha_limite = hoy + timedelta(days=7)
+        
+        # 1. BUSCAR PERMISOS QUE ESTÁN POR VENCER (7 días o menos)
+        print(f"Buscando permisos que vencen entre {hoy} y {fecha_limite}")
+        
+        # Obtener todos los permisos que tienen fecha_renovacion
+        response = requests.get(
+            f'{supabase_url}/rest/v1/datos_financieros',
+            headers=headers,
+            params={
+                'select': 'id,sucursal,fecha_renovacion,estatus',
+                'fecha_renovacion.not.is': 'null',
+                'estatus.not.in': '(vencido,completado)'
+            }
+        )
+        
+        if response.status_code != 200:
+            return jsonify({'error': 'No se pudieron obtener los datos'}), 400
+        
+        permisos = response.json()
+        cambios_realizados = 0
+        
+        for permiso in permisos:
+            if not permiso.get('fecha_renovacion'):
+                continue
+            
+            try:
+                fecha_renovacion = datetime.strptime(permiso['fecha_renovacion'], '%Y-%m-%d').date()
+                dias_faltantes = (fecha_renovacion - hoy).days
+                
+                # Si faltan 7 días o menos y NO está ya como "proximo-a-vencer"
+                if 0 <= dias_faltantes <= 7 and permiso.get('estatus') != 'proximo-a-vencer':
+                    print(f"✓ {permiso['sucursal']}: Cambiando a 'proximo-a-vencer' (vence en {dias_faltantes} días)")
+                    
+                    # Actualizar en Supabase
+                    update_response = requests.patch(
+                        f"{supabase_url}/rest/v1/datos_financieros?id=eq.{permiso['id']}",
+                        headers=headers,
+                        json={
+                            'estatus': 'proximo-a-vencer',
+                            'actualizado_en': datetime.now(timezone_mx).isoformat()
+                        }
+                    )
+                    
+                    if update_response.status_code in [200, 204]:
+                        cambios_realizados += 1
+                    else:
+                        print(f"Error actualizando {permiso['sucursal']}: {update_response.text}")
+                
+                # Si ya venció y NO está como "vencido"
+                elif dias_faltantes < 0 and permiso.get('estatus') != 'vencido':
+                    print(f"✗ {permiso['sucursal']}: Cambiando a 'vencido'")
+                    
+                    update_response = requests.patch(
+                        f"{supabase_url}/rest/v1/datos_financieros?id=eq.{permiso['id']}",
+                        headers=headers,
+                        json={
+                            'estatus': 'vencido',
+                            'actualizado_en': datetime.now(timezone_mx).isoformat()
+                        }
+                    )
+                    
+                    if update_response.status_code in [200, 204]:
+                        cambios_realizados += 1
+                
+            except Exception as e:
+                print(f"Error procesando permiso {permiso.get('id')}: {e}")
+                continue
+        
+        print(f"✅ {cambios_realizados} permisos actualizados")
+        return jsonify({
+            'success': True,
+            'cambios': cambios_realizados,
+            'message': f'Se actualizaron {cambios_realizados} permisos'
+        })
+        
+    except Exception as e:
+        print(f"❌ Error general: {e}")
+        return jsonify({'error': str(e)}), 500
+
+# ==================== ACTUALIZAR ESTATUS (API PARA FRONTEND) ====================
+@app.route("/api/actualizar_estatus", methods=["POST"])
+@login_required
+def api_actualizar_estatus():
+    """API para actualizar estatus desde el frontend"""
+    try:
+        import requests
+        from datetime import datetime, timedelta
+        
+        # Configuración Supabase
+        SUPABASE_URL = 'https://uooffrtjajluvhcauctk.supabase.co'
+        SUPABASE_KEY = 'sb_publishable_ib_7iPl1ccS0PGo3yKzggQ_nWMi9CU8'
+        
+        headers = {
+            'apikey': SUPABASE_KEY,
+            'Authorization': f'Bearer {SUPABASE_KEY}',
+            'Content-Type': 'application/json'
+        }
+        
+        # Obtener fecha actual
+        hoy = datetime.now().date()
+        fecha_limite = hoy + timedelta(days=7)
+        
+        print(f"🔄 Buscando permisos que vencen hasta {fecha_limite}")
+        
+        # Obtener todos los permisos con fecha de renovación
+        response = requests.get(
+            f'{SUPABASE_URL}/rest/v1/datos_financieros',
+            headers=headers,
+            params={
+                'select': 'id,sucursal,fecha_renovacion,estatus',
+                'fecha_renovacion.not.is': 'null'
+            }
+        )
+        
+        if response.status_code != 200:
+            return jsonify({'error': 'No se pudieron obtener datos'}), 400
+        
+        permisos = response.json()
+        cambios = []
+        
+        for permiso in permisos:
+            fecha_str = permiso.get('fecha_renovacion')
+            if not fecha_str:
+                continue
+            
+            try:
+                fecha_ven = datetime.strptime(fecha_str, '%Y-%m-%d').date()
+                dias_faltantes = (fecha_ven - hoy).days
+                
+                nuevo_estatus = None
+                
+                # Si ya venció
+                if fecha_ven < hoy and permiso.get('estatus') != 'vencido':
+                    nuevo_estatus = 'vencido'
+                
+                # Si faltan 7 días o menos
+                elif 0 <= dias_faltantes <= 7 and permiso.get('estatus') != 'proximo-a-vencer':
+                    nuevo_estatus = 'proximo-a-vencer'
+                
+                if nuevo_estatus:
+                    # Actualizar en Supabase
+                    update_response = requests.patch(
+                        f"{SUPABASE_URL}/rest/v1/datos_financieros?id=eq.{permiso['id']}",
+                        headers=headers,
+                        json={
+                            'estatus': nuevo_estatus,
+                            'actualizado_en': datetime.now().isoformat()
+                        }
+                    )
+                    
+                    if update_response.status_code in [200, 204]:
+                        cambios.append({
+                            'id': permiso['id'],
+                            'sucursal': permiso['sucursal'],
+                            'estatus_anterior': permiso.get('estatus'),
+                            'estatus_nuevo': nuevo_estatus,
+                            'dias': dias_faltantes
+                        })
+                        
+            except Exception as e:
+                print(f"Error con permiso {permiso.get('id')}: {e}")
+                continue
+        
+        print(f"✅ {len(cambios)} permisos actualizados")
+        return jsonify({
+            'success': True,
+            'total_cambios': len(cambios),
+            'cambios': cambios,
+            'fecha_actual': hoy.isoformat()
+        })
+        
+    except Exception as e:
+        print(f"❌ Error general: {e}")
+        return jsonify({'error': str(e)}), 500
+        
+        # ==================== RUTAS PARA REPORTES DE PERMISOS ====================
+@app.route("/api/permisos")
+@login_required
+def obtener_permisos():
+    """API para obtener todos los permisos"""
+    try:
+        import requests
+        
+        # Configuración Supabase
+        SUPABASE_URL = 'https://uooffrtjajluvhcauctk.supabase.co'
+        SUPABASE_KEY = 'sb_publishable_ib_7iPl1ccS0PGo3yKzggQ_nWMi9CU8'
+        
+        headers = {
+            'apikey': SUPABASE_KEY,
+            'Authorization': f'Bearer {SUPABASE_KEY}',
+            'Content-Type': 'application/json'
+        }
+        
+        # Obtener todos los permisos
+        response = requests.get(
+            f'{SUPABASE_URL}/rest/v1/datos_financieros',
+            headers=headers,
+            params={
+                'select': 'id,bloque,sucursal,tipo_permiso,existencia,fecha_expedicion,fecha_renovacion,estatus',
+                'order': 'sucursal.asc'
+            }
+        )
+        
+        if response.status_code != 200:
+            return jsonify({'error': 'No se pudieron obtener los permisos'}), 400
+        
+        permisos = response.json()
+        
+        # Formatear datos para el frontend
+        permisos_formateados = []
+        for permiso in permisos:
+            permisos_formateados.append({
+                'id': permiso.get('id'),
+                'bloque': permiso.get('bloque', ''),
+                'sucursal': permiso.get('sucursal', ''),
+                'permiso': permiso.get('tipo_permiso', ''),
+                'existencia': permiso.get('existencia', ''),
+                'fecha_expedicion': permiso.get('fecha_expedicion', ''),
+                'fecha_renovacion': permiso.get('fecha_renovacion', ''),
+                'estatus': permiso.get('estatus', '')
+            })
+        
+        return jsonify({
+            'success': True,
+            'permisos': permisos_formateados,
+            'total': len(permisos_formateados)
+        })
+        
+    except Exception as e:
+        print(f"❌ Error obteniendo permisos: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route("/api/permisos/estadisticas")
+@login_required
+def obtener_estadisticas_permisos():
+    """API para obtener estadísticas de permisos"""
+    try:
+        import requests
+        
+        # Configuración Supabase
+        SUPABASE_URL = 'https://uooffrtjajluvhcauctk.supabase.co'
+        SUPABASE_KEY = 'sb_publishable_ib_7iPl1ccS0PGo3yKzggQ_nWMi9CU8'
+        
+        headers = {
+            'apikey': SUPABASE_KEY,
+            'Authorization': f'Bearer {SUPABASE_KEY}',
+            'Content-Type': 'application/json'
+        }
+        
+        # Obtener todos los permisos para contar
+        response = requests.get(
+            f'{SUPABASE_URL}/rest/v1/datos_financieros',
+            headers=headers,
+            params={
+                'select': 'estatus'
+            }
+        )
+        
+        if response.status_code != 200:
+            return jsonify({'error': 'No se pudieron obtener las estadísticas'}), 400
+        
+        permisos = response.json()
+        
+        # Contar por estatus
+        contador = {
+            'VIGENTE': 0,
+            'VENCIDO': 0,
+            'EN TRÁMITE': 0,
+            'PENDIENTE': 0,
+            'PRÓXIMO A VENCER': 0
+        }
+        
+        for permiso in permisos:
+            estatus = permiso.get('estatus', '').upper()
+            if estatus in contador:
+                contador[estatus] += 1
+            elif 'VENCID' in estatus:
+                contador['VENCIDO'] += 1
+            elif 'TRÁMITE' in estatus or 'TRAMITE' in estatus:
+                contador['EN TRÁMITE'] += 1
+            elif 'PENDIENTE' in estatus:
+                contador['PENDIENTE'] += 1
+            elif 'PRÓXIMO' in estatus or 'PROXIMO' in estatus:
+                contador['PRÓXIMO A VENCER'] += 1
+            elif 'VIGENTE' in estatus:
+                contador['VIGENTE'] += 1
+        
+        total = len(permisos)
+        
+        # Calcular porcentajes
+        porcentajes = {}
+        for key, value in contador.items():
+            porcentajes[key] = round((value / total * 100), 2) if total > 0 else 0
+        
+        return jsonify({
+            'success': True,
+            'estadisticas': contador,
+            'porcentajes': porcentajes,
+            'total': total
+        })
+        
+    except Exception as e:
+        print(f"❌ Error obteniendo estadísticas: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route("/api/permisos/filtrar/<estatus>")
+@login_required
+def filtrar_permisos_por_estatus(estatus):
+    """API para filtrar permisos por estatus"""
+    try:
+        import requests
+        
+        # Configuración Supabase
+        SUPABASE_URL = 'https://uooffrtjajluvhcauctk.supabase.co'
+        SUPABASE_KEY = 'sb_publishable_ib_7iPl1ccS0PGo3yKzggQ_nWMi9CU8'
+        
+        headers = {
+            'apikey': SUPABASE_KEY,
+            'Authorization': f'Bearer {SUPABASE_KEY}',
+            'Content-Type': 'application/json'
+        }
+        
+        # Mapear nombres de estatus para la consulta
+        estatus_map = {
+            'vigentes': 'VIGENTE',
+            'vencidos': 'VENCIDO',
+            'en-tramite': 'EN TRÁMITE',
+            'pendientes': 'PENDIENTE',
+            'proximos-a-vencer': 'PRÓXIMO A VENCER'
+        }
+        
+        estatus_bd = estatus_map.get(estatus.lower(), estatus.upper())
+        
+        # Obtener permisos filtrados por estatus
+        response = requests.get(
+            f'{SUPABASE_URL}/rest/v1/datos_financieros',
+            headers=headers,
+            params={
+                'select': 'id,bloque,sucursal,tipo_permiso,existencia,fecha_expedicion,fecha_renovacion,estatus',
+                'estatus': f'eq.{estatus_bd}',
+                'order': 'sucursal.asc'
+            }
+        )
+        
+        if response.status_code != 200:
+            return jsonify({'error': f'No se pudieron obtener los permisos {estatus}'}), 400
+        
+        permisos = response.json()
+        
+        # Formatear datos para el frontend
+        permisos_formateados = []
+        for permiso in permisos:
+            permisos_formateados.append({
+                'id': permiso.get('id'),
+                'bloque': permiso.get('bloque', ''),
+                'sucursal': permiso.get('sucursal', ''),
+                'permiso': permiso.get('tipo_permiso', ''),
+                'existencia': permiso.get('existencia', ''),
+                'fecha_expedicion': permiso.get('fecha_expedicion', ''),
+                'fecha_renovacion': permiso.get('fecha_renovacion', ''),
+                'estatus': permiso.get('estatus', '')
+            })
+        
+        return jsonify({
+            'success': True,
+            'permisos': permisos_formateados,
+            'total': len(permisos_formateados),
+            'estatus': estatus_bd
+        })
+        
+    except Exception as e:
+        print(f"❌ Error filtrando permisos: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route("/reporte-permisos/todos")
+@login_required
+def generar_reporte_general():
+    """Generar reporte con TODOS los permisos"""
+    try:
+        import requests
+        from datetime import datetime
+        
+        # Configuración Supabase
+        SUPABASE_URL = 'https://uooffrtjajluvhcauctk.supabase.co'
+        SUPABASE_KEY = 'sb_publishable_ib_7iPl1ccS0PGo3yKzggQ_nWMi9CU8'
+        
+        headers = {
+            'apikey': SUPABASE_KEY,
+            'Authorization': f'Bearer {SUPABASE_KEY}',
+            'Content-Type': 'application/json'
+        }
+        
+        # Obtener TODOS los permisos
+        response = requests.get(
+            f'{SUPABASE_URL}/rest/v1/datos_financieros',
+            headers=headers,
+            params={
+                'select': 'id,bloque,sucursal,tipo_permiso,existencia,fecha_expedicion,fecha_renovacion,estatus',
+                'order': 'estatus.asc,sucursal.asc'
+            }
+        )
+        
+        if response.status_code != 200:
+            return f"Error al obtener los permisos", 400
+        
+        permisos = response.json()
+        
+        # Contar por estatus
+        contador_estatus = {}
+        for permiso in permisos:
+            estatus = permiso.get('estatus', 'SIN ESTATUS')
+            contador_estatus[estatus] = contador_estatus.get(estatus, 0) + 1
+        
+        # Formatear fechas
+        for permiso in permisos:
+            if permiso.get('fecha_expedicion'):
+                try:
+                    fecha = datetime.strptime(permiso['fecha_expedicion'], '%Y-%m-%d')
+                    permiso['fecha_expedicion_formatted'] = fecha.strftime('%d/%m/%Y')
+                except:
+                    permiso['fecha_expedicion_formatted'] = permiso['fecha_expedicion']
+            
+            if permiso.get('fecha_renovacion'):
+                try:
+                    fecha = datetime.strptime(permiso['fecha_renovacion'], '%Y-%m-%d')
+                    permiso['fecha_renovacion_formatted'] = fecha.strftime('%d/%m/%Y')
+                except:
+                    permiso['fecha_renovacion_formatted'] = permiso['fecha_renovacion']
+        
+        # Generar HTML del reporte general
+        fecha_actual = datetime.now().strftime('%d/%m/%Y %H:%M')
+        
+        html = f'''
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+            <meta charset="UTF-8">
+            <title>Reporte General de Permisos - La Postal</title>
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+            <style>
+                body {{
+                    font-family: Arial, sans-serif;
+                    margin: 20px;
+                }}
+                .header {{
+                    text-align: center;
+                    margin-bottom: 30px;
+                    border-bottom: 2px solid #b71c1c;
+                    padding-bottom: 20px;
+                }}
+                .header h1 {{
+                    color: #b71c1c;
+                    font-weight: bold;
+                }}
+                .stats-container {{
+                    display: flex;
+                    justify-content: space-around;
+                    flex-wrap: wrap;
+                    margin-bottom: 30px;
+                    gap: 15px;
+                }}
+                .stat-card {{
+                    background: #f8f9fa;
+                    padding: 15px;
+                    border-radius: 8px;
+                    min-width: 150px;
+                    text-align: center;
+                    border-left: 4px solid;
+                }}
+                .stat-card.vigente {{ border-color: #4caf50; }}
+                .stat-card.vencido {{ border-color: #f44336; }}
+                .stat-card.tramite {{ border-color: #ff9800; }}
+                .stat-card.pendiente {{ border-color: #9c27b0; }}
+                .stat-card.proximo {{ border-color: #ff9800; }}
+                
+                table {{
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-top: 20px;
+                }}
+                th {{
+                    background-color: #b71c1c;
+                    color: white;
+                    padding: 12px;
+                    text-align: left;
+                    border: 1px solid #ddd;
+                }}
+                td {{
+                    padding: 10px;
+                    border: 1px solid #ddd;
+                }}
+                .estatus-badge {{
+                    padding: 5px 10px;
+                    border-radius: 3px;
+                    font-weight: bold;
+                    font-size: 0.85rem;
+                }}
+                @media print {{
+                    .no-print {{ display: none; }}
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>Reporte General de Permisos - La Postal</h1>
+                <h3>Todos los permisos</h3>
+                <p><strong>Fecha de generación:</strong> {fecha_actual}</p>
+                <p><strong>Total de permisos:</strong> {len(permisos)}</p>
+            </div>
+            
+            <div class="stats-container">
+        '''
+        
+        # Agregar tarjetas de estadísticas
+        for estatus, cantidad in contador_estatus.items():
+            clase_color = 'vigente' if estatus == 'VIGENTE' else \
+                         'vencido' if estatus == 'VENCIDO' else \
+                         'tramite' if 'TRÁMITE' in estatus else \
+                         'pendiente' if estatus == 'PENDIENTE' else \
+                         'proximo' if 'PRÓXIMO' in estatus else ''
+            
+            html += f'''
+                <div class="stat-card {clase_color}">
+                    <div style="font-size: 1.5rem; font-weight: bold;">{cantidad}</div>
+                    <div>{estatus}</div>
+                </div>
+            '''
+        
+        html += f'''
+            </div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Bloque</th>
+                        <th>Sucursal</th>
+                        <th>Permiso</th>
+                        <th>Existencia</th>
+                        <th>Fecha Expedición</th>
+                        <th>Fecha Renovación</th>
+                        <th>Estatus</th>
+                    </tr>
+                </thead>
+                <tbody>
+        '''
+        
+        # Agregar filas de datos
+        for i, permiso in enumerate(permisos, 1):
+            estatus_class = ""
+            estatus_text = permiso.get('estatus', '')
+            if estatus_text == 'VIGENTE':
+                estatus_class = 'background-color: #d4edda; color: #155724;'
+            elif estatus_text == 'VENCIDO':
+                estatus_class = 'background-color: #f8d7da; color: #721c24;'
+            elif 'TRÁMITE' in estatus_text:
+                estatus_class = 'background-color: #fff3cd; color: #856404;'
+            elif estatus_text == 'PENDIENTE':
+                estatus_class = 'background-color: #e2e3e5; color: #383d41;'
+            elif 'PRÓXIMO' in estatus_text:
+                estatus_class = 'background-color: #ffeaa7; color: #8c7e00;'
+            
+            html += f'''
+                    <tr>
+                        <td>{i}</td>
+                        <td>{permiso.get('bloque', '')}</td>
+                        <td>{permiso.get('sucursal', '')}</td>
+                        <td>{permiso.get('tipo_permiso', '')}</td>
+                        <td>{permiso.get('existencia', '')}</td>
+                        <td>{permiso.get('fecha_expedicion_formatted', '')}</td>
+                        <td>{permiso.get('fecha_renovacion_formatted', '')}</td>
+                        <td><span class="estatus-badge" style="{estatus_class}">{estatus_text}</span></td>
+                    </tr>
+            '''
+        
+        html += '''
+                </tbody>
+            </table>
+            
+            <div class="footer" style="margin-top: 30px; text-align: center; color: #666; font-size: 0.9rem;">
+                <p>Sistema de Gestión de Permisos - La Postal</p>
+            </div>
+        </body>
+        </html>
+        '''
+        
+        return html
+        
+    except Exception as e:
+        print(f"❌ Error generando reporte general: {e}")
+        return f"Error al generar el reporte: {str(e)}", 500
+
+@app.route("/reporte-permisos/<estatus>")
+@login_required
+def generar_reporte_permisos(estatus):
+    """Generar reporte en formato HTML como el ejemplo que muestras"""
+    try:
+        import requests
+        from datetime import datetime
+        
+        # Configuración Supabase
+        SUPABASE_URL = 'https://uooffrtjajluvhcauctk.supabase.co'
+        SUPABASE_KEY = 'sb_publishable_ib_7iPl1ccS0PGo3yKzggQ_nWMi9CU8'
+        
+        print(f"🔍 Generando reporte para estatus: {estatus}")
+        
+        headers = {
+            'apikey': SUPABASE_KEY,
+            'Authorization': f'Bearer {SUPABASE_KEY}',
+            'Content-Type': 'application/json'
+        }
+        
+        # DEBUG: Primero probar la conexión sin filtros
+        print("🔍 Probando conexión a Supabase...")
+        test_response = requests.get(
+            f'{SUPABASE_URL}/rest/v1/datos_financieros',
+            headers=headers,
+            params={
+                'select': 'count',
+                'limit': 1
+            }
+        )
+        
+        print(f" Conexión Supabase: {test_response.status_code}")
+        if test_response.status_code != 200:
+            print(f" Error conexión: {test_response.text}")
+        
+        # Mapear nombres de estatus con diferentes formatos posibles
+        estatus_map = {
+            'vigentes': ['VIGENTE', 'Vigente', 'vigente'],
+            'vencidos': ['VENCIDO', 'Vencido', 'vencido'],
+            'en-tramite': ['EN TRÁMITE', 'En Trámite', 'en trámite', 'TRAMITE'],
+            'pendientes': ['PENDIENTE', 'Pendiente', 'pendiente'],
+            'proximos-a-vencer': ['PRÓXIMO A VENCER', 'Próximo a Vencer', 'próximo a vencer', 'PROXIMO A VENCER']
+        }
+        
+        # Para "todos", obtener sin filtrar
+        if estatus.lower() == 'todos':
+            print("🔍 Obteniendo TODOS los permisos (sin filtro)")
+            response = requests.get(
+                f'{SUPABASE_URL}/rest/v1/datos_financieros',
+                headers=headers,
+                params={
+                    'select': 'id,bloque,sucursal,tipo_permiso,existencia,fecha_expedicion,fecha_renovacion,estatus',
+                    'order': 'sucursal.asc'
+                }
+            )
+            estatus_bd = "TODOS"
+        else:
+            # Para filtros específicos, probar diferentes formatos
+            estatus_options = estatus_map.get(estatus.lower(), [estatus.upper()])
+            print(f" Buscando estatus: {estatus_options}")
+            
+            # Intentar cada formato posible
+            permisos = []
+            for estatus_format in estatus_options:
+                print(f"  Probando formato: '{estatus_format}'")
+                response = requests.get(
+                    f'{SUPABASE_URL}/rest/v1/datos_financieros',
+                    headers=headers,
+                    params={
+                        'select': 'id,bloque,sucursal,tipo_permiso,existencia,fecha_expedicion,fecha_renovacion,estatus',
+                        'estatus': f'eq.{estatus_format}',
+                        'order': 'sucursal.asc'
+                    }
+                )
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    if data:  # Si encontramos datos con este formato
+                        print(f"   Encontrados {len(data)} permisos con formato '{estatus_format}'")
+                        permisos = data
+                        estatus_bd = estatus_format
+                        break
+                    else:
+                        print(f"    0 permisos con formato '{estatus_format}'")
+                else:
+                    print(f"   Error con formato '{estatus_format}': {response.status_code}")
+            
+            # Si no encontramos con ningún formato, intentar búsqueda case-insensitive
+            if not permisos and estatus.lower() != 'todos':
+                print("🔍 Intentando búsqueda case-insensitive...")
+                response = requests.get(
+                    f'{SUPABASE_URL}/rest/v1/datos_financieros',
+                    headers=headers,
+                    params={
+                        'select': 'id,bloque,sucursal,tipo_permiso,existencia,fecha_expedicion,fecha_renovacion,estatus',
+                        'order': 'sucursal.asc'
+                    }
+                )
+                
+                if response.status_code == 200:
+                    all_permisos = response.json()
+                    # Filtrar localmente por estatus (case-insensitive)
+                    search_term = estatus.lower()
+                    permisos = [
+                        p for p in all_permisos 
+                        if p.get('estatus') and search_term in p.get('estatus', '').lower()
+                    ]
+                    print(f" Encontrados {len(permisos)} permisos con búsqueda case-insensitive")
+                    estatus_bd = estatus.upper()
+        
+        if response.status_code != 200:
+            error_msg = f"Error {response.status_code} al obtener los permisos: {response.text}"
+            print(f" {error_msg}")
+            return f"<h1>Error</h1><p>{error_msg}</p>", 400
+        
+        # Si estamos en el flujo "todos" o búsqueda específica
+        if estatus.lower() == 'todos':
+            permisos = response.json()
+            print(f" Obtenidos {len(permisos)} permisos (todos)")
+        elif not permisos:  # Si aún no tenemos permisos
+            permisos = []
+            print("  No se encontraron permisos con el filtro aplicado")
+        
+        print(f" Total de permisos a mostrar: {len(permisos)}")
+        
+        # Formatear fechas para mostrar
+        permisos_formateados = []
+        for permiso in permisos:
+            permiso_formateado = permiso.copy()
+            
+            # Formatear fecha expedición
+            fecha_exp = permiso.get('fecha_expedicion', '')
+            if fecha_exp:
+                try:
+                    # Intentar diferentes formatos de fecha
+                    for fmt in ('%Y-%m-%d', '%d/%m/%Y', '%Y/%m/%d'):
+                        try:
+                            fecha = datetime.strptime(fecha_exp, fmt)
+                            permiso_formateado['fecha_expedicion_formatted'] = fecha.strftime('%d/%m/%Y')
+                            break
+                        except:
+                            continue
+                    else:
+                        permiso_formateado['fecha_expedicion_formatted'] = fecha_exp
+                except:
+                    permiso_formateado['fecha_expedicion_formatted'] = fecha_exp
+            else:
+                permiso_formateado['fecha_expedicion_formatted'] = 'N/A'
+            
+            # Formatear fecha renovación
+            fecha_ren = permiso.get('fecha_renovacion', '')
+            if fecha_ren:
+                try:
+                    for fmt in ('%Y-%m-%d', '%d/%m/%Y', '%Y/%m/%d'):
+                        try:
+                            fecha = datetime.strptime(fecha_ren, fmt)
+                            permiso_formateado['fecha_renovacion_formatted'] = fecha.strftime('%d/%m/%Y')
+                            break
+                        except:
+                            continue
+                    else:
+                        permiso_formateado['fecha_renovacion_formatted'] = fecha_ren
+                except:
+                    permiso_formateado['fecha_renovacion_formatted'] = fecha_ren
+            else:
+                permiso_formateado['fecha_renovacion_formatted'] = 'N/A'
+            
+            # Asegurar que todos los campos tengan valor
+            permiso_formateado['bloque'] = permiso.get('bloque', 'N/A')
+            permiso_formateado['sucursal'] = permiso.get('sucursal', 'N/A')
+            permiso_formateado['tipo_permiso'] = permiso.get('tipo_permiso', 'N/A')
+            permiso_formateado['existencia'] = permiso.get('existencia', 'N/A')
+            permiso_formateado['estatus'] = permiso.get('estatus', 'N/A')
+            
+            permisos_formateados.append(permiso_formateado)
+        
+        # Obtener nombre de usuario para el reporte
+        nombre_usuario = "Usuario"
+        if hasattr(current_user, 'nombre'):
+            nombre_usuario = current_user.nombre
+        elif hasattr(current_user, 'id'):
+            nombre_usuario = current_user.id
+        
+        # Generar HTML del reporte
+        fecha_actual = datetime.now().strftime('%d/%m/%Y %H:%M')
+        
+        html = f'''
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Reporte de Permisos - La Postal</title>
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+            <style>
+                body {{
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                    margin: 0;
+                    padding: 20px;
+                    background-color: #f5f5f5;
+                }}
+                .container {{
+                    max-width: 1200px;
+                    margin: 0 auto;
+                    background: white;
+                    padding: 30px;
+                    border-radius: 10px;
+                    box-shadow: 0 0 20px rgba(0,0,0,0.1);
+                }}
+                .header {{
+                    text-align: center;
+                    margin-bottom: 30px;
+                    padding-bottom: 20px;
+                    border-bottom: 3px solid #b71c1c;
+                }}
+                .header h1 {{
+                    color: #b71c1c;
+                    font-weight: 700;
+                    margin-bottom: 5px;
+                }}
+                .header h2 {{
+                    color: #333;
+                    font-weight: 600;
+                    margin-top: 0;
+                }}
+                .info-box {{
+                    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                    padding: 20px;
+                    border-radius: 8px;
+                    margin-bottom: 25px;
+                    border-left: 4px solid #b71c1c;
+                }}
+                .table-responsive {{
+                    margin-top: 20px;
+                    border-radius: 8px;
+                    overflow: hidden;
+                    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                }}
+                table {{
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin: 0;
+                }}
+                thead {{
+                    background: linear-gradient(135deg, #b71c1c 0%, #d32f2f 100%);
+                    color: white;
+                }}
+                th {{
+                    padding: 15px;
+                    text-align: left;
+                    font-weight: 600;
+                    border: none;
+                }}
+                td {{
+                    padding: 12px 15px;
+                    border-bottom: 1px solid #e0e0e0;
+                }}
+                tr:nth-child(even) {{
+                    background-color: #f9f9f9;
+                }}
+                tr:hover {{
+                    background-color: #f0f0f0;
+                }}
+                .total-row {{
+                    background-color: #2c3e50;
+                    color: white;
+                    font-weight: bold;
+                }}
+                .total-row td {{
+                    padding: 15px;
+                    border: none;
+                }}
+                .estatus-badge {{
+                    padding: 5px 12px;
+                    border-radius: 20px;
+                    font-weight: 600;
+                    font-size: 0.85rem;
+                    display: inline-block;
+                    min-width: 100px;
+                    text-align: center;
+                }}
+                .vigente {{
+                    background-color: #d4edda;
+                    color: #155724;
+                    border: 1px solid #c3e6cb;
+                }}
+                .vencido {{
+                    background-color: #f8d7da;
+                    color: #721c24;
+                    border: 1px solid #f5c6cb;
+                }}
+                .en-tramite {{
+                    background-color: #fff3cd;
+                    color: #856404;
+                    border: 1px solid #ffeaa7;
+                }}
+                .pendiente {{
+                    background-color: #e2e3e5;
+                    color: #383d41;
+                    border: 1px solid #d6d8db;
+                }}
+                .proximo {{
+                    background-color: #cce5ff;
+                    color: #004085;
+                    border: 1px solid #b8daff;
+                }}
+                .footer {{
+                    margin-top: 40px;
+                    padding-top: 20px;
+                    border-top: 1px solid #ddd;
+                    text-align: center;
+                    color: #666;
+                    font-size: 0.9rem;
+                }}
+                .action-buttons {{
+                    margin-top: 30px;
+                    text-align: center;
+                }}
+                .btn-print {{
+                    background: linear-gradient(135deg, #b71c1c 0%, #d32f2f 100%);
+                    color: white;
+                    border: none;
+                    padding: 10px 25px;
+                    border-radius: 5px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    margin-right: 10px;
+                }}
+                .btn-close {{
+                    background: #6c757d;
+                    color: white;
+                    border: none;
+                    padding: 10px 25px;
+                    border-radius: 5px;
+                    font-weight: 600;
+                    cursor: pointer;
+                }}
+                @media print {{
+                    .no-print {{
+                        display: none;
+                    }}
+                    body {{
+                        margin: 0;
+                        padding: 0;
+                        background: white;
+                    }}
+                    .container {{
+                        box-shadow: none;
+                        padding: 0;
+                    }}
+                    .action-buttons {{
+                        display: none;
+                    }}
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>Reporte de Permisos - La Postal</h1>
+                    <h2>{estatus_bd.title()}</h2>
+                    <p><strong>Fecha de generación:</strong> {fecha_actual}</p>
+                </div>
+                
+                <div class="info-box">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <p><strong>Filtro aplicado:</strong> {estatus_bd.title()}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <p><strong>Total de registros:</strong> {len(permisos_formateados)}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <p><strong>Generado por:</strong> {nombre_usuario}</p>
+                            <p><strong>Departamento:</strong> Planeación</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="action-buttons no-print">
+                    <button onclick="window.print()" class="btn-print">
+                        Imprimir Reporte
+                    </button>
+                </div>
+                
+                <div class="table-responsive">
+        '''
+        
+        if permisos_formateados:
+            html += '''
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Bloque</th>
+                                <th>Sucursal</th>
+                                <th>Permiso</th>
+                                <th>Existencia</th>
+                                <th>Fecha Expedición</th>
+                                <th>Fecha Renovación</th>
+                                <th>Estatus</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            '''
+            
+            # Agregar filas de datos
+            for i, permiso in enumerate(permisos_formateados, 1):
+                estatus_text = permiso.get('estatus', '').upper()
+                estatus_class = ""
+                
+                if 'VIGENT' in estatus_text:
+                    estatus_class = 'vigente'
+                elif 'VENCID' in estatus_text:
+                    estatus_class = 'vencido'
+                elif 'TRÁMITE' in estatus_text or 'TRAMITE' in estatus_text:
+                    estatus_class = 'en-tramite'
+                elif 'PENDIENT' in estatus_text:
+                    estatus_class = 'pendiente'
+                elif 'PRÓXIMO' in estatus_text or 'PROXIMO' in estatus_text:
+                    estatus_class = 'proximo'
+                else:
+                    estatus_class = 'vigente'  
+                
+                html += f'''
+                        <tr>
+                            <td>{i}</td>
+                            <td>{permiso.get('bloque', 'N/A')}</td>
+                            <td>{permiso.get('sucursal', 'N/A')}</td>
+                            <td>{permiso.get('tipo_permiso', 'N/A')}</td>
+                            <td>{permiso.get('existencia', 'N/A')}</td>
+                            <td>{permiso.get('fecha_expedicion_formatted', 'N/A')}</td>
+                            <td>{permiso.get('fecha_renovacion_formatted', 'N/A')}</td>
+                            <td><span class="estatus-badge {estatus_class}">{permiso.get('estatus', 'N/A')}</span></td>
+                        </tr>
+                '''
+            
+            html += f'''
+                        </tbody>
+                        <tfoot>
+                            <tr class="total-row">
+                                <td colspan="7" style="text-align: right;"><strong>Total de permisos:</strong></td>
+                                <td><strong>{len(permisos_formateados)}</strong></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+            '''
+        else:
+            html += '''
+                    <div class="alert alert-warning text-center" style="padding: 30px; margin: 20px 0;">
+                        <h4> No se encontraron permisos</h4>
+                        <p>No hay registros que coincidan con el filtro aplicado.</p>
+                    </div>
+            '''
+        
+        html += f'''
+                </div>
+                
+                <div class="footer">
+                    <p>Sistema de Gestión de Permisos - La Postal © {datetime.now().year}</p>
+                    <p>Este reporte fue generado automáticamente por el sistema.</p>
+                </div>
+            </div>
+            
+            <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+            <script>
+                // Auto-imprimir al cargar (opcional, descomenta si lo quieres)
+                // window.onload = function() {{
+                //     setTimeout(function() {{
+                //         window.print();
+                //     }}, 1000);
+                // }};
+                
+                // Mejorar experiencia de impresión
+                document.querySelector('.btn-print').addEventListener('click', function() {{
+                    window.print();
+                }});
+                
+                document.querySelector('.btn-close').addEventListener('click', function() {{
+                    window.close();
+                }});
+            </script>
+        </body>
+        </html>
+        '''
+        
+        print(f"Reporte generado exitosamente para {len(permisos_formateados)} permisos")
+        return html
+        
+    except Exception as e:
+        import traceback
+        error_detail = traceback.format_exc()
+        print(f"Error generando reporte: {str(e)}")
+        print(f" Detalle del error:\n{error_detail}")
+        
+        # Mostrar error detallado en HTML
+        error_html = f'''
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Error en Reporte</title>
+            <style>
+                body {{ font-family: Arial, sans-serif; padding: 20px; }}
+                .error-box {{ background: #f8d7da; color: #721c24; padding: 20px; border-radius: 5px; }}
+            </style>
+        </head>
+        <body>
+            <h1>Error Generando Reporte</h1>
+            <div class="error-box">
+                <h3>Detalles del Error:</h3>
+                <p><strong>Tipo:</strong> {type(e).__name__}</p>
+                <p><strong>Mensaje:</strong> {str(e)}</p>
+                <p><strong>Estatus solicitado:</strong> {estatus}</p>
+            </div>
+            <p><a href="javascript:history.back()">← Volver</a></p>
+        </body>
+        </html>
+        '''
+        return error_html, 500
+
+@app.route("/planeacion-reportes")
+@login_required
+def planeacion_reportes():
+    """Página principal de reportes (en caso de que la necesites)"""
+    return render_template("planeacion.html")
+
+@app.route("/descargar-reporte/<estatus>/<formato>")
+@login_required
+def descargar_reporte(estatus, formato):
+    """Descargar reporte en diferentes formatos (CSV, etc.)"""
+    try:
+        import requests
+        import csv
+        import io
+        from datetime import datetime
+        
+        # Configuración Supabase
+        SUPABASE_URL = 'https://uooffrtjajluvhcauctk.supabase.co'
+        SUPABASE_KEY = 'sb_publishable_ib_7iPl1ccS0PGo3yKzggQ_nWMi9CU8'
+        
+        headers = {
+            'apikey': SUPABASE_KEY,
+            'Authorization': f'Bearer {SUPABASE_KEY}',
+            'Content-Type': 'application/json'
+        }
+        
+        # Mapear nombres de estatus
+        estatus_map = {
+            'vigentes': 'VIGENTE',
+            'vencidos': 'VENCIDO',
+            'en-tramite': 'EN TRÁMITE',
+            'pendientes': 'PENDIENTE',
+            'proximos-a-vencer': 'PRÓXIMO A VENCER'
+        }
+        
+        estatus_bd = estatus_map.get(estatus.lower(), estatus.upper())
+        
+        # Obtener permisos filtrados
+        response = requests.get(
+            f'{SUPABASE_URL}/rest/v1/datos_financieros',
+            headers=headers,
+            params={
+                'select': 'id,bloque,sucursal,tipo_permiso,existencia,fecha_expedicion,fecha_renovacion,estatus',
+                'estatus': f'eq.{estatus_bd}',
+                'order': 'sucursal.asc'
+            }
+        )
+        
+        if response.status_code != 200:
+            return jsonify({'error': f'No se pudieron obtener los permisos {estatus}'}), 400
+        
+        permisos = response.json()
+        
+        fecha_actual = datetime.now().strftime('%Y%m%d_%H%M%S')
+        nombre_archivo = f'reporte_permisos_{estatus}_{fecha_actual}'
+        
+        if formato == 'csv':
+            # Generar CSV
+            output = io.StringIO()
+            writer = csv.writer(output)
+            
+            # Encabezados
+            writer.writerow(['Reporte de Permisos - La Postal'])
+            writer.writerow([f'Estatus: {estatus_bd}'])
+            writer.writerow([f'Fecha de generación: {datetime.now().strftime("%d/%m/%Y %H:%M")}'])
+            writer.writerow(['Generado por:', current_user.nombre])
+            writer.writerow([])
+            writer.writerow(['#', 'Bloque', 'Sucursal', 'Permiso', 'Existencia', 'Fecha Expedición', 'Fecha Renovación', 'Estatus'])
+            
+            # Datos
+            for i, permiso in enumerate(permisos, 1):
+                writer.writerow([
+                    i,
+                    permiso.get('bloque', ''),
+                    permiso.get('sucursal', ''),
+                    permiso.get('tipo_permiso', ''),
+                    permiso.get('existencia', ''),
+                    permiso.get('fecha_expedicion', ''),
+                    permiso.get('fecha_renovacion', ''),
+                    permiso.get('estatus', '')
+                ])
+            
+            output.seek(0)
+            return send_file(
+                io.BytesIO(output.getvalue().encode('utf-8')),
+                mimetype='text/csv',
+                as_attachment=True,
+                download_name=f'{nombre_archivo}.csv'
+            )
+            
+        else:
+            # Por defecto, redirigir al reporte HTML
+            return redirect(url_for('generar_reporte_permisos', estatus=estatus))
+            
+    except Exception as e:
+        print(f"Error descargando reporte: {e}")
+        return jsonify({'error': str(e)}), 500
     
 # ==================== MAIN ====================
 if __name__ == "__main__":

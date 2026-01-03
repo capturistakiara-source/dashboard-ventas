@@ -367,6 +367,20 @@
                     </select>
                 </div>
 
+                <div class="col-md-4">
+                    <label for="year" class="form-label">Año:</label>
+                    <select name="year" id="year" class="form-select" onchange="this.form.submit()">
+                        <option value="Todos" {% if year_actual=="Todos" %}selected{% endif %}>
+                            Todos los años
+                        </option>
+                        {% for year in years %}
+                        <option value="{{ year }}" {% if year==year_actual %}selected{% endif %}>
+                            {{ year }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
                 <div class="col-auto d-flex gap-2" style="padding-top: 1.8rem;">
                     <a href="/" class="btn btn-secondary text-white-force">Volver al inicio</a>
                 </div>
@@ -469,187 +483,534 @@
             }
         }
 
-        // GRÁFICAS
+        // VARIABLES GLOBALES
         let sucursalSeleccionada = "{{ sucursal_actual }}";
+        let yearSeleccionado = "{{ year_actual }}";
         let chartGeneral, chartPlataformasVentas, chartPlataformasPedidos, chartAreasVentas, chartAreasCuentas;
 
         const colores = {
-            uber: 'green',
-            didi: 'orange',
-            rappi: 'red',
-            comedor: 'blue',
-            domicilio: '#6f42c1',
-            rapido: 'white'
+            uber: '#4CAF50',        // Verde
+            didi: '#FF9800',        // Naranja
+            rappi: '#F44336',       // Rojo
+            comedor: '#2196F3',     // Azul
+            domicilio: '#9C27B0',   // Púrpura
+            rapido: '#FFFFFF'       // Blanco
         };
 
+        // ========== FUNCIÓN PRINCIPAL PARA CARGAR DATOS ==========
         async function cargarDatos() {
-            const res = await fetch(`/datos_grafica/${encodeURIComponent(sucursalSeleccionada)}`);
-            const data = await res.json();
-            generarGraficaGeneral(data);
-            generarGraficaPlataformas(data);
-            generarGraficaAreas(data);
+            try {
+                // Mostrar loader
+                mostrarLoader(true);
+
+                // Construir URL con sucursal Y año
+                const url = `/datos_grafica/${encodeURIComponent(sucursalSeleccionada)}?year=${encodeURIComponent(yearSeleccionado)}`;
+
+                console.log("Cargando datos desde:", url); // Para depuración
+
+                const res = await fetch(url);
+
+                if (!res.ok) {
+                    throw new Error(`Error ${res.status}: ${res.statusText}`);
+                }
+
+                const data = await res.json();
+
+                // Actualizar título con año filtrado
+                actualizarTitulosGraficas(data.filtro_aplicado || yearSeleccionado);
+
+                // Regenerar todas las gráficas
+                generarGraficaGeneral(data);
+                generarGraficaPlataformas(data);
+                generarGraficaAreas(data);
+
+            } catch (error) {
+                console.error("Error cargando datos:", error);
+                mostrarError("No se pudieron cargar los datos. Verifica la conexión.");
+            } finally {
+                mostrarLoader(false);
+            }
         }
 
+        // ========== FUNCIÓN PARA ACTUALIZAR TÍTULOS ==========
+        function actualizarTitulosGraficas(year) {
+            // Actualizar título en gráfica general
+            const tituloGeneral = document.querySelector('#contenedor-general .section-title');
+            if (tituloGeneral) {
+                tituloGeneral.textContent = `Vista General - Año ${year}`;
+            }
+
+            // Actualizar título en plataformas
+            const tituloPlataformas = document.querySelector('#contenedor-plataformas .section-title');
+            if (tituloPlataformas) {
+                tituloPlataformas.textContent = `Plataformas - Año ${year}`;
+            }
+
+            // Actualizar título en áreas
+            const tituloAreas = document.querySelector('#contenedor-areas .section-title');
+            if (tituloAreas) {
+                tituloAreas.textContent = `Áreas - Año ${year}`;
+            }
+        }
+
+        // ========== FUNCIÓN PARA GRÁFICA GENERAL ==========
         function generarGraficaGeneral(data) {
             if (chartGeneral) chartGeneral.destroy();
+
             const ctx = document.getElementById('graficaGeneral').getContext('2d');
+
             chartGeneral = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: data.meses,
                     datasets: [
-                        { label: 'UBER', data: data.uber, borderColor: colores.uber, borderWidth: 2, tension: 0.3 },
-                        { label: 'DIDI', data: data.didi, borderColor: colores.didi, borderWidth: 2, tension: 0.3 },
-                        { label: 'RAPPI', data: data.rappi, borderColor: colores.rappi, borderWidth: 2, tension: 0.3 },
-                        { label: 'COMEDOR', data: data.comedor, borderColor: colores.comedor, borderWidth: 2, tension: 0.3 },
-                        { label: 'DOMICILIO', data: data.domicilio, borderColor: colores.domicilio, borderWidth: 2, tension: 0.3 },
-                        { label: 'RÁPIDO', data: data.rapido, borderColor: colores.rapido, borderWidth: 2, tension: 0.3 },
+                        {
+                            label: 'UBER',
+                            data: data.uber,
+                            borderColor: colores.uber,
+                            backgroundColor: colores.uber + '20',
+                            borderWidth: 3,
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'DIDI',
+                            data: data.didi,
+                            borderColor: colores.didi,
+                            backgroundColor: colores.didi + '20',
+                            borderWidth: 3,
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'RAPPI',
+                            data: data.rappi,
+                            borderColor: colores.rappi,
+                            backgroundColor: colores.rappi + '20',
+                            borderWidth: 3,
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'COMEDOR',
+                            data: data.comedor,
+                            borderColor: colores.comedor,
+                            backgroundColor: colores.comedor + '20',
+                            borderWidth: 3,
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'DOMICILIO',
+                            data: data.domicilio,
+                            borderColor: colores.domicilio,
+                            backgroundColor: colores.domicilio + '20',
+                            borderWidth: 3,
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'RÁPIDO',
+                            data: data.rapido,
+                            borderColor: colores.rapido,
+                            backgroundColor: colores.rapido + '20',
+                            borderWidth: 3,
+                            tension: 0.4,
+                            fill: true
+                        }
                     ]
                 },
                 options: {
                     responsive: true,
+                    maintainAspectRatio: true,
                     plugins: {
                         legend: {
                             position: 'top',
-                            labels: { color: 'white' }
+                            labels: {
+                                color: 'white',
+                                font: { size: 12 },
+                                padding: 20
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: `Año ${data.filtro_aplicado || yearSeleccionado}`,
+                            color: 'white',
+                            font: { size: 16, weight: 'bold' }
                         }
                     },
                     scales: {
                         y: {
-                            ticks: { color: 'white' },
-                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                            beginAtZero: true,
+                            ticks: {
+                                color: 'white',
+                                callback: function (value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)',
+                                borderColor: 'rgba(255, 255, 255, 0.3)'
+                            },
+                            title: {
+                                display: true,
+                                text: 'Ventas ($)',
+                                color: 'white'
+                            }
                         },
                         x: {
-                            ticks: { color: 'white' },
-                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                            ticks: {
+                                color: 'white',
+                                font: { size: 11 }
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)',
+                                borderColor: 'rgba(255, 255, 255, 0.3)'
+                            }
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    animations: {
+                        tension: {
+                            duration: 1000,
+                            easing: 'linear'
                         }
                     }
                 }
             });
         }
 
+        // ========== FUNCIÓN PARA GRÁFICAS DE PLATAFORMAS ==========
         function generarGraficaPlataformas(data) {
+            // Gráfica de Ventas de Plataformas
             if (chartPlataformasVentas) chartPlataformasVentas.destroy();
-            chartPlataformasVentas = new Chart(document.getElementById('graficaPlataformasVentas').getContext('2d'), {
-                type: 'line',
-                data: {
-                    labels: data.meses,
-                    datasets: [
-                        { label: 'UBER', data: data.uber, borderColor: colores.uber, borderWidth: 2, tension: 0.3, pointRadius: 4 },
-                        { label: 'DIDI', data: data.didi, borderColor: colores.didi, borderWidth: 2, tension: 0.3, pointRadius: 4 },
-                        { label: 'RAPPI', data: data.rappi, borderColor: colores.rappi, borderWidth: 2, tension: 0.3, pointRadius: 4 },
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                            labels: { color: 'white' }
-                        }
+
+            chartPlataformasVentas = new Chart(
+                document.getElementById('graficaPlataformasVentas').getContext('2d'),
+                {
+                    type: 'bar',
+                    data: {
+                        labels: data.meses,
+                        datasets: [
+                            {
+                                label: 'UBER',
+                                data: data.uber,
+                                backgroundColor: colores.uber,
+                                borderColor: colores.uber,
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'DIDI',
+                                data: data.didi,
+                                backgroundColor: colores.didi,
+                                borderColor: colores.didi,
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'RAPPI',
+                                data: data.rappi,
+                                backgroundColor: colores.rappi,
+                                borderColor: colores.rappi,
+                                borderWidth: 1
+                            }
+                        ]
                     },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: { color: 'white' },
-                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                labels: { color: 'white' }
+                            },
+                            title: {
+                                display: true,
+                                text: `Ventas por Plataforma - Año ${data.filtro_aplicado || yearSeleccionado}`,
+                                color: 'white'
+                            }
                         },
-                        x: {
-                            ticks: { color: 'white' },
-                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    color: 'white',
+                                    callback: function (value) {
+                                        return '$' + value.toLocaleString();
+                                    }
+                                },
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                            },
+                            x: {
+                                ticks: { color: 'white' },
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                            }
                         }
                     }
                 }
-            });
+            );
 
+            // Gráfica de Pedidos de Plataformas
             if (chartPlataformasPedidos) chartPlataformasPedidos.destroy();
-            chartPlataformasPedidos = new Chart(document.getElementById('graficaPlataformasPedidos').getContext('2d'), {
-                type: 'line',
-                data: {
-                    labels: data.meses,
-                    datasets: [
-                        { label: 'PEDIDOS UBER', data: data.pedidos_uber, borderColor: colores.uber, borderWidth: 2, tension: 0.3, pointRadius: 4 },
-                        { label: 'PEDIDOS DIDI', data: data.pedidos_didi, borderColor: colores.didi, borderWidth: 2, tension: 0.3, pointRadius: 4 },
-                        { label: 'PEDIDOS RAPPI', data: data.pedidos_rappi, borderColor: colores.rappi, borderWidth: 2, tension: 0.3, pointRadius: 4 },
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                            labels: { color: 'white' }
-                        }
+
+            chartPlataformasPedidos = new Chart(
+                document.getElementById('graficaPlataformasPedidos').getContext('2d'),
+                {
+                    type: 'line',
+                    data: {
+                        labels: data.meses,
+                        datasets: [
+                            {
+                                label: 'PEDIDOS UBER',
+                                data: data.pedidos_uber,
+                                borderColor: colores.uber,
+                                backgroundColor: colores.uber + '20',
+                                borderWidth: 3,
+                                tension: 0.3,
+                                pointRadius: 5,
+                                fill: true
+                            },
+                            {
+                                label: 'PEDIDOS DIDI',
+                                data: data.pedidos_didi,
+                                borderColor: colores.didi,
+                                backgroundColor: colores.didi + '20',
+                                borderWidth: 3,
+                                tension: 0.3,
+                                pointRadius: 5,
+                                fill: true
+                            },
+                            {
+                                label: 'PEDIDOS RAPPI',
+                                data: data.pedidos_rappi,
+                                borderColor: colores.rappi,
+                                backgroundColor: colores.rappi + '20',
+                                borderWidth: 3,
+                                tension: 0.3,
+                                pointRadius: 5,
+                                fill: true
+                            }
+                        ]
                     },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: { color: 'white' },
-                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                labels: { color: 'white' }
+                            },
+                            title: {
+                                display: true,
+                                text: `Pedidos por Plataforma - Año ${data.filtro_aplicado || yearSeleccionado}`,
+                                color: 'white'
+                            }
                         },
-                        x: {
-                            ticks: { color: 'white' },
-                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    color: 'white',
+                                    callback: function (value) {
+                                        return value.toLocaleString() + ' pedidos';
+                                    }
+                                },
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                                title: {
+                                    display: true,
+                                    text: 'Cantidad de Pedidos',
+                                    color: 'white'
+                                }
+                            },
+                            x: {
+                                ticks: { color: 'white' },
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                            }
                         }
                     }
                 }
-            });
+            );
         }
 
+        // ========== FUNCIÓN PARA GRÁFICAS DE ÁREAS ==========
         function generarGraficaAreas(data) {
+            // Gráfica de Ventas por Área
             if (chartAreasVentas) chartAreasVentas.destroy();
-            chartAreasVentas = new Chart(document.getElementById('graficaAreasVentas').getContext('2d'), {
-                type: 'line',
-                data: {
-                    labels: data.meses,
-                    datasets: [
-                        { label: 'COMEDOR', data: data.comedor, borderColor: colores.comedor, borderWidth: 2, tension: 0.3 },
-                        { label: 'DOMICILIO', data: data.domicilio, borderColor: colores.domicilio, borderWidth: 2, tension: 0.3 },
-                        { label: 'RÁPIDO', data: data.rapido, borderColor: colores.rapido, borderWidth: 2, tension: 0.3 },
-                    ]
-                },
-                options: {
-                    scales: {
-                        y: {
-                            ticks: { color: 'white' },
-                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
-                        },
-                        x: {
-                            ticks: { color: 'white' },
-                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
-                        }
-                    }
-                }
-            });
 
-            if (chartAreasCuentas) chartAreasCuentas.destroy();
-            chartAreasCuentas = new Chart(document.getElementById('graficaAreasCuentas').getContext('2d'), {
-                type: 'line',
-                data: {
-                    labels: data.meses,
-                    datasets: [
-                        { label: 'CUENTAS COMEDOR', data: data.cuentas_comedor, borderColor: colores.comedor, borderWidth: 2, tension: 0.3 },
-                        { label: 'CUENTAS DOMICILIO', data: data.cuentas_domicilio, borderColor: colores.domicilio, borderWidth: 2, tension: 0.3 },
-                        { label: 'CUENTAS RÁPIDO', data: data.cuentas_rapido, borderColor: colores.rapido, borderWidth: 2, tension: 0.3 },
-                    ]
-                },
-                options: {
-                    scales: {
-                        y: {
-                            ticks: { color: 'white' },
-                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+            chartAreasVentas = new Chart(
+                document.getElementById('graficaAreasVentas').getContext('2d'),
+                {
+                    type: 'bar',
+                    data: {
+                        labels: data.meses,
+                        datasets: [
+                            {
+                                label: 'COMEDOR',
+                                data: data.comedor,
+                                backgroundColor: colores.comedor,
+                                borderColor: colores.comedor,
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'DOMICILIO',
+                                data: data.domicilio,
+                                backgroundColor: colores.domicilio,
+                                borderColor: colores.domicilio,
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'RÁPIDO',
+                                data: data.rapido,
+                                backgroundColor: colores.rapido,
+                                borderColor: colores.rapido,
+                                borderWidth: 1
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                labels: { color: 'white' }
+                            },
+                            title: {
+                                display: true,
+                                text: `Ventas por Área - Año ${data.filtro_aplicado || yearSeleccionado}`,
+                                color: 'white'
+                            }
                         },
-                        x: {
-                            ticks: { color: 'white' },
-                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                stacked: false, // Cambia a true para gráfico apilado
+                                ticks: {
+                                    color: 'white',
+                                    callback: function (value) {
+                                        return '$' + value.toLocaleString();
+                                    }
+                                },
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                            },
+                            x: {
+                                ticks: { color: 'white' },
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                            }
                         }
                     }
                 }
-            });
+            );
+
+            // Gráfica de Cuentas por Área
+            if (chartAreasCuentas) chartAreasCuentas.destroy();
+
+            chartAreasCuentas = new Chart(
+                document.getElementById('graficaAreasCuentas').getContext('2d'),
+                {
+                    type: 'line',
+                    data: {
+                        labels: data.meses,
+                        datasets: [
+                            {
+                                label: 'CUENTAS COMEDOR',
+                                data: data.cuentas_comedor,
+                                borderColor: colores.comedor,
+                                backgroundColor: colores.comedor + '20',
+                                borderWidth: 3,
+                                tension: 0.3,
+                                fill: true
+                            },
+                            {
+                                label: 'CUENTAS DOMICILIO',
+                                data: data.cuentas_domicilio,
+                                borderColor: colores.domicilio,
+                                backgroundColor: colores.domicilio + '20',
+                                borderWidth: 3,
+                                tension: 0.3,
+                                fill: true
+                            },
+                            {
+                                label: 'CUENTAS RÁPIDO',
+                                data: data.cuentas_rapido,
+                                borderColor: colores.rapido,
+                                backgroundColor: colores.rapido + '20',
+                                borderWidth: 3,
+                                tension: 0.3,
+                                fill: true
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                labels: { color: 'white' }
+                            },
+                            title: {
+                                display: true,
+                                text: `Cuentas por Área - Año ${data.filtro_aplicado || yearSeleccionado}`,
+                                color: 'white'
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    color: 'white',
+                                    callback: function (value) {
+                                        return value.toLocaleString() + ' cuentas';
+                                    }
+                                },
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                            },
+                            x: {
+                                ticks: { color: 'white' },
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                            }
+                        }
+                    }
+                }
+            );
         }
 
-        // Inicializar cargando la vista general
-        cargarDatos();
+        // ========== FUNCIONES AUXILIARES ==========
+        function mostrarLoader(mostrar) {
+            // Implementación básica de loader
+            const loader = document.getElementById('loader');
+            if (loader) {
+                loader.style.display = mostrar ? 'block' : 'none';
+            } else {
+                // Crear loader si no existe
+                if (mostrar) {
+                    console.log("Cargando datos...");
+                    // Podrías mostrar un spinner aquí
+                } else {
+                    console.log("Datos cargados");
+                }
+            }
+        }
+
+        function mostrarError(mensaje) {
+            // Puedes usar un modal o alert más elegante
+            alert("Error: " + mensaje);
+        }
+
+        // ========== EVENT LISTENERS ==========
+        document.addEventListener('DOMContentLoaded', function () {
+            // Inicializar gráficas al cargar la página
+            cargarDatos();
+
+            // Actualizar gráficas cuando cambie el selector de gráfica
+            document.getElementById('tipoGrafica').addEventListener('change', function () {
+                // Solo cambiar vista, no recargar datos
+                mostrarGrafica();
+            });
+        });
+
+        // Asegurar que la función mostrarGrafica está disponible globalmente
+        window.mostrarGrafica = mostrarGrafica;
+        window.cargarDatos = cargarDatos;
     </script>
 </body>
 
