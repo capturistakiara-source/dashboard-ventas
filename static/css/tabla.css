@@ -1,0 +1,337 @@
+        :root {
+            --color-bg: #000000;
+            --color-card: #ffffff;
+            --color-text: #2c2c2c;
+            --color-accent: #b71c1c;
+            --color-accent-hover: #8b0000;
+            --color-border: #e0e0e0;
+            --color-navbar: #1a1a1a;
+        }
+
+        body {
+            background-color: var(--color-bg);
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            color: white;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+        }
+
+        /* HEADER */
+        .page-header {
+            text-align: center;
+            margin-bottom: 3rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 1.5rem;
+        }
+
+        .brand-title {
+            font-size: 2.2rem;
+            font-weight: 300;
+            letter-spacing: 3px;
+            margin-bottom: 0.5rem;
+            color: white;
+        }
+
+        .brand-subtitle {
+            font-size: 0.9rem;
+            letter-spacing: 4px;
+            opacity: 0.8;
+            margin-bottom: 1rem;
+            color: white;
+        }
+
+        .page-title {
+            font-size: 1.8rem;
+            font-weight: 400;
+            color: white;
+            margin-bottom: 0.5rem;
+        }
+
+        .page-icon {
+            font-size: 2rem;
+            margin-right: 0.5rem;
+            font-weight: bold;
+        }
+
+        /* FORMULARIO */
+        .filter-form {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .form-label {
+            color: white;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-control,
+        .form-select {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            border-radius: 6px;
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: var(--color-accent);
+            color: white;
+            box-shadow: 0 0 0 0.2rem rgba(183, 28, 28, 0.25);
+        }
+
+        .form-control::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        /* BOTONES */
+        .btn-primary {
+            background-color: var(--color-accent);
+            border: none;
+            border-radius: 6px;
+            padding: 0.5rem 1.5rem;
+            font-weight: 500;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--color-accent-hover);
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            border-radius: 6px;
+            padding: 0.5rem 1.5rem;
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* TARJETAS DE TOTALES */
+        .total-card {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .total-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--color-accent);
+        }
+
+        .total-card.selected {
+            border: 3px solid var(--color-accent);
+            background: rgba(183, 28, 28, 0.1);
+        }
+
+        .card-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 0.5rem;
+        }
+
+        .card-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: white;
+        }
+
+        /* GRÁFICA */
+        .chart-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .chart-title {
+            font-size: 1.3rem;
+            font-weight: 500;
+            color: white;
+            margin-bottom: 1rem;
+        }
+
+        .metricas-seleccionadas {
+            background: rgba(183, 28, 28, 0.1);
+            border: 1px solid var(--color-accent);
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            color: white;
+            font-weight: 500;
+        }
+
+        /* TABLA */
+        .table-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .table {
+            color: white;
+            margin-bottom: 0;
+        }
+
+        .table-dark {
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .table-striped tbody tr:nth-of-type(odd) {
+            background-color: rgba(255, 255, 255, 0.03);
+        }
+
+        .table-bordered th,
+        .table-bordered td {
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .table th {
+            font-weight: 600;
+            background: rgba(0, 0, 0, 0.4);
+        }
+
+        /* IMAGEN DEL DISPOSITIVO */
+        .device-image {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            opacity: 0.1;
+            transition: opacity 0.3s;
+        }
+
+        .device-image:hover {
+            opacity: 0.8;
+        }
+
+        .device-watermark {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 100;
+            text-decoration: none;
+        }
+
+        /* ESTRUCTURA PARA KANJIS EN CÍRCULO ROJO */
+        .kanji-circle {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 50px;
+            height: 50px;
+            background-color: var(--color-accent);
+            border-radius: 50%;
+            color: white;
+            font-weight: bold;
+            font-size: 1.5rem;
+            margin-right: 1rem;
+            box-shadow: 0 4px 8px rgba(183, 28, 28, 0.3);
+        }
+
+        /* Variante más pequeña */
+        .kanji-circle-sm {
+            width: 40px;
+            height: 40px;
+            font-size: 1.2rem;
+            margin-right: 0.8rem;
+        }
+
+        /* Variante más grande */
+        .kanji-circle-lg {
+            width: 60px;
+            height: 60px;
+            font-size: 1.8rem;
+            margin-right: 1.2rem;
+        }
+
+        /* Para títulos de página */
+        .page-title .kanji-circle {
+            width: 70px;
+            height: 70px;
+            font-size: 2rem;
+            margin-right: 1rem;
+        }
+
+        /* Efectos hover */
+        .kanji-circle:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 12px rgba(183, 28, 28, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        /* Para usar en botones o tarjetas */
+        .btn-with-kanji {
+            display: flex;
+            align-items: center;
+            padding: 1rem 1.5rem;
+        }
+
+        .card-with-kanji {
+            display: flex;
+            align-items: center;
+            padding: 1.5rem;
+        }
+
+        /* FORMULARIO DE FILTRO - TEXTO VISIBLE */
+        .filter-form .form-label {
+            color: #ffffff !important;
+            font-weight: 500;
+        }
+
+        .filter-form .form-select,
+        .filter-form .form-control {
+            color: #ffffff !important;
+            background-color: rgba(255, 255, 255, 0.1) !important;
+            border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        }
+
+        .filter-form .form-select option {
+            color: #000000 !important;
+            background-color: #ffffff !important;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .brand-title {
+                font-size: 1.8rem;
+            }
+
+            .page-title {
+                font-size: 1.4rem;
+            }
+
+            .filter-form .d-inline-block {
+                display: block !important;
+                width: 100% !important;
+                margin-bottom: 1rem;
+            }
+
+            .btn {
+                width: 100%;
+                margin-bottom: 0.5rem;
+            }
+        }

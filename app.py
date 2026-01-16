@@ -13,6 +13,9 @@ import pytz
 import csv
 import io
 from flask import send_file
+from functools import wraps
+from flask import abort
+from flask import Flask, render_template, url_for
 
 # ==================== CONFIGURACIÓN INICIAL ====================
 app = Flask(__name__)
@@ -91,15 +94,15 @@ USUARIOS = {
         'nombre': 'Garcia Rodriguez Genesis Clarise',
         'rol': 'Gerente RH'
     },
-    'Ingenierio': {
-        'password': 'Iapostal01',
-        'nombre': 'Sanchez Gomez Jose Antonio',
-        'rol': 'Ing de Proyectos/Procesos'
-    },
     'Licenciado': {
         'password': 'Lcapostal01',
         'nombre': 'Martinez Peralta Christian Ignacio',
         'rol': ''
+    },
+    'Supervisores': {
+        'password': 'Sapostal01',
+        'nombre': 'supervisión',
+        'rol': 'Supervision Sucursales'
     },
     'Gerentes': {
         'password': 'Gpostal01',
@@ -120,6 +123,21 @@ def load_user(user_id):
         user_data = USUARIOS[user_id]
         return User(user_id, user_data['nombre'], user_data['rol'])
     return None
+
+def only_users(*allowed_user_ids):
+    """
+    Permite acceso SOLO a los user.id indicados.
+    Ej: @only_users('Supervisores')
+    """
+    def decorator(fn):
+        @wraps(fn)
+        @login_required
+        def wrapper(*args, **kwargs):
+            if current_user.id not in allowed_user_ids:
+                abort(403)
+            return fn(*args, **kwargs)
+        return wrapper
+    return decorator
 
 # ==================== AUTENTICACIÓN GOOGLE ====================
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
@@ -328,14 +346,24 @@ def planeacion():
 
 # ==================== RUTA HOME PRINCIPAL ====================
 @app.route("/")
+@app.route("/home")
 @login_required
 def home():
-    # Si el usuario es "Grafica", redirigir directamente al reporte
-    if current_user.id == 'Gerentes':
+    if current_user.rol == 'Gerentes':
         return redirect(url_for('reporte_semanal_grafica'))
-    
-    # Para otros usuarios, mostrar el home normal
+
+    elif current_user.rol == 'Supervisores':
+        return redirect(url_for('supervision'))
+
+    # CUALQUIER OTRO ROL entra al home completo
     return render_template("home.html")
+
+
+# ==================== supervision ====================
+@app.route("/supervision")
+@login_required
+def supervision():
+    return render_template("supervision.html")
 
 # ==================== TABLA ====================
 @app.route("/tabla", methods=["GET", "POST"])

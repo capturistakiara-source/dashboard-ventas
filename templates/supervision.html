@@ -1,0 +1,3056 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Supervisión - La Postal</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg: #000;
+            --card: #151515;
+            --muted: #a9a9a9;
+            --border: #2a2a2a;
+            --accent: #b71c1c;
+            --accent2: #8b0000;
+        }
+
+        body {
+            background: var(--bg);
+            color: #fff;
+        }
+
+        .wrap {
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 12px 12px 92px;
+        }
+
+        .cardx {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 14px;
+        }
+
+        .muted {
+            color: var(--muted);
+        }
+
+        .title {
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: .3px;
+            margin: 0;
+        }
+
+        .subtitle {
+            font-size: 13px;
+            color: var(--muted);
+            margin: 4px 0 0;
+        }
+
+        .chip {
+            display: inline-block;
+            padding: 6px 10px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: rgba(255, 255, 255, .04);
+            font-size: 12px;
+            color: #ddd;
+        }
+
+        .section-h {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .stepper {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .step-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            border: 1px solid var(--border);
+            background: transparent;
+            opacity: .6;
+        }
+
+        .step-dot.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            opacity: 1;
+        }
+
+        .form-label {
+            color: #cfcfcf;
+            font-size: 13px;
+        }
+
+        .form-control,
+        .form-select {
+            background: #202020;
+            border: 1px solid var(--border);
+            color: #fff;
+            border-radius: 10px;
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            box-shadow: none;
+            border-color: var(--accent);
+        }
+
+        .item {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px;
+            background: rgba(255, 255, 255, .03);
+            margin-bottom: 10px;
+        }
+
+        .item-top {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .item-name {
+            font-weight: 600;
+            margin: 0;
+            font-size: 14px;
+        }
+
+        .item-help {
+            margin: 4px 0 0;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .scorebox {
+            min-width: 120px;
+            text-align: right;
+        }
+
+        .scoreval {
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .range-wrap {
+            margin-top: 10px;
+            display: grid;
+            grid-template-columns: 1fr 76px;
+            gap: 10px;
+            align-items: center;
+        }
+
+        input[type="range"] {
+            width: 100%;
+        }
+
+        .num {
+            width: 76px;
+            text-align: center;
+        }
+
+        .footerbar {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, .92);
+            border-top: 1px solid var(--border);
+            padding: 10px 12px;
+            z-index: 9999;
+            backdrop-filter: blur(8px);
+        }
+
+        .footerbar .inner {
+            max-width: 980px;
+            margin: 0 auto;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .btnx {
+            border-radius: 12px;
+            padding: 12px 14px;
+            font-weight: 600;
+            border: 1px solid var(--border);
+        }
+
+        .btn-primaryx {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        .btn-primaryx:disabled {
+            opacity: .55;
+        }
+
+        .btn-secondaryx {
+            background: transparent;
+            color: #fff;
+        }
+
+        .btn-ghost {
+            background: rgba(255, 255, 255, .05);
+            color: #fff;
+        }
+
+        .kpi {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .kpi .k {
+            flex: 1;
+            min-width: 160px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 10px;
+            background: rgba(255, 255, 255, .03);
+        }
+
+        .k .n {
+            font-weight: 800;
+            font-size: 16px;
+        }
+
+        .k .l {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        @media (min-width: 900px) {
+            .wrap {
+                padding: 16px 16px 92px;
+            }
+
+            .title {
+                font-size: 20px;
+            }
+        }
+
+        /* Estilos para modales */
+        .evaluation-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+
+        .modal-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .modal-grid label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .modal-grid label:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: var(--accent);
+        }
+
+        .modal-grid input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--accent);
+        }
+
+        /* Asegurar que el modal esté por encima del footer */
+        .evaluation-modal .modal-content {
+            z-index: 10001;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrap">
+        <!-- Header -->
+        <div class="cardx mb-3">
+            <div class="section-h">
+                <div>
+                    <p class="title">Supervisión - La Postal</p>
+                    <p class="subtitle">Captura móvil, seguimiento por secciones y cálculo automático de puntajes.</p>
+                </div>
+                <div class="stepper" id="stepperDots"></div>
+            </div>
+
+            <div class="kpi" id="kpiBar" style="display:none;">
+                <div class="k">
+                    <div class="n" id="kpiTotal">0</div>
+                    <div class="l">Puntaje total</div>
+                </div>
+                <div class="k">
+                    <div class="n" id="kpiPct">0%</div>
+                    <div class="l">Cumplimiento</div>
+                </div>
+                <div class="k">
+                    <div class="n" id="kpiPend">0</div>
+                    <div class="l">Ítems sin calificar</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gate (bloqueo) -->
+        <div class="cardx mb-3" id="gateCard">
+            <div class="mb-2 d-flex justify-content-between align-items-center">
+                <span class="chip">Acceso obligatorio</span>
+                <button id="btnVolverDashboard" class="btnx btn-secondaryx" style="padding: 8px 12px; font-size: 12px;"
+                    data-home-url="{{ url_for('home') }}">
+                    ← Volver al Dashboard
+                </button>
+            </div>
+
+            <div class="row g-2">
+                <div class="col-12 col-md-6">
+                    <label class="form-label">Usuario</label>
+                    <select id="gateUsuario" class="form-select">
+                        <option value="">Seleccionar</option>
+                        <option>CASTILLO MARTINEZ LEONEL</option>
+                        <option>CERVERA CONTRERAS ESTEBAN</option>
+                        <option>CORTES ALDANA ADRIAN ULISES</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label">Contraseña</label>
+                    <input id="gatePassword" type="password" class="form-control" placeholder="Ingresar contraseña">
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label">Bloque</label>
+                    <select id="gateBloque" class="form-select">
+                        <option value="">Seleccionar</option>
+                        <option value="1">Bloque 1</option>
+                        <option value="2">Bloque 2</option>
+                        <option value="3">Bloque 3</option>
+                        <option value="4">Bloque 4</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label">Sucursal</label>
+                    <select id="gateSucursal" class="form-select">
+                        <option value="">Seleccionar</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mt-3 d-grid gap-2">
+                <button id="btnEntrar" class="btnx btn-primaryx">Entrar a Supervisión</button>
+            </div>
+
+            <div class="mt-2 muted" style="font-size:12px;">
+                Al entrar se guarda automáticamente la hora de inicio.
+            </div>
+        </div>
+
+        <!-- Wizard content -->
+        <div id="wizardCard" class="cardx" style="display:none;">
+            <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                <div>
+                    <div class="chip" id="stepLabel">Sección 1</div>
+                    <div class="mt-2">
+                        <div class="title" id="sectionTitle" style="font-size:16px;">Sección</div>
+                        <div class="subtitle" id="sectionSub">Máximo: 0 puntos</div>
+                    </div>
+                </div>
+                <div class="text-end">
+                    <div class="chip" id="sectionScore">0 / 0</div>
+                    <div class="subtitle" id="sectionPct">0%</div>
+                </div>
+            </div>
+
+            <div id="sectionBody"></div>
+        </div>
+
+        <!-- Summary / Send -->
+        <div id="summaryCard" class="cardx mt-3" style="display:none;">
+            <div class="mb-2">
+                <span class="chip">Resumen final</span>
+            </div>
+
+            <div class="row g-2">
+                <div class="col-12 col-md-6">
+                    <div class="item">
+                        <div class="item-top">
+                            <div>
+                                <p class="item-name">Puntaje total</p>
+                                <p class="item-help">Suma de secciones con ponderación.</p>
+                            </div>
+                            <div class="scorebox">
+                                <div class="scoreval" id="sumTotal">0</div>
+                                <div class="muted" id="sumPct" style="font-size:12px;">0%</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-6">
+                    <div class="item">
+                        <div class="item-top">
+                            <div>
+                                <p class="item-name">Pendientes</p>
+                                <p class="item-help">Ítems sin calificación.</p>
+                            </div>
+                            <div class="scorebox">
+                                <div class="scoreval" id="sumPend">0</div>
+                                <div class="muted" style="font-size:12px;">Se recomienda completar todo antes de enviar.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="item mt-2">
+                <p class="item-name">Detalle por sección</p>
+                <div id="sumBySection" class="mt-2"></div>
+            </div>
+
+            <div class="mt-3 d-grid gap-2">
+                <button id="btnGuardarBorrador" class="btnx btn-ghost">Guardar borrador</button>
+                <button id="btnMenuSummary" class="btnx btn-secondaryx">Volver al Menú</button>
+                <button id="btnEnviar" class="btnx btn-primaryx">Enviar reporte</button>
+            </div>
+
+            <div class="mt-2 muted" style="font-size:12px;">
+                Al enviar se guarda hora de envío y el reporte queda bloqueado.
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer nav -->
+    <div class="footerbar" id="footerbar" style="display:none;">
+        <div class="inner">
+            <button class="btnx btn-secondaryx" id="btnMenu">Menú</button>
+            <button class="btnx btn-secondaryx" id="btnPrev">Anterior</button>
+            <div class="muted" style="font-size:12px;" id="progressText">0/0</div>
+            <button class="btnx btn-primaryx" id="btnNext">Siguiente</button>
+        </div>
+    </div>
+    <script>
+        // ===========================
+        // 1) BLOQUES / SUCURSALES
+        // (Estructura actual: name = "BLOQUE X", block = "SUCURSAL")
+        // ===========================
+        const branchData = [
+            { name: "Bloque 1", block: "BRISAS" },
+            { name: "Bloque 1", block: "CACHO" },
+            { name: "Bloque 1", block: "ENSENADA" },
+            { name: "Bloque 1", block: "MATRIZ" },
+            { name: "Bloque 1", block: "PLAYAS I" },
+            { name: "Bloque 1", block: "TORRES" },
+            { name: "Bloque 2", block: "DARUMMITA PLAYAS" },
+            { name: "Bloque 2", block: "ROSARITO III" },
+            { name: "Bloque 3", block: "5 Y 10" },
+            { name: "Bloque 3", block: "ALEMAN" },
+            { name: "Bloque 3", block: "CALIFORNIAS" },
+            { name: "Bloque 3", block: "CAMPESTRE MURUA" },
+            { name: "Bloque 3", block: "CAMPIÑA" },
+            { name: "Bloque 3", block: "CAPISTRANO" },
+            { name: "Bloque 3", block: "COLINA AZUL" },
+            { name: "Bloque 3", block: "DARUMMITA LIBERTAD" },
+            { name: "Bloque 3", block: "FLORIDO" },
+            { name: "Bloque 3", block: "INDEPENDENCIA" },
+            { name: "Bloque 3", block: "LAGO" },
+            { name: "Bloque 3", block: "LIBERTAD" },
+            { name: "Bloque 3", block: "MALECON" },
+            { name: "Bloque 3", block: "MALECON 2" },
+            { name: "Bloque 3", block: "MARIANO MATAMOROS" },
+            { name: "Bloque 3", block: "MURUA" },
+            { name: "Bloque 3", block: "PANAMERICANO" },
+            { name: "Bloque 3", block: "SOLER" },
+            { name: "Bloque 3", block: "VENECIA" },
+            { name: "Bloque 3", block: "ZONA NORTE" },
+            { name: "Bloque 3", block: "ZONA RIO" },
+            { name: "Bloque 4", block: "ALBA ROJA" },
+            { name: "Bloque 4", block: "ALTIPLANO" },
+            { name: "Bloque 4", block: "BELLAS ARTES" },
+            { name: "Bloque 4", block: "CAMINO VERDE" },
+            { name: "Bloque 4", block: "CLÍNICA 1" },
+            { name: "Bloque 4", block: "CUCAPAH" },
+            { name: "Bloque 4", block: "DARUMMITA CALIFORNIAS" },
+            { name: "Bloque 4", block: "DARUMMITA MARIANO MATAMOROS" },
+            { name: "Bloque 4", block: "DARUMMITA TECNOLÓGICO" },
+            { name: "Bloque 4", block: "FUNDADORES" },
+            { name: "Bloque 4", block: "GLORIA" },
+            { name: "Bloque 4", block: "GRAN FLORIDO" },
+            { name: "Bloque 4", block: "HUERTAS" },
+            { name: "Bloque 4", block: "JIBARITO" },
+            { name: "Bloque 4", block: "LOMA BONITA" },
+            { name: "Bloque 4", block: "MIRADOR" },
+            { name: "Bloque 4", block: "PANAMERICANO II" },
+            { name: "Bloque 4", block: "PLAYAS 2" },
+            { name: "Bloque 4", block: "PRESA" },
+            { name: "Bloque 4", block: "RÍO BRAVO" },
+            { name: "Bloque 4", block: "ROSARITO I" },
+            { name: "Bloque 4", block: "ROSARITO II" },
+            { name: "Bloque 4", block: "RUBÍ" },
+            { name: "Bloque 4", block: "SANTA FE" },
+            { name: "Bloque 4", block: "TECNOLÓGICO" },
+            { name: "Bloque 4", block: "UABC" },
+            { name: "Bloque 4", block: "URBI VILLA DEL PRADO" },
+            { name: "Bloque 4", block: "VILLA FLORESTA" },
+            { name: "Bloque 4", block: "VILLA FONTANA" },
+            { name: "Bloque 4", block: "VILLAS DEL CAMPO" }
+        ];
+
+        // ===========================
+        // 2) USUARIOS / CONTRASEÑAS
+        // ===========================
+        const USERS = {
+            "CASTILLO MARTINEZ LEONEL": "Supcastillo",
+            "CERVERA CONTRERAS ESTEBAN": "Supcervera",
+            "CORTES ALDANA ADRIAN ULISES": "Supcortes"
+        };
+
+        // ===========================
+        // 3) ESTADO (con autosave)
+        // ===========================
+        const STORAGE_KEY = "lp_supervision_v1";
+
+        const state = {
+            gate: { usuario: "", password: "", bloque: "", sucursal: "" },
+            hora_inicio: null,
+            hora_envio: null,
+            step: 0,
+            data: {}
+        };
+
+        function loadState() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (!raw) return;
+                const parsed = JSON.parse(raw);
+
+                Object.assign(state, parsed);
+
+                // asegurar estructura mínima
+                state.gate = Object.assign(
+                    { usuario: "", password: "", bloque: "", sucursal: "" },
+                    state.gate || {}
+                );
+                state.data = state.data || {};
+                state.step = Number.isFinite(state.step) ? Math.max(0, state.step) : 0;
+            } catch { }
+        }
+
+        function saveState() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            } catch { }
+        }
+
+        function nowISO() {
+            return new Date().toISOString();
+        }
+
+        // ===========================
+        // 4) GATE: bloque/sucursal dependiente + validación
+        // IMPORTANTE:
+        // gateBloque debe tener como value: "BLOQUE 1", "BLOQUE 2", etc.
+        // ===========================
+        function _normTxt(s) {
+            return (s ?? "")
+                .toString()
+                .trim()
+                .toUpperCase()
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .replace(/\s+/g, " ");
+        }
+
+        function fillSucursales(blockValue) {
+            const sel = document.getElementById("gateSucursal");
+            if (!sel) return;
+
+            sel.innerHTML = '<option value="">Seleccionar</option>';
+            if (!blockValue) return;
+            if (!Array.isArray(branchData)) return;
+
+            const bloqueNorm = _normTxt(blockValue);
+
+            const list = branchData
+                .filter(b => _normTxt(b.name) === bloqueNorm) // b.name = "BLOQUE X"
+                .map(b => b.block)                            // b.block = "SUCURSAL"
+                .filter(Boolean)
+                .sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
+
+            list.forEach(sucursal => {
+                const o = document.createElement("option");
+                o.value = sucursal;
+                o.textContent = sucursal;
+                sel.appendChild(o);
+            });
+        }
+
+        function gateValid() {
+            const g = state.gate;
+
+            const usuario = (g.usuario || "").trim().replace(/\s+/g, " ");
+            const password = (g.password || "").trim();
+
+            // guardar normalizado en el state
+            state.gate.usuario = usuario;
+            state.gate.password = password;
+
+            if (!(usuario && password && g.bloque && g.sucursal)) return false;
+            if (!Object.prototype.hasOwnProperty.call(USERS, usuario)) return false;
+
+            return USERS[usuario] === password;
+        }
+
+        // ===========================
+        // 5) SCORING
+        // ===========================
+        function getAnswer(key) {
+            return state.data[key] ?? null;
+        }
+
+        function setAnswer(key, value) {
+            state.data[key] = value;
+            saveState();
+            updateKPIs();
+        }
+
+        function scoreSection(section) {
+            if (!section) return { puntos: 0, max: 0 };
+
+            if (section.motos) {
+                const motos = state.data["motos_list"] || [];
+                const n = Math.max(1, motos.length);
+                const maxPerMoto = section.max / n;
+
+                let total = 0;
+                motos.forEach((m, idx) => {
+                    const sumPesos = section.motoItems.reduce((a, it) => a + it.peso, 0) || 1;
+                    section.motoItems.forEach(it => {
+                        const key = `moto_${idx}_${it.id}`;
+                        const cal = Number(getAnswer(key));
+                        if (!isFinite(cal)) return;
+                        total += (cal / 5) * (maxPerMoto * (it.peso / sumPesos));
+                    });
+                });
+
+                return { puntos: total, max: section.max };
+            }
+
+            let pts = 0;
+            (section.items || []).forEach(it => {
+                const key = `${section.id}.${it.id}`;
+                const cal = Number(getAnswer(key));
+                if (!isFinite(cal)) return;
+                pts += (cal / 5) * it.peso;
+            });
+
+            return { puntos: pts, max: section.max };
+        }
+
+        function scoreAll() {
+            // SECTIONS debe existir en tu HTML (arriba o abajo), si no, no habrá wizard.
+            if (!Array.isArray(window.SECTIONS)) return { total: 0, max: 0 };
+
+            const s = window.SECTIONS.map(scoreSection);
+            const total = s.reduce((a, x) => a + x.puntos, 0);
+            const max = s.reduce((a, x) => a + x.max, 0);
+            return { total, max };
+        }
+
+        function countMissing() {
+            if (!Array.isArray(window.SECTIONS)) return 0;
+
+            let missing = 0;
+            window.SECTIONS.forEach(sec => {
+                if (sec.motos) {
+                    const motos = state.data["motos_list"] || [];
+                    motos.forEach((m, idx) => {
+                        (sec.motoItems || []).forEach(it => {
+                            const key = `moto_${idx}_${it.id}`;
+                            const v = getAnswer(key);
+                            if (v === null || v === "" || typeof v === "undefined") missing++;
+                        });
+                    });
+                    return;
+                }
+
+                (sec.items || []).forEach(it => {
+                    const key = `${sec.id}.${it.id}`;
+                    const v = getAnswer(key);
+                    if (v === null || v === "" || typeof v === "undefined") missing++;
+                });
+            });
+            return missing;
+        }
+
+        // ===========================
+        // 6) RENDER (wizard)
+        // ===========================
+        function renderStepper() {
+            const dots = document.getElementById("stepperDots");
+            const progressText = document.getElementById("progressText");
+            if (!dots || !progressText) return;
+            if (!Array.isArray(window.SECTIONS)) return;
+
+            dots.innerHTML = "";
+            const totalSteps = window.SECTIONS.length + 1; // +1 resumen
+
+            for (let i = 0; i < totalSteps; i++) {
+                const d = document.createElement("div");
+                d.className = "step-dot" + (i === state.step ? " active" : "");
+                dots.appendChild(d);
+            }
+
+            progressText.textContent = `${state.step + 1}/${totalSteps}`;
+        }
+
+        function renderStep() {
+            if (!Array.isArray(window.SECTIONS)) return;
+
+            renderStepper();
+
+            const kpiBar = document.getElementById("kpiBar");
+            if (kpiBar) kpiBar.style.display = "flex";
+
+            const wizard = document.getElementById("wizardCard");
+            const summary = document.getElementById("summaryCard");
+            const footerbar = document.getElementById("footerbar");
+            if (footerbar) footerbar.style.display = "block";
+
+            const isSummary = state.step === window.SECTIONS.length;
+
+            if (wizard) wizard.style.display = isSummary ? "none" : "block";
+            if (summary) summary.style.display = isSummary ? "block" : "none";
+
+            const btnPrev = document.getElementById("btnPrev");
+            const btnNext = document.getElementById("btnNext");
+            if (btnPrev) btnPrev.disabled = state.step === 0;
+            if (btnNext) btnNext.textContent = isSummary ? "Listo" : "Siguiente";
+
+            if (isSummary) {
+                renderSummary();
+                return;
+            }
+
+            const sec = window.SECTIONS[state.step];
+            const stepLabel = document.getElementById("stepLabel");
+            const sectionTitle = document.getElementById("sectionTitle");
+            const sectionSub = document.getElementById("sectionSub");
+            const sectionScore = document.getElementById("sectionScore");
+            const sectionPct = document.getElementById("sectionPct");
+            const body = document.getElementById("sectionBody");
+
+            if (stepLabel) stepLabel.textContent = `Sección ${state.step + 1} de ${window.SECTIONS.length}`;
+            if (sectionTitle) sectionTitle.textContent = sec.nombre;
+            if (sectionSub) sectionSub.textContent = `Máximo: ${sec.max} puntos`;
+
+            const sc = scoreSection(sec);
+            if (sectionScore) sectionScore.textContent = `${sc.puntos.toFixed(2)} / ${sc.max}`;
+            if (sectionPct) sectionPct.textContent = `${Math.round((sc.puntos / sc.max) * 100)}%`;
+
+            if (body) {
+                body.innerHTML = "";
+                if (sec.motos) {
+                    body.appendChild(renderMotosSection(sec));
+                } else {
+                    (sec.items || []).forEach(it => body.appendChild(renderItem(sec, it)));
+                }
+            }
+
+            updateKPIs();
+        }
+
+        function renderItem(sec, it) {
+            const wrap = document.createElement("div");
+            wrap.className = "item";
+
+            const key = `${sec.id}.${it.id}`;
+            const current = getAnswer(key);
+            const scoreText = (isFinite(Number(current)) ? Number(current).toFixed(1) : "--");
+
+            // Verificar si es un item con modal
+            if (it.tipo === "modal" && it.modalId) {
+                wrap.innerHTML = `
+                    <div class="item-top">
+                        <div style="flex:1;">
+                            <p class="item-name">${it.titulo}</p>
+                            <p class="item-help">${it.ayuda || ""}</p>
+                        </div>
+                        <div class="scorebox">
+                            <div class="scoreval">${scoreText}</div>
+                            <div class="muted" style="font-size:12px;">0-5</div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex gap-2 mt-2">
+                        <button class="btnx btn-ghost btn-evaluate" 
+                                data-key="${key}"
+                                data-modal="${it.modalId}"
+                                style="flex:1; padding:10px;">
+                            ${current ? 'Reevaluar' : 'Evaluar con checklist'}
+                        </button>
+                        ${current ? `
+                            <button class="btnx btn-secondaryx btn-remove-score" 
+                                    data-key="${key}"
+                                    style="padding:10px 12px;">
+                                Eliminar
+                            </button>
+                        ` : ''}
+                    </div>
+                    
+                    <div class="mt-2" style="display:none;" id="comments-${key}">
+                        <label class="form-label">Comentarios</label>
+                        <textarea class="form-control js-comment" rows="2" 
+                                  data-key="${key}.comentarios"
+                                  placeholder="${(it.ayuda || "").replace(/"/g, '&quot;')}">
+                        </textarea>
+                    </div>
+                `;
+            } else {
+                // Render normal (como ya lo tienes)
+                wrap.innerHTML = `
+                    <div class="item-top">
+                        <div style="flex:1;">
+                            <p class="item-name">${it.titulo}</p>
+                            <p class="item-help">${it.ayuda || ""}</p>
+                        </div>
+                        <div class="scorebox">
+                            <div class="scoreval">${scoreText}</div>
+                            <div class="muted" style="font-size:12px;">1–5</div>
+                        </div>
+                    </div>
+
+                    <div class="range-wrap">
+                        <input type="range" min="1" max="5" step="0.1" value="${current ?? 1}" data-key="${key}" class="form-range js-range">
+                        <input type="number" min="1" max="5" step="0.1" value="${current ?? 1}" data-key="${key}" class="form-control num js-num">
+                    </div>
+
+                    <div class="mt-2">
+                        <label class="form-label">Comentarios</label>
+                        <textarea class="form-control js-comment" rows="2" data-key="${key}.comentarios"
+                            placeholder="${(it.ayuda || "").replace(/"/g, '&quot;')}"></textarea>
+                    </div>
+                `;
+
+                // Lógica existente para items normales...
+                const range = wrap.querySelector(".js-range");
+                const num = wrap.querySelector(".js-num");
+
+                const onChange = (val) => {
+                    const v = Math.min(5, Math.max(1, Number(val)));
+                    setAnswer(key, v);
+                    renderStep();
+                };
+
+                range.addEventListener("input", (e) => {
+                    num.value = e.target.value;
+                    onChange(e.target.value);
+                });
+
+                num.addEventListener("change", (e) => {
+                    range.value = e.target.value;
+                    onChange(e.target.value);
+                });
+            }
+
+            // Manejar comentarios (para ambos tipos)
+            const commentEl = wrap.querySelector(".js-comment");
+            if (commentEl) {
+                const cKey = `${key}.comentarios`;
+                commentEl.value = getAnswer(cKey) ?? "";
+                commentEl.addEventListener("input", (e) => {
+                    setAnswer(cKey, e.target.value);
+                });
+            }
+
+            // Manejar botones de modal
+            const evalBtn = wrap.querySelector(".btn-evaluate");
+            if (evalBtn) {
+                evalBtn.addEventListener("click", (e) => {
+                    const modalId = e.target.dataset.modal;
+                    const itemKey = e.target.dataset.key;
+                    openModal(modalId, itemKey, it);
+                });
+            }
+
+            // Manejar botón eliminar puntaje
+            const removeBtn = wrap.querySelector(".btn-remove-score");
+            if (removeBtn) {
+                removeBtn.addEventListener("click", (e) => {
+                    const itemKey = e.target.dataset.key;
+                    setAnswer(itemKey, null);
+                    renderStep();
+                });
+            }
+
+            return wrap;
+        }
+
+        function renderMotosSection(sec) {
+            const container = document.createElement("div");
+
+            const motos = state.data["motos_list"] || [];
+            if (motos.length === 0) {
+                state.data["motos_list"] = [{ serie: "", observaciones: "" }];
+                saveState();
+            }
+
+            const header = document.createElement("div");
+            header.className = "item";
+            header.innerHTML = `
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <p class="item-name" style="margin:0;">Control de motos</p>
+          <p class="item-help" style="margin:4px 0 0;">Máximo 6 motos. Cada moto tiene serie, observaciones y checklist.</p>
+        </div>
+        <button class="btnx btn-ghost" id="btnAddMoto" style="padding:10px 12px;">Agregar moto</button>
+      </div>
+    `;
+            container.appendChild(header);
+
+            header.querySelector("#btnAddMoto").addEventListener("click", () => {
+                const list = state.data["motos_list"] || [];
+                if (list.length >= 6) return;
+                list.push({ serie: "", observaciones: "" });
+                state.data["motos_list"] = list;
+                saveState();
+                renderStep();
+            });
+
+            (state.data["motos_list"] || []).forEach((m, idx) => {
+                const card = document.createElement("div");
+                card.className = "item";
+
+                card.innerHTML = `
+        <div class="d-flex justify-content-between align-items-start gap-2">
+          <div>
+            <p class="item-name">Moto ${idx + 1}</p>
+            <p class="item-help">Captura de serie y observaciones.</p>
+          </div>
+          <button class="btnx btn-secondaryx" data-idx="${idx}" style="padding:10px 12px;">Eliminar</button>
+        </div>
+
+        <div class="row g-2 mt-1">
+          <div class="col-12 col-md-6">
+            <label class="form-label">Serie</label>
+            <input class="form-control js-moto-serie" data-idx="${idx}" value="${m.serie || ""}" placeholder="Serie de la moto">
+          </div>
+          <div class="col-12 col-md-6">
+            <label class="form-label">Observaciones</label>
+            <input class="form-control js-moto-obs" data-idx="${idx}" value="${m.observaciones || ""}" placeholder="Notas rápidas">
+          </div>
+        </div>
+
+        <div class="mt-2" id="motoItems_${idx}"></div>
+      `;
+
+                // eliminar moto
+                card.querySelector('button[data-idx]').addEventListener("click", (e) => {
+                    const i = Number(e.currentTarget.dataset.idx);
+                    const list = state.data["motos_list"] || [];
+                    if (list.length <= 1) return; // mínimo 1
+                    list.splice(i, 1);
+                    state.data["motos_list"] = list;
+                    saveState();
+                    renderStep();
+                });
+
+                // inputs serie/obs
+                card.querySelector(".js-moto-serie").addEventListener("input", (e) => {
+                    const i = Number(e.target.dataset.idx);
+                    state.data["motos_list"][i].serie = e.target.value;
+                    saveState();
+                });
+                card.querySelector(".js-moto-obs").addEventListener("input", (e) => {
+                    const i = Number(e.target.dataset.idx);
+                    state.data["motos_list"][i].observaciones = e.target.value;
+                    saveState();
+                });
+
+                const itemsWrap = card.querySelector(`#motoItems_${idx}`);
+                (sec.motoItems || []).forEach(it => {
+                    itemsWrap.appendChild(renderMotoItem(idx, it));
+                });
+
+                container.appendChild(card);
+            });
+
+            return container;
+        }
+
+        function renderMotoItem(motoIndex, it) {
+            const wrap = document.createElement("div");
+            wrap.className = "item";
+            wrap.style.background = "rgba(255,255,255,.02)";
+
+            const key = `moto_${motoIndex}_${it.id}`;
+            const current = getAnswer(key);
+            const scoreText = (isFinite(Number(current)) ? Number(current).toFixed(1) : "--");
+
+            wrap.innerHTML = `
+      <div class="item-top">
+        <div style="flex:1;">
+          <p class="item-name">${it.titulo}</p>
+          <p class="item-help">${it.ayuda || ""}</p>
+        </div>
+        <div class="scorebox">
+          <div class="scoreval">${scoreText}</div>
+          <div class="muted" style="font-size:12px;">1–5</div>
+        </div>
+      </div>
+
+      <div class="range-wrap">
+        <input type="range" min="1" max="5" step="0.1" value="${current ?? 1}" data-key="${key}" class="form-range js-range">
+        <input type="number" min="1" max="5" step="0.1" value="${current ?? 1}" data-key="${key}" class="form-control num js-num">
+      </div>
+
+      <div class="mt-2">
+        <label class="form-label">Comentarios</label>
+        <textarea class="form-control js-comment" rows="2" data-key="${key}.comentarios"
+          placeholder="${(it.ayuda || "").replace(/"/g, '&quot;')}"></textarea>
+      </div>
+    `;
+
+            const cKey = `${key}.comentarios`;
+            wrap.querySelector(".js-comment").value = getAnswer(cKey) ?? "";
+
+            const range = wrap.querySelector(".js-range");
+            const num = wrap.querySelector(".js-num");
+
+            const onChange = (val) => {
+                const v = Math.min(5, Math.max(1, Number(val)));
+                setAnswer(key, v);
+                renderStep();
+            };
+
+            range.addEventListener("input", (e) => {
+                num.value = e.target.value;
+                onChange(e.target.value);
+            });
+
+            num.addEventListener("change", (e) => {
+                range.value = e.target.value;
+                onChange(e.target.value);
+            });
+
+            wrap.querySelector(".js-comment").addEventListener("input", (e) => {
+                setAnswer(cKey, e.target.value);
+            });
+
+            return wrap;
+        }
+
+        function renderSummary() {
+            const sumTotal = document.getElementById("sumTotal");
+            const sumPct = document.getElementById("sumPct");
+            const sumPend = document.getElementById("sumPend");
+            const list = document.getElementById("sumBySection");
+
+            const { total, max } = scoreAll();
+            const pct = max ? Math.round((total / max) * 100) : 0;
+            const missing = countMissing();
+
+            if (sumTotal) sumTotal.textContent = total.toFixed(2) + " / " + max;
+            if (sumPct) sumPct.textContent = pct + "%";
+            if (sumPend) sumPend.textContent = missing;
+
+            if (list) {
+                list.innerHTML = "";
+
+                if (Array.isArray(window.SECTIONS)) {
+                    window.SECTIONS.forEach((sec, idx) => {
+                        const sc = scoreSection(sec);
+                        const p = sc.max ? Math.round((sc.puntos / sc.max) * 100) : 0;
+
+                        const row = document.createElement("div");
+                        row.className = "d-flex justify-content-between align-items-center";
+                        row.style.padding = "8px 2px";
+                        row.style.borderBottom = "1px solid var(--border)";
+                        row.innerHTML = `
+            <div>
+              <div style="font-weight:600; font-size:13px;">${sec.nombre}</div>
+              <div class="muted" style="font-size:12px;">Sección ${idx + 1}</div>
+            </div>
+            <div class="text-end">
+              <div style="font-weight:700;">${sc.puntos.toFixed(2)} / ${sc.max}</div>
+              <div class="muted" style="font-size:12px;">${p}%</div>
+            </div>
+          `;
+                        list.appendChild(row);
+                    });
+                }
+            }
+
+            updateKPIs();
+        }
+
+        function updateKPIs() {
+            const kpiTotal = document.getElementById("kpiTotal");
+            const kpiPct = document.getElementById("kpiPct");
+            const kpiPend = document.getElementById("kpiPend");
+
+            const { total, max } = scoreAll();
+            const pct = max ? Math.round((total / max) * 100) : 0;
+            const missing = countMissing();
+
+            if (kpiTotal) kpiTotal.textContent = `${total.toFixed(2)} / ${max}`;
+            if (kpiPct) kpiPct.textContent = `${pct}%`;
+            if (kpiPend) kpiPend.textContent = `${missing}`;
+        }
+
+        // ===========================
+        // 7) FUNCIONES PARA MODALES
+        // ===========================
+        function openModal(modalId, itemKey, itemData) {
+            // Crear o reutilizar modal
+            let modal = document.getElementById(modalId);
+
+            if (!modal) {
+                // Crear modal si no existe
+                modal = document.createElement('div');
+                modal.id = modalId;
+                modal.className = 'evaluation-modal';
+                modal.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background-color: rgba(0,0,0,0.7);
+                    display: none;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 10000;
+                `;
+
+                modal.innerHTML = `
+                    <div class="modal-content" style="
+                        background: var(--card);
+                        border: 1px solid var(--border);
+                        border-radius: 14px;
+                        padding: 20px;
+                        max-width: 500px;
+                        width: 90%;
+                        max-height: 80vh;
+                        overflow-y: auto;
+                        color: #fff;
+                    ">
+                        <h3 style="margin-top:0; color:#fff;">${itemData.titulo}</h3>
+                        <p class="muted" style="margin-bottom:20px;">${itemData.ayuda || ''}</p>
+                        
+                        <div id="${modalId}_checklist" class="modal-checklist">
+                            <!-- Checklist se generará dinámicamente -->
+                        </div>
+                        
+                        <div class="mt-3">
+                            <label class="form-label">Comentarios adicionales</label>
+                            <textarea id="${modalId}_comments" class="form-control" rows="3" 
+                                      placeholder="Observaciones específicas..."></textarea>
+                        </div>
+                        
+                        <div class="d-flex gap-2 mt-3">
+                            <button class="btnx btn-ghost btn-modal-cancel" style="flex:1;">
+                                Cancelar
+                            </button>
+                            <button class="btnx btn-primaryx btn-modal-save" style="flex:1;" 
+                                    data-key="${itemKey}" data-peso="${itemData.peso}">
+                                Guardar evaluación
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                document.body.appendChild(modal);
+
+                // Añadir event listeners a los botones del modal
+                modal.querySelector('.btn-modal-cancel').addEventListener('click', function () {
+                    modal.style.display = 'none';
+                });
+
+                modal.querySelector('.btn-modal-save').addEventListener('click', function () {
+                    saveModalScore(modalId, itemKey, itemData.peso);
+                });
+            }
+
+            // Cargar checklist según el tipo de evaluación
+            loadChecklist(modalId, itemData);
+
+            // Cargar comentarios existentes
+            const commentKey = `${itemKey}.comentarios`;
+            const existingComments = getAnswer(commentKey) || '';
+            const commentsTextarea = document.getElementById(`${modalId}_comments`);
+            if (commentsTextarea) {
+                commentsTextarea.value = existingComments;
+            }
+
+            // Cargar estado previo del checklist
+            const savedChecklist = getAnswer(`${itemKey}.checklist`);
+            if (savedChecklist && modal) {
+                Object.keys(savedChecklist).forEach(key => {
+                    const checkbox = modal.querySelector(`input[name="${key}"]`);
+                    if (checkbox) {
+                        checkbox.checked = savedChecklist[key];
+                    }
+                });
+            }
+
+            // Mostrar modal
+            modal.style.display = 'flex';
+        }
+
+        function saveModalScore(modalId, itemKey, maxScore) {
+            const modal = document.getElementById(modalId);
+            if (!modal) return;
+
+            // Calcular puntaje basado en checkboxes
+            const checkboxes = modal.querySelectorAll('input[type="checkbox"]');
+            let totalScore = 0;
+
+            checkboxes.forEach(cb => {
+                if (cb.checked) {
+                    // Sumar el valor del checkbox (puede ser 0.8, 1.65, etc.)
+                    totalScore += parseFloat(cb.value) || 0;
+                }
+            });
+
+            // Para esta sección específica, el máximo es 5 puntos
+            // Pero cada checkbox puede tener valores diferentes (0.8, 1.65, etc.)
+            // No limitamos el score, lo dejamos como se calcule
+            let finalScore = totalScore;
+
+            // Convertir a escala 1-5 si es necesario (para items que no sean de esta sección)
+            // Para los modales de sushi/mesa/barra, el cálculo ya está hecho
+            if (modalId.includes('decoracion') || modalId.includes('abastecidas') ||
+                modalId.includes('limpieza') || modalId.includes('mantenimiento')) {
+                // Ya está calculado en puntos directos (0-5)
+                // Solo aseguramos que no exceda 5
+                finalScore = Math.min(finalScore, 5);
+            } else {
+                // Para otros modales, usar la escala 1-5 basada en porcentaje
+                let checkedCount = 0;
+                let totalItems = checkboxes.length;
+
+                checkboxes.forEach(cb => {
+                    if (cb.checked) checkedCount++;
+                });
+
+                if (totalItems > 0) {
+                    const percentage = checkedCount / totalItems;
+                    finalScore = 1 + (percentage * 4); // Escala de 1 a 5
+                    finalScore = Math.round(finalScore * 10) / 10; // Redondear a 1 decimal
+                }
+            }
+
+            // Guardar puntaje
+            setAnswer(itemKey, finalScore);
+
+            // Guardar comentarios
+            const commentsTextarea = document.getElementById(`${modalId}_comments`);
+            if (commentsTextarea) {
+                const commentKey = `${itemKey}.comentarios`;
+                setAnswer(commentKey, commentsTextarea.value);
+            }
+
+            // Guardar checklist específico
+            const checklistData = {};
+            checkboxes.forEach(cb => {
+                checklistData[cb.name] = cb.checked;
+            });
+            setAnswer(`${itemKey}.checklist`, checklistData);
+
+            // Cerrar modal y refrescar
+            modal.style.display = 'none';
+            renderStep();
+        }
+
+        function loadChecklist(modalId, itemData) {
+            const container = document.getElementById(`${modalId}_checklist`);
+            if (!container) return;
+
+            let checklistHTML = '';
+
+            // Diferentes checklists según el tipo de evaluación
+            switch (itemData.modalId) {
+                case 'modal_lider':
+                    checklistHTML = `
+                        <div class="modal-grid" style="display: grid; gap: 10px; margin-bottom: 15px;">
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="uniforme_completo" style="width: 18px; height: 18px;">
+                                <span>Uniforme completo y limpio</span>
+                            </label>
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="zapatos" style="width: 18px; height: 18px;">
+                                <span>Zapatos adecuados</span>
+                            </label>
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="identificacion" style="width: 18px; height: 18px;">
+                                <span>Identificación visible</span>
+                            </label>
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="estado_general" style="width: 18px; height: 18px;">
+                                <span>Buen estado general</span>
+                            </label>
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="colores" style="width: 18px; height: 18px;">
+                                <span>Colores correctos</span>
+                            </label>
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="sin_accesorios" style="width: 18px; height: 18px;">
+                                <span>Sin accesorios prohibidos</span>
+                            </label>
+                        </div>
+                    `;
+                    break;
+
+                case 'modal_meseros':
+                    checklistHTML = `
+                        <div class="modal-grid" style="display: grid; gap: 10px; margin-bottom: 15px;">
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="uniforme_completo" style="width: 18px; height: 18px;">
+                                <span>Uniforme completo</span>
+                            </label>
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="delantal" style="width: 18px; height: 18px;">
+                                <span>Delantal limpio</span>
+                            </label>
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="calcetines" style="width: 18px; height: 18px;">
+                                <span>Calcetines correctos</span>
+                            </label>
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="cabello" style="width: 18px; height: 18px;">
+                                <span>Cabello recogido</span>
+                            </label>
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="limpieza" style="width: 18px; height: 18px;">
+                                <span>Limpieza personal</span>
+                            </label>
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="identificacion" style="width: 18px; height: 18px;">
+                                <span>Identificación visible</span>
+                            </label>
+                        </div>
+                    `;
+                    break;
+
+                case 'modal_cajeras':
+                    checklistHTML = `
+                        <div class="modal-grid" style="display: grid; gap: 10px; margin-bottom: 15px;">
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="uniforme_completo" style="width: 18px; height: 18px;">
+                                <span>Uniforme completo</span>
+                            </label>
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="orden" style="width: 18px; height: 18px;">
+                                <span>Presentación ordenada</span>
+                            </label>
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="identificacion" style="width: 18px; height: 18px;">
+                                <span>Identificación visible</span>
+                            </label>
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="maquillaje" style="width: 18px; height: 18px;">
+                                <span>Maquillaje discreto</span>
+                            </label>
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="accesorios" style="width: 18px; height: 18px;">
+                                <span>Sin accesorios excesivos</span>
+                            </label>
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="limpieza" style="width: 18px; height: 18px;">
+                                <span>Limpieza general</span>
+                            </label>
+                        </div>
+                    `;
+                    break;
+
+                case 'modal_lavalozas':
+                    checklistHTML = `
+                        <div class="modal-grid" style="display: grid; gap: 10px; margin-bottom: 15px;">
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="uniforme_completo" style="width: 18px; height: 18px;">
+                                <span>Uniforme completo</span>
+                            </label>
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="impermeable" style="width: 18px; height: 18px;">
+                                <span>Delantal impermeable</span>
+                            </label>
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="guantes" style="width: 18px; height: 18px;">
+                                <span>Guantes de trabajo</span>
+                            </label>
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="botas" style="width: 18px; height: 18px;">
+                                <span>Botas de seguridad</span>
+                            </label>
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="proteccion" style="width: 18px; height: 18px;">
+                                <span>Equipo de protección</span>
+                            </label>
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="limpieza" style="width: 18px; height: 18px;">
+                                <span>Limpieza del uniforme</span>
+                            </label>
+                        </div>
+                    `;
+                    break;
+
+                case 'modal_repartidores':
+                    checklistHTML = `
+                        <div class="modal-grid" style="display: grid; gap: 10px; margin-bottom: 15px;">
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="uniforme_completo" style="width: 18px; height: 18px;">
+                                <span>Uniforme completo</span>
+                            </label>
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="chaleco" style="width: 18px; height: 18px;">
+                                <span>Chaleco reflectante</span>
+                            </label>
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="casco" style="width: 18px; height: 18px;">
+                                <span>Casco (si aplica)</span>
+                            </label>
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="identificacion" style="width: 18px; height: 18px;">
+                                <span>Identificación visible</span>
+                            </label>
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="vehiculo" style="width: 18px; height: 18px;">
+                                <span>Vehículo identificado</span>
+                            </label>
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="equipo" style="width: 18px; height: 18px;">
+                                <span>Equipo de entrega</span>
+                            </label>
+                        </div>
+                    `;
+                    break;
+
+                case 'modal_apariencia':
+                    checklistHTML = `
+                        <div class="modal-grid" style="display: grid; gap: 10px; margin-bottom: 15px;">
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="sin_aretes" style="width: 18px; height: 18px;">
+                                <span>Sin aretes excesivos</span>
+                            </label>
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="sin_pulseras" style="width: 18px; height: 18px;">
+                                <span>Sin pulseras</span>
+                            </label>
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="sin_anillos" style="width: 18px; height: 18px;">
+                                <span>Sin anillos (excepto alianza)</span>
+                            </label>
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="sin_collares" style="width: 18px; height: 18px;">
+                                <span>Sin collares visibles</span>
+                            </label>
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="sin_piercing" style="width: 18px; height: 18px;">
+                                <span>Sin piercing visibles</span>
+                            </label>
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="unas_cortas" style="width: 18px; height: 18px;">
+                                <span>Uñas cortas y limpias</span>
+                            </label>
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="sin_barba" style="width: 18px; height: 18px;">
+                                <span>Sin barba (o recortada)</span>
+                            </label>
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="maquillaje_discreto" style="width: 18px; height: 18px;">
+                                <span>Maquillaje discreto</span>
+                            </label>
+                        </div>
+                    `;
+                    break;
+
+                case 'modal_cocina':
+                    checklistHTML = `
+                        <div class="modal-grid" style="display: grid; gap: 10px; margin-bottom: 15px;">
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="filipina" style="width: 18px; height: 18px;">
+                                <span>Filipina limpia</span>
+                            </label>
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="pantalon" style="width: 18px; height: 18px;">
+                                <span>Pantalón negro</span>
+                            </label>
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="zapatos" style="width: 18px; height: 18px;">
+                                <span>Zapatos antiderrapantes</span>
+                            </label>
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="limpieza" style="width: 18px; height: 18px;">
+                                <span>Uniforme limpio</span>
+                            </label>
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="estado" style="width: 18px; height: 18px;">
+                                <span>Buen estado general</span>
+                            </label>
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="colores" style="width: 18px; height: 18px;">
+                                <span>Colores correctos</span>
+                            </label>
+                        </div>
+                    `;
+                    break;
+
+                case 'modal_epis_cocina':
+                    checklistHTML = `
+                        <div class="modal-grid" style="display: grid; gap: 10px; margin-bottom: 15px;">
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="cofia" style="width: 18px; height: 18px;">
+                                <span>Cofía o red para el cabello</span>
+                            </label>
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="banda" style="width: 18px; height: 18px;">
+                                <span>Banda para el sudor</span>
+                            </label>
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="cubrebocas" style="width: 18px; height: 18px;">
+                                <span>Cubrebocas</span>
+                            </label>
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="gorra" style="width: 18px; height: 18px;">
+                                <span>Gorra o gorro</span>
+                            </label>
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="guantes" style="width: 18px; height: 18px;">
+                                <span>Guantes de latex/nitrilo</span>
+                            </label>
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="checkbox" name="uso_correcto" style="width: 18px; height: 18px;">
+                                <span>Uso correcto</span>
+                            </label>
+                        </div>
+                    `;
+                    break;
+                // Agrega estos casos al switch statement en la función loadChecklist
+                case 'modal_decoracion':
+                    checklistHTML = `
+        <div class="modal-grid" style="display: grid; gap: 10px; margin-bottom: 15px;">
+            <div style="grid-column: 1 / -1; margin-bottom: 10px;">
+                <p style="color: var(--accent); font-weight:600; margin:0 0 5px 0;">Sushi Case: (1.65 puntos)</p>
+            </div>
+            <label class="d-flex align-items-center gap-2">
+                <input type="checkbox" name="decoracion_sushi_presentacion" value="1.65">
+                <span>Buena presentación y orden</span>
+            </label>
+            <label class="d-flex align-items-center gap-2">
+                <input type="checkbox" name="decoracion_sushi_elementos" value="1.65">
+                <span>Elementos decorativos adecuados</span>
+            </label>
+            
+            <div style="grid-column: 1 / -1; margin-bottom: 10px; margin-top: 10px;">
+                <p style="color: var(--accent); font-weight:600; margin:0 0 5px 0;">Mesa Fría: (1.65 puntos)</p>
+            </div>
+            <label class="d-flex align-items-center gap-2">
+                <input type="checkbox" name="decoracion_mesa_organizacion" value="1.65">
+                <span>Organización adecuada</span>
+            </label>
+            <label class="d-flex align-items-center gap-2">
+                <input type="checkbox" name="decoracion_mesa_visual" value="1.65">
+                <span>Aspecto visual atractivo</span>
+            </label>
+            
+            <div style="grid-column: 1 / -1; margin-bottom: 10px; margin-top: 10px;">
+                <p style="color: var(--accent); font-weight:600; margin:0 0 5px 0;">Barra de Bebidas: (1.65 puntos)</p>
+            </div>
+            <label class="d-flex align-items-center gap-2">
+                <input type="checkbox" name="decoracion_barra_presentacion" value="1.65">
+                <span>Presentación adecuada</span>
+            </label>
+            <label class="d-flex align-items-center gap-2">
+                <input type="checkbox" name="decoracion_barra_elementos" value="1.65">
+                <span>Elementos decorativos en buen estado</span>
+            </label>
+        </div>
+    `;
+                    break;
+
+                case 'modal_abastecidas':
+                    checklistHTML = `
+        <div class="modal-grid" style="display: grid; gap: 10px; margin-bottom: 15px;">
+            <div style="grid-column: 1 / -1; margin-bottom: 10px;">
+                <p style="color: var(--accent); font-weight:600; margin:0 0 5px 0;">Sushi Case: (1.65 puntos)</p>
+            </div>
+            <label class="d-flex align-items-center gap-2">
+                <input type="checkbox" name="abastecimiento_sushi_ingredientes" value="1.65">
+                <span>Ingredientes suficientes</span>
+            </label>
+            <label class="d-flex align-items-center gap-2">
+                <input type="checkbox" name="abastecimiento_sushi_utensilios" value="1.65">
+                <span>Utensilios completos</span>
+            </label>
+            
+            <div style="grid-column: 1 / -1; margin-bottom: 10px; margin-top: 10px;">
+                <p style="color: var(--accent); font-weight:600; margin:0 0 5px 0;">Mesa Fría: (1.65 puntos)</p>
+            </div>
+            <label class="d-flex align-items-center gap-2">
+                <input type="checkbox" name="abastecimiento_mesa_productos" value="1.65">
+                <span>Productos suficientes</span>
+            </label>
+            <label class="d-flex align-items-center gap-2">
+                <input type="checkbox" name="abastecimiento_mesa_herramientas" value="1.65">
+                <span>Herramientas disponibles</span>
+            </label>
+            
+            <div style="grid-column: 1 / -1; margin-bottom: 10px; margin-top: 10px;">
+                <p style="color: var(--accent); font-weight:600; margin:0 0 5px 0;">Barra de Bebidas: (1.65 puntos)</p>
+            </div>
+            <label class="d-flex align-items-center gap-2">
+                <input type="checkbox" name="abastecimiento_barra_bebidas" value="1.65">
+                <span>Bebidas completas</span>
+            </label>
+            <label class="d-flex align-items-center gap-2">
+                <input type="checkbox" name="abastecimiento_barra_accesorios" value="1.65">
+                <span>Accesorios suficientes</span>
+            </label>
+        </div>
+    `;
+                    break;
+
+                case 'modal_limpieza':
+                    checklistHTML = `
+        <div class="modal-grid" style="display: grid; gap: 10px; margin-bottom: 15px;">
+            <div style="grid-column: 1 / -1; margin-bottom: 10px;">
+                <p style="color: var(--accent); font-weight:600; margin:0 0 5px 0;">Sushi Case: (1.65 puntos)</p>
+            </div>
+            <label class="d-flex align-items-center gap-2">
+                <input type="checkbox" name="limpieza_sushi_superficies" value="1.65">
+                <span>Superficies limpias</span>
+            </label>
+            <label class="d-flex align-items-center gap-2">
+                <input type="checkbox" name="limpieza_sushi_vidrios" value="1.65">
+                <span>Vidrios limpios</span>
+            </label>
+            
+            <div style="grid-column: 1 / -1; margin-bottom: 10px; margin-top: 10px;">
+                <p style="color: var(--accent); font-weight:600; margin:0 0 5px 0;">Mesa Fría: (1.65 puntos)</p>
+            </div>
+            <label class="d-flex align-items-center gap-2">
+                <input type="checkbox" name="limpieza_mesa_superficie" value="1.65">
+                <span>Superficie limpia</span>
+            </label>
+            <label class="d-flex align-items-center gap-2">
+                <input type="checkbox" name="limpieza_mesa_equipos" value="1.65">
+                <span>Equipos limpios</span>
+            </label>
+            
+            <div style="grid-column: 1 / -1; margin-bottom: 10px; margin-top: 10px;">
+                <p style="color: var(--accent); font-weight:600; margin:0 0 5px 0;">Barra de Bebidas: (1.65 puntos)</p>
+            </div>
+            <label class="d-flex align-items-center gap-2">
+                <input type="checkbox" name="limpieza_barra_superficie" value="1.65">
+                <span>Superficie de barra limpia</span>
+            </label>
+            <label class="d-flex align-items-center gap-2">
+                <input type="checkbox" name="limpieza_barra_utensilios" value="1.65">
+                <span>Utensilios limpios</span>
+            </label>
+        </div>
+    `;
+                    break;
+
+                case 'modal_mantenimiento':
+                    checklistHTML = `
+        <div class="modal-grid" style="display: grid; gap: 10px; margin-bottom: 15px;">
+            <div style="grid-column: 1 / -1; margin-bottom: 10px;">
+                <p style="color: var(--accent); font-weight:600; margin:0 0 5px 0;">Sushi Case: (1.65 puntos)</p>
+            </div>
+            <label class="d-flex align-items-center gap-2">
+                <input type="checkbox" name="mantenimiento_sushi_fugas" value="1.65">
+                <span>Sin fugas de agua</span>
+            </label>
+            <label class="d-flex align-items-center gap-2">
+                <input type="checkbox" name="mantenimiento_sushi_iluminacion" value="1.65">
+                <span>Iluminación adecuada</span>
+            </label>
+            <label class="d-flex align-items-center gap-2">
+                <input type="checkbox" name="mantenimiento_sushi_enfriamiento" value="1.65">
+                <span>Sistema de enfriamiento funcionando</span>
+            </label>
+            
+            <div style="grid-column: 1 / -1; margin-bottom: 10px; margin-top: 10px;">
+                <p style="color: var(--accent); font-weight:600; margin:0 0 5px 0;">Mesa Fría: (1.65 puntos)</p>
+            </div>
+            <label class="d-flex align-items-center gap-2">
+                <input type="checkbox" name="mantenimiento_mesa_fugas" value="1.65">
+                <span>Sin fugas de agua</span>
+            </label>
+            <label class="d-flex align-items-center gap-2">
+                <input type="checkbox" name="mantenimiento_mesa_iluminacion" value="1.65">
+                <span>Iluminación adecuada</span>
+            </label>
+            <label class="d-flex align-items-center gap-2">
+                <input type="checkbox" name="mantenimiento_mesa_enfriamiento" value="1.65">
+                <span>Sistema de enfriamiento funcionando</span>
+            </label>
+            
+            <div style="grid-column: 1 / -1; margin-bottom: 10px; margin-top: 10px;">
+                <p style="color: var(--accent); font-weight:600; margin:0 0 5px 0;">Barra de Bebidas: (1.65 puntos)</p>
+            </div>
+            <label class="d-flex align-items-center gap-2">
+                <input type="checkbox" name="mantenimiento_barra_fugas" value="1.65">
+                <span>Sin fugas de agua</span>
+            </label>
+            <label class="d-flex align-items-center gap-2">
+                <input type="checkbox" name="mantenimiento_barra_iluminacion" value="1.65">
+                <span>Iluminación adecuada</span>
+            </label>
+            <label class="d-flex align-items-center gap-2">
+                <input type="checkbox" name="mantenimiento_barra_enfriamiento" value="1.65">
+                <span>Sistema de enfriamiento funcionando</span>
+            </label>
+        </div>
+    `;
+                    break;
+                default:
+                    checklistHTML = `
+                        <div style="padding: 20px; text-align: center; color: var(--muted);">
+                            <p>Checklist no definido para esta evaluación.</p>
+                            <p>Por favor, use la escala del 1 al 5 en la interfaz principal.</p>
+                        </div>
+                    `;
+            }
+
+            container.innerHTML = checklistHTML;
+        }
+
+        // ===========================
+        // 8) ENVIAR / BORRADOR
+        // ===========================
+        function buildPayload() {
+            const { total, max } = scoreAll();
+            return {
+                gate: state.gate,
+                hora_inicio: state.hora_inicio,
+                hora_envio: state.hora_envio,
+                puntaje_total: Number(total.toFixed(2)),
+                max_total: max,
+                porcentaje_total: max ? Math.round((total / max) * 100) : 0,
+                data: state.data
+            };
+        }
+
+        function lockAfterSend() {
+            state.hora_envio = nowISO();
+            saveState();
+            alert("Reporte enviado (demo). Ya quedó registrado hora de envío.");
+        }
+
+        // ===========================
+        // 9) SECCIONES
+        // ===========================
+        window.SECTIONS = window.SECTIONS || [];
+
+        // SECCIÓN 1
+        window.SECTIONS.push({
+            id: "recorrido_exterior",
+            nombre: "Recorrido exterior y limpieza",
+            max: 60,
+            items: [
+                {
+                    id: "banqueta",
+                    titulo: "Banqueta / Entrada",
+                    ayuda: "Limpieza general, libre de basura y obstrucciones.",
+                    peso: 5
+                },
+                {
+                    id: "contenedores",
+                    titulo: "Contenedores de basura",
+                    ayuda: "Buen estado, limpios y sin desbordes.",
+                    peso: 5
+                },
+                {
+                    id: "letrero",
+                    titulo: "Letrero luminoso",
+                    ayuda: "Encendido, limpio y funcionando correctamente.",
+                    peso: 5
+                },
+                {
+                    id: "plantas",
+                    titulo: "Plantas del exterior",
+                    ayuda: "Cuidadas, limpias y en buen estado.",
+                    peso: 5
+                },
+                {
+                    id: "puertas",
+                    titulo: "Puertas, pegatinas y anuncios (toldos)",
+                    ayuda: "Limpios, bien colocados y en buen estado.",
+                    peso: 5
+                },
+                {
+                    id: "tapete",
+                    titulo: "Tapete institucional",
+                    ayuda: "Limpio, visible y correctamente colocado.",
+                    peso: 5
+                },
+                {
+                    id: "tabloides",
+                    titulo: "Tabloides o publicidad exterior",
+                    ayuda: "Actualizados, limpios y sin exceso de material.",
+                    peso: 5
+                },
+                {
+                    id: "pintura_exterior",
+                    titulo: "Pintura del exterior",
+                    ayuda: "Buen estado, sin descarapelados visibles.",
+                    peso: 5
+                },
+                {
+                    id: "pintura_interior",
+                    titulo: "Pintura del interior",
+                    ayuda: "Muros visibles limpios y bien conservados.",
+                    peso: 5
+                },
+                {
+                    id: "tuberias",
+                    titulo: "Pintura de tuberías (gas)",
+                    ayuda: "Pintura visible, sin óxido ni daño.",
+                    peso: 5
+                },
+                {
+                    id: "microperforados",
+                    titulo: "Microperforados",
+                    ayuda: "Limpios, completos y sin desprendimientos.",
+                    peso: 5
+                },
+                {
+                    id: "ventanas",
+                    titulo: "Ventanas",
+                    ayuda: "Limpias, sin manchas ni daños visibles.",
+                    peso: 5
+                }
+            ]
+        });
+
+        // SECCIÓN 2: UNIFORME Y APARIENCIA (CON MODALES)
+        window.SECTIONS.push({
+            id: "uniforme_apariencia",
+            nombre: "LIMPIEZA E IMAGEN DEL PERSONAL",
+            max: 40,
+            items: [
+                {
+                    id: "uniforme_lider",
+                    titulo: "Uniforme del líder / gerente",
+                    ayuda: "Verifica que el líder/gerente use uniforme completo y en buen estado.",
+                    peso: 5,
+                    tipo: "modal",
+                    modalId: "modal_lider"
+                },
+                {
+                    id: "uniforme_meseros",
+                    titulo: "Uniforme de meseros",
+                    ayuda: "Verifica que los meseros usen uniforme completo y en buen estado.",
+                    peso: 5,
+                    tipo: "modal",
+                    modalId: "modal_meseros"
+                },
+                {
+                    id: "uniforme_cajeras",
+                    titulo: "Uniforme de cajeras",
+                    ayuda: "Verifica que las cajeras usen uniforme completo y en buen estado.",
+                    peso: 5,
+                    tipo: "modal",
+                    modalId: "modal_cajeras"
+                },
+                {
+                    id: "uniforme_lavalozas",
+                    titulo: "Uniforme de lavalozas",
+                    ayuda: "Verifica que el personal de lavalozas use uniforme completo y en buen estado.",
+                    peso: 5,
+                    tipo: "modal",
+                    modalId: "modal_lavalozas"
+                },
+                {
+                    id: "uniforme_repartidores",
+                    titulo: "Uniforme de repartidores",
+                    ayuda: "Verifica que los repartidores usen uniforme completo y en buen estado.",
+                    peso: 5,
+                    tipo: "modal",
+                    modalId: "modal_repartidores"
+                },
+                {
+                    id: "personal_apariencia",
+                    titulo: "Apariencia personal general",
+                    ayuda: "Sin aretes, pulseras, anillos, collares, piercing, uñas largas o sucias, sin barba, exceso de maquillaje y/o pestañas.",
+                    peso: 5,
+                    tipo: "modal",
+                    modalId: "modal_apariencia"
+                },
+                {
+                    id: "uniforme_cocina",
+                    titulo: "Uniforme de personal de cocina",
+                    ayuda: "Filipina, pantalon negro, zapatos negros antiderrapantes.",
+                    peso: 5,
+                    tipo: "modal",
+                    modalId: "modal_cocina"
+                },
+                {
+                    id: "epis_cocina",
+                    titulo: "Equipo de protección en cocina",
+                    ayuda: "Uso de cofias, bandas, cubrebocas, gorra y guantes.",
+                    peso: 5,
+                    tipo: "modal",
+                    modalId: "modal_epis_cocina"
+                }
+            ]
+        });
+
+        // SECCIÓN 3: LIMPIEZA DE COMEDOR
+        window.SECTIONS.push({
+            id: "limpieza_comedor",
+            nombre: "LIMPIEZA DE COMEDOR",
+            max: 60,
+            items: [
+                {
+                    id: "botes_basura",
+                    titulo: "Botes de basura limpios y con tapa",
+                    ayuda: "Verificar que los botes de basura estén limpios y con tapa.",
+                    peso: 5
+                },
+                {
+                    id: "lamparas",
+                    titulo: "Estado de las lámparas",
+                    ayuda: "Verificar el estado y funcionamiento de las lámparas.",
+                    peso: 5
+                },
+                {
+                    id: "cuadros",
+                    titulo: "Estado de los cuadros",
+                    ayuda: "Verificar que los cuadros estén limpios y en buen estado.",
+                    peso: 5
+                },
+                {
+                    id: "menus_tripticos",
+                    titulo: "Estado de los menús y trípticos",
+                    ayuda: "Verificar que los menús y trípticos estén limpios y en buen estado.",
+                    peso: 5
+                },
+                {
+                    id: "percheros",
+                    titulo: "Estado de los percheros",
+                    ayuda: "Verificar que los percheros estén en buen estado y limpios.",
+                    peso: 5
+                },
+                {
+                    id: "vasos_platos_cubiertos",
+                    titulo: "Estado de los vasos, platos y cubiertos",
+                    ayuda: "Verificar que estén limpios, sin manchas y en buen estado.",
+                    peso: 5
+                },
+                {
+                    id: "mesas_sillas",
+                    titulo: "Limpieza y estado de mesas y sillas",
+                    ayuda: "Verificar que las mesas y sillas estén limpias y en buen estado.",
+                    peso: 5
+                },
+                {
+                    id: "mamilas_servilleteros",
+                    titulo: "Mamilas y servilleteros abastecidos y limpios",
+                    ayuda: "Verificar que estén abastecidos y limpios.",
+                    peso: 5
+                },
+                {
+                    id: "minisplit_abanicos",
+                    titulo: "Minisplit y abanicos limpios",
+                    ayuda: "Verificar que los minisplit y abanicos estén limpios.",
+                    peso: 5
+                },
+                {
+                    id: "musica_volumen",
+                    titulo: "Música y volumen adecuados",
+                    ayuda: "Verificar que la música y el volumen sean adecuados.",
+                    peso: 5
+                },
+                {
+                    id: "plantas_interior",
+                    titulo: "Plantas de interior sin deterioro",
+                    ayuda: "Verificar que las plantas de interior estén sin deterioro.",
+                    peso: 5
+                },
+                {
+                    id: "decoracion_mesas",
+                    titulo: "Decoración en mesas",
+                    ayuda: "Verificar que la decoración en mesas esté presente y en buen estado.",
+                    peso: 5
+                }
+            ]
+        });
+
+        // SECCIÓN 4: MANTENIMIENTO Y LIMPIEZA DE EQUIPOS DE COCINA
+        window.SECTIONS.push({
+            id: "mantenimiento_equipos_cocina",
+            nombre: "MANTENIMIENTO Y LIMPIEZA DE EQUIPOS DE COCINA",
+            max: 85,
+            items: [
+                {
+                    id: "tabla_colores_trapos",
+                    titulo: "Cuentan con tabla de colores de trapos",
+                    ayuda: "Verificar que cuenten con tabla de colores de trapos para diferentes usos.",
+                    peso: 5
+                },
+                {
+                    id: "arrocera",
+                    titulo: "Arrocera limpieza exterior e interior",
+                    ayuda: "Verificar limpieza exterior e interior de la arrocera.",
+                    peso: 5
+                },
+                {
+                    id: "campana",
+                    titulo: "Campana, filtros, lámpara y extractores",
+                    ayuda: "Verificar estado y limpieza de campana, filtros, lámpara y extractores.",
+                    peso: 5
+                },
+                {
+                    id: "equipo_computo",
+                    titulo: "Equipo de cómputo, televisores e impresoras",
+                    ayuda: "Verificar limpieza y estado de equipo de cómputo, televisores e impresoras.",
+                    peso: 5
+                },
+                {
+                    id: "estudiones",
+                    titulo: "Estado de estudiones (quemadores y perillas)",
+                    ayuda: "Verificar estado de estudiones, quemadores y perillas.",
+                    peso: 5
+                },
+                {
+                    id: "plancha",
+                    titulo: "Estado de la Plancha (perillas, canaleta y bandeja)",
+                    ayuda: "Verificar estado de la plancha, perillas, canaleta y bandeja.",
+                    peso: 5
+                },
+                {
+                    id: "freidora",
+                    titulo: "Estado de la Freidora (Canastillas y termostato)",
+                    ayuda: "Verificar estado de la freidora, canastillas y termostato.",
+                    peso: 5
+                },
+                {
+                    id: "electrodomesticos",
+                    titulo: "Licuadoras, procesadoras, hornos y microondas",
+                    ayuda: "Verificar estado y limpieza de licuadoras, procesadoras, hornos y microondas.",
+                    peso: 5
+                },
+                {
+                    id: "llaves_grifos",
+                    titulo: "Llaves y grifos",
+                    ayuda: "Verificar estado y funcionamiento de llaves y grifos.",
+                    peso: 5
+                },
+                {
+                    id: "congeladores",
+                    titulo: "Mantenimiento y limpieza de congeladores (Ventilador, compresor y empaques)",
+                    ayuda: "Verificar mantenimiento y limpieza de congeladores, incluyendo ventilador, compresor y empaques.",
+                    peso: 5
+                },
+                {
+                    id: "refrigeradores",
+                    titulo: "Mantenimiento y limpieza de refrigeradores (Ventilador, compresor y empaques)",
+                    ayuda: "Verificar mantenimiento y limpieza de refrigeradores, incluyendo ventilador, compresor y empaques.",
+                    peso: 5
+                },
+                {
+                    id: "termometro_refrigeracion",
+                    titulo: "Equipos de refrigeración cuenten con termómetro (Refrigeradores y congeladores)",
+                    ayuda: "Verificar que los equipos de refrigeración cuenten con termómetro.",
+                    peso: 5
+                },
+                {
+                    id: "sensores_emergencia",
+                    titulo: "Sensores y lámparas de emergencia",
+                    ayuda: "Verificar funcionamiento de sensores y lámparas de emergencia.",
+                    peso: 5
+                },
+                {
+                    id: "trampa_grasa",
+                    titulo: "Trampa de grasa",
+                    ayuda: "Verificar estado y limpieza de la trampa de grasa.",
+                    peso: 5
+                },
+                {
+                    id: "tuberia_agua_gas",
+                    titulo: "Tubería de agua y gas",
+                    ayuda: "Verificar estado de tubería de agua y gas.",
+                    peso: 5
+                },
+                {
+                    id: "utensilios",
+                    titulo: "Utensilios en general (cuchillos y tablas)",
+                    ayuda: "Verificar estado y limpieza de utensilios en general como cuchillos y tablas.",
+                    peso: 5
+                },
+                {
+                    id: "coladenas_rejillas",
+                    titulo: "Estado de las coladenas y rejillas",
+                    ayuda: "Verificar estado de las coladenas y rejillas.",
+                    peso: 5
+                }
+            ]
+        });
+
+        // SECCIÓN 5: SUSHI CASE / MESA FRIA / BARRA DE BEBIDAS
+        window.SECTIONS.push({
+            id: "sushi_mesa_barra",
+            nombre: "SUSHI CASE / MESA FRIA / BARRA DE BEBIDAS",
+            max: 50,
+            items: [
+                {
+                    id: "decoracion",
+                    titulo: "Decoración",
+                    ayuda: "Evaluar la decoración en Sushi Case, Mesa Fría y Barra de Bebidas.",
+                    peso: 5,
+                    tipo: "modal",
+                    modalId: "modal_decoracion"
+                },
+                {
+                    id: "abastecidas",
+                    titulo: "Abastecidas",
+                    ayuda: "Verificar que Sushi Case, Mesa Fría y Barra de Bebidas estén abastecidas correctamente.",
+                    peso: 5,
+                    tipo: "modal",
+                    modalId: "modal_abastecidas"
+                },
+                {
+                    id: "limpieza_areas",
+                    titulo: "Limpieza",
+                    ayuda: "Evaluar limpieza de Sushi Case, Mesa Fría y Barra de Bebidas.",
+                    peso: 5,
+                    tipo: "modal",
+                    modalId: "modal_limpieza"
+                },
+                {
+                    id: "mantenimiento_areas",
+                    titulo: "Mantenimiento (fugas de agua, iluminación, enfriamiento)",
+                    ayuda: "Verificar mantenimiento en Sushi Case, Mesa Fría y Barra de Bebidas.",
+                    peso: 5,
+                    tipo: "modal",
+                    modalId: "modal_mantenimiento"
+                },
+                {
+                    id: "termometro_refrigeracion",
+                    titulo: "Equipos de refrigeración cuenten con termómetro",
+                    ayuda: "Verificar que los equipos de refrigeración cuenten con termómetro.",
+                    peso: 5
+                },
+                {
+                    id: "puertas_vidrios",
+                    titulo: "Puertas de vidrios",
+                    ayuda: "Verificar estado y limpieza de puertas de vidrios.",
+                    peso: 5
+                },
+                {
+                    id: "limpieza_barra",
+                    titulo: "Limpieza del área de Barra",
+                    ayuda: "Evaluar limpieza general del área de Barra.",
+                    peso: 5
+                },
+                {
+                    id: "limpieza_refrigerador",
+                    titulo: "Limpieza del Refrigerador",
+                    ayuda: "Verificar limpieza del refrigerador.",
+                    peso: 5
+                },
+                {
+                    id: "calidad_materias_primas",
+                    titulo: "Calidad de materias primas (frutas, condimentos, salsas)",
+                    ayuda: "Evaluar calidad de materias primas como frutas, condimentos y salsas.",
+                    peso: 5
+                },
+                {
+                    id: "tarja_cristaleria",
+                    titulo: "Tarja de cristalería, sin utensilios",
+                    ayuda: "Verificar que la tarja de cristalería esté sin utensilios.",
+                    peso: 5
+                }
+            ]
+        });
+
+        // SECCIÓN 6: CALIDAD DE ALIMENTOS Y PRODUCTOS
+        window.SECTIONS.push({
+            id: "calidad_alimentos",
+            nombre: "CALIDAD DE ALIMENTOS Y PRODUCTOS",
+            max: 95,
+            items: [
+                {
+                    id: "sabor_res",
+                    titulo: "Sabor y olor del Res.",
+                    ayuda: "Evaluar sabor y olor de la carne de res.",
+                    peso: 5
+                },
+                {
+                    id: "sabor_pollo",
+                    titulo: "Sabor y olor del Pollo.",
+                    ayuda: "Evaluar sabor y olor del pollo.",
+                    peso: 5
+                },
+                {
+                    id: "sabor_mariscos",
+                    titulo: "Sabor y olor de camarón, salmón y tampico.",
+                    ayuda: "Evaluar sabor y olor de camarón, salmón y tampico.",
+                    peso: 5
+                },
+                {
+                    id: "salsas_teriyaki_anguila",
+                    titulo: "Sabor y consistencia de salsas (Teriyaki y anguila).",
+                    ayuda: "Evaluar sabor y consistencia de salsas Teriyaki y anguila.",
+                    peso: 5
+                },
+                {
+                    id: "aderezos_chipotle_cilantro",
+                    titulo: "Sabor y consistencia de aderezos (Chipotle y cilantro).",
+                    ayuda: "Evaluar sabor y consistencia de aderezos Chipotle y cilantro.",
+                    peso: 5
+                },
+                {
+                    id: "salsa_srirasha",
+                    titulo: "Sabor y consistencia de salsa Srirasha.",
+                    ayuda: "Evaluar sabor y consistencia de salsa Srirasha.",
+                    peso: 5
+                },
+                {
+                    id: "salsa_ponsu",
+                    titulo: "Sabor y consistencia de salsa Ponsu.",
+                    ayuda: "Evaluar sabor y consistencia de salsa Ponsu.",
+                    peso: 5
+                },
+                {
+                    id: "sopa_miso",
+                    titulo: "Sabor y consistencia de Sopa Miso, champíñones y tofu.",
+                    ayuda: "Evaluar sabor y consistencia de Sopa Miso, champíñones y tofu.",
+                    peso: 5
+                },
+                {
+                    id: "bitacora_alimentos",
+                    titulo: "Se lleva bitácora de alimentos (Anotar temperatura de 1 producto por refrigerador).",
+                    ayuda: "Verificar que se lleve bitácora de alimentos con temperatura de productos.",
+                    peso: 5
+                },
+                {
+                    id: "quesos",
+                    titulo: "Estado y consistencia de los quesos.",
+                    ayuda: "Evaluar estado y consistencia de los quesos.",
+                    peso: 5
+                },
+                {
+                    id: "aguas_zumos_te",
+                    titulo: "Sabor de aguas, zumos y té.",
+                    ayuda: "Evaluar sabor de aguas, zumos y té.",
+                    peso: 5
+                },
+                {
+                    id: "productos_etiquetados",
+                    titulo: "Productos etiquetados (nombre y fecha de caducidad).",
+                    ayuda: "Verificar que los productos estén etiquetados con nombre y fecha de caducidad.",
+                    peso: 5
+                },
+                {
+                    id: "frutas_verduras",
+                    titulo: "Calidad de frutas y verduras.",
+                    ayuda: "Evaluar calidad de frutas y verduras.",
+                    peso: 5
+                },
+                {
+                    id: "descongelamiento",
+                    titulo: "Descongelamiento de productos.",
+                    ayuda: "Verificar correcto descongelamiento de productos.",
+                    peso: 5
+                },
+                {
+                    id: "aceite_freidora",
+                    titulo: "Calidad de aceite de freidora (Tabla medidora).",
+                    ayuda: "Evaluar calidad de aceite de freidora usando tabla medidora.",
+                    peso: 5
+                },
+                {
+                    id: "tempura",
+                    titulo: "Preparación de tempura.",
+                    ayuda: "Evaluar preparación de tempura.",
+                    peso: 5
+                },
+                {
+                    id: "tempura_helado",
+                    titulo: "Preparación de tempura helado.",
+                    ayuda: "Evaluar preparación de tempura helado.",
+                    peso: 5
+                },
+                {
+                    id: "cebollitas_chiles",
+                    titulo: "Apariencia y sabor de cebollitas curtidas y chiles.",
+                    ayuda: "Evaluar apariencia y sabor de cebollitas curtidas y chiles.",
+                    peso: 5
+                },
+                {
+                    id: "preparacion_presentacion",
+                    titulo: "Preparación y presentación de platillos.",
+                    ayuda: "Evaluar preparación y presentación general de platillos.",
+                    peso: 5
+                }
+            ]
+        });
+
+        // SECCIÓN 7: BAÑOS
+        window.SECTIONS.push({
+            id: "banos",
+            nombre: "BAÑOS",
+            max: 50,
+            items: [
+                {
+                    id: "aromatizante",
+                    titulo: "Aromatizante.",
+                    ayuda: "Verificar presencia y estado de aromatizante en baños.",
+                    peso: 5
+                },
+                {
+                    id: "papel_higienico",
+                    titulo: "Dispensador abastecido con papel higiénico.",
+                    ayuda: "Verificar que el dispensador de papel higiénico esté abastecido.",
+                    peso: 5
+                },
+                {
+                    id: "papel_manos",
+                    titulo: "Dispensador abastecido con papel para manos.",
+                    ayuda: "Verificar que el dispensador de papel para manos esté abastecido.",
+                    peso: 5
+                },
+                {
+                    id: "ventilacion",
+                    titulo: "Cuenta con extractor de aire y/o ventilación en buen estado.",
+                    ayuda: "Verificar que el extractor de aire o sistema de ventilación funcione correctamente.",
+                    peso: 5
+                },
+                {
+                    id: "jabon_manos",
+                    titulo: "Jabón para manos abastecido.",
+                    ayuda: "Verificar que el dispensador de jabón para manos esté abastecido.",
+                    peso: 5
+                },
+                {
+                    id: "instrumentos_limpieza",
+                    titulo: "Instrumentos de limpieza (Pompa y cepillo).",
+                    ayuda: "Verificar que los instrumentos de limpieza (pompa y cepillo) estén presentes y en buen estado.",
+                    peso: 5
+                },
+                {
+                    id: "bote_basura",
+                    titulo: "Bote de basura limpio y con tapa.",
+                    ayuda: "Verificar que el bote de basura esté limpio y con tapa.",
+                    peso: 5
+                },
+                {
+                    id: "estado_general",
+                    titulo: "Estado general (malos olores, escurrimientos, fijación taza, llaves, chapas y silicon).",
+                    ayuda: "Evaluar estado general del baño: olores, escurrimientos, fijación de taza, llaves, chapas y sellos de silicon.",
+                    peso: 5
+                },
+                {
+                    id: "pintura_iluminacion",
+                    titulo: "Pintura e iluminación.",
+                    ayuda: "Evaluar estado de pintura e iluminación en el baño.",
+                    peso: 5
+                },
+                {
+                    id: "limpieza_retrete_lavamanos",
+                    titulo: "Limpieza de retrete y lavamanos.",
+                    ayuda: "Evaluar limpieza del retrete y lavamanos.",
+                    peso: 5
+                }
+            ]
+        });
+
+        // SECCIÓN 8: ALMACÉN
+        window.SECTIONS.push({
+            id: "almacen",
+            nombre: "ALMACÉN",
+            max: 30,
+            items: [
+                {
+                    id: "acomodo_mercancia",
+                    titulo: "Acomodo de mercancía en su lugar correspondiente.",
+                    ayuda: "Verificar que la mercancía esté acomodada en su lugar correspondiente.",
+                    peso: 5
+                },
+                {
+                    id: "productos_danados",
+                    titulo: "Latas o productos dañados.",
+                    ayuda: "Verificar que no haya latas o productos dañados en el almacén.",
+                    peso: 5
+                },
+                {
+                    id: "limpieza_area",
+                    titulo: "Limpieza del área.",
+                    ayuda: "Evaluar limpieza general del área de almacén.",
+                    peso: 5
+                },
+                {
+                    id: "sin_carton",
+                    titulo: "Área sin cartón.",
+                    ayuda: "Verificar que el área esté libre de cartones acumulados.",
+                    peso: 5
+                },
+                {
+                    id: "sin_productos_suelo",
+                    titulo: "Área sin productos directamente en el suelo.",
+                    ayuda: "Verificar que no haya productos colocados directamente en el suelo.",
+                    peso: 5
+                },
+                {
+                    id: "productos_etiquetados",
+                    titulo: "Productos etiquetados.",
+                    ayuda: "Verificar que todos los productos en almacén estén correctamente etiquetados.",
+                    peso: 5
+                }
+            ]
+        });
+
+        // SECCIÓN 9: DOCUMENTACIÓN / CAJAS
+        window.SECTIONS.push({
+            id: "documentacion_cajas",
+            nombre: "DOCUMENTACIÓN / CAJAS",
+            max: 110,
+            items: [
+                {
+                    id: "pago_patronal",
+                    titulo: "Pago Patronal.",
+                    ayuda: "Verificar fecha del último servicio de pago patronal.",
+                    peso: 5,
+                    tipo: "modal",
+                    modalId: "modal_pago_patronal",
+                    camposModal: [
+                        { id: "fecha_servicio", tipo: "date", label: "Fecha del último servicio:" }
+                    ]
+                },
+                {
+                    id: "pago_renta",
+                    titulo: "Pago de Renta.",
+                    ayuda: "Verificar última fecha de pago de renta.",
+                    peso: 5,
+                    tipo: "modal",
+                    modalId: "modal_pago_renta",
+                    camposModal: [
+                        { id: "fecha_pago", tipo: "date", label: "Última fecha de pago:" }
+                    ]
+                },
+                {
+                    id: "pago_luz",
+                    titulo: "Pago de Luz.",
+                    ayuda: "Verificar fecha del último servicio de pago de luz.",
+                    peso: 5,
+                    tipo: "modal",
+                    modalId: "modal_pago_luz",
+                    camposModal: [
+                        { id: "fecha_servicio", tipo: "date", label: "Fecha del último servicio:" }
+                    ]
+                },
+                {
+                    id: "pago_cedis",
+                    titulo: "Pago de CEDIS.",
+                    ayuda: "Verificar última fecha pagada de CEDIS.",
+                    peso: 5,
+                    tipo: "modal",
+                    modalId: "modal_pago_cedis",
+                    camposModal: [
+                        { id: "fecha_pago", tipo: "date", label: "Última fecha pagada:" }
+                    ]
+                },
+                {
+                    id: "pago_agua",
+                    titulo: "Pago de Agua.",
+                    ayuda: "Verificar última fecha pagada de agua.",
+                    peso: 5,
+                    tipo: "modal",
+                    modalId: "modal_pago_agua",
+                    camposModal: [
+                        { id: "fecha_pago", tipo: "date", label: "Última fecha pagada:" }
+                    ]
+                },
+                {
+                    id: "pago_internet",
+                    titulo: "Pago de Internet.",
+                    ayuda: "Verificar última fecha pagada de internet.",
+                    peso: 5,
+                    tipo: "modal",
+                    modalId: "modal_pago_internet",
+                    camposModal: [
+                        { id: "fecha_pago", tipo: "date", label: "Última fecha pagada:" }
+                    ]
+                },
+                {
+                    id: "permiso_impacto_ambiental",
+                    titulo: "Permiso de Anuencia de Impacto Ambiental.",
+                    ayuda: "Verificar si se cuenta con el permiso de impacto ambiental.",
+                    peso: 5,
+                    tipo: "modal",
+                    modalId: "modal_permiso_impacto",
+                    camposModal: [
+                        { id: "tiene_permiso", tipo: "checkbox", label: "Se cuenta con el permiso:" }
+                    ]
+                },
+                {
+                    id: "permiso_anuncios",
+                    titulo: "Permiso de Anuncios.",
+                    ayuda: "Verificar vigencia del permiso de anuncios.",
+                    peso: 5,
+                    tipo: "modal",
+                    modalId: "modal_permiso_anuncios",
+                    camposModal: [
+                        { id: "vigencia", tipo: "date", label: "Vigencia:" }
+                    ]
+                },
+                {
+                    id: "permiso_atrapa_grasa",
+                    titulo: "Permiso de Atrapa la Grasa.",
+                    ayuda: "Verificar vigencia del permiso de atrapa la grasa.",
+                    peso: 5,
+                    tipo: "modal",
+                    modalId: "modal_permiso_atrapa_grasa",
+                    camposModal: [
+                        { id: "vigencia", tipo: "date", label: "Vigencia:" }
+                    ]
+                },
+                {
+                    id: "permiso_basura",
+                    titulo: "Permiso de Basura.",
+                    ayuda: "Verificar vigencia del permiso de basura.",
+                    peso: 5,
+                    tipo: "modal",
+                    modalId: "modal_permiso_basura",
+                    camposModal: [
+                        { id: "vigencia", tipo: "date", label: "Vigencia:" }
+                    ]
+                },
+                {
+                    id: "permiso_bomberos",
+                    titulo: "Permiso de Bomberos.",
+                    ayuda: "Verificar vigencia del permiso de bomberos.",
+                    peso: 5,
+                    tipo: "modal",
+                    modalId: "modal_permiso_bomberos",
+                    camposModal: [
+                        { id: "vigencia", tipo: "date", label: "Vigencia:" }
+                    ]
+                },
+                {
+                    id: "permiso_cofepris",
+                    titulo: "Permiso de COFEPRIS.",
+                    ayuda: "Verificar vigencia del permiso de COFEPRIS.",
+                    peso: 5,
+                    tipo: "modal",
+                    modalId: "modal_permiso_cofepris",
+                    camposModal: [
+                        { id: "vigencia", tipo: "date", label: "Vigencia:" }
+                    ]
+                },
+                {
+                    id: "permiso_linea_amarilla",
+                    titulo: "Permiso de Línea Amarilla (En caso de necesitar).",
+                    ayuda: "Verificar vigencia del permiso de línea amarilla.",
+                    peso: 5,
+                    tipo: "modal",
+                    modalId: "modal_permiso_linea_amarilla",
+                    camposModal: [
+                        { id: "vigencia", tipo: "date", label: "Vigencia:" }
+                    ]
+                },
+                {
+                    id: "permiso_operaciones",
+                    titulo: "Permiso de Operaciones.",
+                    ayuda: "Verificar vigencia del permiso de operaciones.",
+                    peso: 5,
+                    tipo: "modal",
+                    modalId: "modal_permiso_operaciones",
+                    camposModal: [
+                        { id: "vigencia", tipo: "date", label: "Vigencia:" }
+                    ]
+                },
+                {
+                    id: "permiso_rsu",
+                    titulo: "Permiso de Residuos Sólidos Urbanos (RSU).",
+                    ayuda: "Verificar vigencia del permiso de residuos sólidos urbanos.",
+                    peso: 5,
+                    tipo: "modal",
+                    modalId: "modal_permiso_rsu",
+                    camposModal: [
+                        { id: "vigencia", tipo: "date", label: "Vigencia:" }
+                    ]
+                },
+                {
+                    id: "permiso_uso_suelo",
+                    titulo: "Permiso de Uso de Suelo.",
+                    ayuda: "Verificar vigencia del permiso de uso de suelo.",
+                    peso: 5,
+                    tipo: "modal",
+                    modalId: "modal_permiso_uso_suelo",
+                    camposModal: [
+                        { id: "vigencia", tipo: "date", label: "Vigencia:" }
+                    ]
+                },
+                {
+                    id: "mantenimiento_filtros",
+                    titulo: "Mantenimiento y limpieza de filtros de agua y tinacos.",
+                    ayuda: "Verificar fecha del último servicio de mantenimiento.",
+                    peso: 5,
+                    tipo: "modal",
+                    modalId: "modal_mantenimiento_filtros",
+                    camposModal: [
+                        { id: "fecha_servicio", tipo: "date", label: "Fecha del último servicio:" }
+                    ]
+                },
+                {
+                    id: "manifiesto_trampa_grasa",
+                    titulo: "Manifiesto de Trampa de Grasa.",
+                    ayuda: "Verificar fecha del último servicio de trampa de grasa.",
+                    peso: 5,
+                    tipo: "modal",
+                    modalId: "modal_manifiesto_trampa_grasa",
+                    camposModal: [
+                        { id: "fecha_servicio", tipo: "date", label: "Fecha del último servicio:" }
+                    ]
+                },
+                {
+                    id: "manifiesto_recoleccion_aceite",
+                    titulo: "Manifiesto de Recolección de Aceite.",
+                    ayuda: "Verificar fecha del último servicio de recolección de aceite.",
+                    peso: 5,
+                    tipo: "modal",
+                    modalId: "modal_manifiesto_recoleccion_aceite",
+                    camposModal: [
+                        { id: "fecha_servicio", tipo: "date", label: "Fecha del último servicio:" }
+                    ]
+                },
+                {
+                    id: "manifiesto_fumigacion",
+                    titulo: "Manifiesto de Fumigación.",
+                    ayuda: "Verificar fecha del último servicio de fumigación.",
+                    peso: 5,
+                    tipo: "modal",
+                    modalId: "modal_manifiesto_fumigacion",
+                    camposModal: [
+                        { id: "fecha_servicio", tipo: "date", label: "Fecha del último servicio:" }
+                    ]
+                },
+                {
+                    id: "libre_plagas",
+                    titulo: "Libre de plagas.",
+                    ayuda: "Verificar presencia de diferentes tipos de plagas.",
+                    peso: 5,
+                    tipo: "modal",
+                    modalId: "modal_libre_plagas",
+                    camposModal: [
+                        { id: "cucarachas", tipo: "checkbox", label: "Cucarachas:" },
+                        { id: "ratones", tipo: "checkbox", label: "Ratones:" },
+                        { id: "moscas", tipo: "checkbox", label: "Moscas:" },
+                        { id: "hormigas", tipo: "checkbox", label: "Hormigas:" },
+                        { id: "otros", tipo: "text", label: "Otro:" }
+                    ]
+                },
+                {
+                    id: "bitacora_limpieza_campana",
+                    titulo: "Bitácora de limpieza de campana.",
+                    ayuda: "Verificar fecha del último servicio de limpieza de campana.",
+                    peso: 5,
+                    tipo: "modal",
+                    modalId: "modal_bitacora_limpieza_campana",
+                    camposModal: [
+                        { id: "fecha_servicio", tipo: "date", label: "Fecha del último servicio:" }
+                    ]
+                }
+            ]
+        });
+
+        // SECCIÓN 10: LIMPIEZA Y MANTENIMIENTO DE MOTOS
+        window.SECTIONS.push({
+            id: "limpieza_mantenimiento_motos",
+            nombre: "LIMPIEZA Y MANTENIMIENTO DE MOTOS",
+            max: 30, // 6 motos × 5 puntos cada una = 30 puntos máximos
+            items: [
+                {
+                    id: "motos_dinamicas",
+                    titulo: "Limpieza y Mantenimiento de Motos",
+                    ayuda: "Agregar y evaluar cada moto. Máximo 6 motos.",
+                    peso: 30, // Peso total acumulativo
+                    tipo: "modal_dinamico",
+                    modalId: "modal_motos_dinamicas",
+                    maxElementos: 6,
+                    camposPorElemento: [
+                        // Información básica
+                        { id: "placa", tipo: "text", label: "Placa:", required: true },
+                        { id: "serie", tipo: "text", label: "Serie:" },
+
+                        // Componentes mecánicos (checkboxes)
+                        { id: "cadena", tipo: "checkbox", label: "Cadena en buen estado:" },
+                        { id: "frenos", tipo: "checkbox", label: "Frenos en buen estado:" },
+                        { id: "llantas", tipo: "checkbox", label: "Llantas en buen estado:" },
+
+                        // Estado general (checkboxes)
+                        { id: "detalles_mecanicos", tipo: "checkbox", label: "Detalles mecánicos en orden:" },
+                        { id: "moto_limpia", tipo: "checkbox", label: "Moto limpia y en buen estado:" },
+                        { id: "carroceria_tapiceria", tipo: "checkbox", label: "Carrocería y tapicería en buen estado:" },
+                        { id: "focos_claxon", tipo: "checkbox", label: "Focos y claxon funcionando:" },
+
+                        // Caja y publicidad
+                        { id: "caja_publicidad", tipo: "checkbox", label: "Cuenta con Caja y/o Publicidad:" },
+
+                        // Observaciones
+                        { id: "observaciones", tipo: "textarea", label: "Observaciones:", placeholder: "Detalles adicionales sobre el estado de la moto..." }
+                    ],
+                    sistemaPuntuacion: {
+                        tipo: "por_elemento",
+                        puntosPorElemento: 5,
+                        criterios: [
+                            { campo: "cadena", puntos: 0.5 },
+                            { campo: "frenos", puntos: 0.5 },
+                            { campo: "llantas", puntos: 0.5 },
+                            { campo: "detalles_mecanicos", puntos: 0.5 },
+                            { campo: "moto_limpia", puntos: 0.5 },
+                            { campo: "carroceria_tapiceria", puntos: 0.5 },
+                            { campo: "focos_claxon", puntos: 0.5 },
+                            { campo: "caja_publicidad", puntos: 0.5 },
+                            { campo: "observaciones", puntos: 1.0 } // Por completar observaciones si es necesario
+                        ]
+                    }
+                }
+            ]
+        });
+
+        // SECCIÓN 11: OTROS
+        window.SECTIONS.push({
+            id: "otros",
+            nombre: "OTROS",
+            max: 50,
+            items: [
+                {
+                    id: "anaqueles",
+                    titulo: "Anaqueles.",
+                    ayuda: "Evaluar estado y limpieza de anaqueles.",
+                    peso: 5
+                },
+                {
+                    id: "estantes",
+                    titulo: "Estantes.",
+                    ayuda: "Evaluar estado y limpieza de estantes.",
+                    peso: 5
+                },
+                {
+                    id: "repisas",
+                    titulo: "Repisas.",
+                    ayuda: "Evaluar estado y limpieza de repisas.",
+                    peso: 5
+                },
+                {
+                    id: "menus",
+                    titulo: "Menús en buen estado.",
+                    ayuda: "Verificar que los menús estén en buen estado (limpios, legibles, completos).",
+                    peso: 5
+                },
+                {
+                    id: "sillas_bebe",
+                    titulo: "Sillas para Bebé.",
+                    ayuda: "Verificar que las sillas para bebé estén disponibles y en buen estado.",
+                    peso: 5
+                },
+                {
+                    id: "carteras_charolas",
+                    titulo: "Carteras y/o charolas en buen estado y limpias.",
+                    ayuda: "Evaluar estado y limpieza de carteras y charolas.",
+                    peso: 5
+                },
+                {
+                    id: "botiquin",
+                    titulo: "Botiquín.",
+                    ayuda: "Verificar que el botiquín esté completo, accesible y con medicamentos vigentes.",
+                    peso: 5
+                },
+                {
+                    id: "extractores_aire",
+                    titulo: "Extractores de aire.",
+                    ayuda: "Verificar que los extractores de aire funcionen correctamente.",
+                    peso: 5
+                },
+                {
+                    id: "letteros_indicativos",
+                    titulo: "Letteros indicativos, completos y bien instalados.",
+                    ayuda: "Evaluar letreros indicativos (completos, legibles, bien instalados).",
+                    peso: 5
+                },
+                {
+                    id: "extintores",
+                    titulo: "Revisión de extintores (no vencidos, en el piso, visibles).",
+                    ayuda: "Verificar estado, ubicación y vigencia de extintores.",
+                    peso: 5,
+                    tipo: "modal",
+                    modalId: "modal_extintores",
+                    camposModal: [
+                        { id: "fecha_vencimiento", tipo: "date", label: "Fecha de vencimiento:" }
+                    ]
+                }
+            ]
+        });
+
+        // ===========================
+        // 10) INIT + NAVEGACIÓN
+        // ===========================
+        function showWizardUI() {
+            const gateCard = document.getElementById("gateCard");
+            const wizardCard = document.getElementById("wizardCard");
+            const summaryCard = document.getElementById("summaryCard");
+            const footerbar = document.getElementById("footerbar");
+            const kpiBar = document.getElementById("kpiBar");
+
+            if (gateCard) gateCard.style.display = "none";
+            if (wizardCard) wizardCard.style.display = "block";
+            if (summaryCard) summaryCard.style.display = "none";
+            if (footerbar) footerbar.style.display = "block";
+            if (kpiBar) kpiBar.style.display = "flex";
+        }
+
+        function init() {
+            loadState();
+
+            const elUsuario = document.getElementById("gateUsuario");
+            const elPassword = document.getElementById("gatePassword");
+            const elBloque = document.getElementById("gateBloque");
+            const elSucursal = document.getElementById("gateSucursal");
+            const btnEntrar = document.getElementById("btnEntrar");
+
+            if (!elUsuario || !elPassword || !elBloque || !elSucursal || !btnEntrar) {
+                console.warn("Faltan elementos del gate en el DOM.");
+                return;
+            }
+
+            // ---- Precargar gate si existe ----
+            elUsuario.value = state.gate.usuario || "";
+            elPassword.value = state.gate.password || "";
+            elBloque.value = state.gate.bloque || "";
+
+            if (state.gate.bloque) {
+                const opt = [...elBloque.options].find(o => o.value === state.gate.bloque);
+                const bloqueTexto = opt ? opt.text : "";
+                fillSucursales(bloqueTexto);
+                elSucursal.value = state.gate.sucursal || "";
+            } else {
+                elSucursal.value = "";
+            }
+
+            // ---- Listeners ----
+            elUsuario.addEventListener("change", (e) => {
+                state.gate.usuario = e.target.value;
+                state.gate.password = "";
+                elPassword.value = "";
+                saveState();
+            });
+
+            elPassword.addEventListener("input", (e) => {
+                state.gate.password = e.target.value;
+                saveState();
+            });
+
+            elBloque.addEventListener("change", (e) => {
+                const bloqueTexto = e.target.options[e.target.selectedIndex]?.text || "";
+                state.gate.bloque = e.target.value;
+                state.gate.sucursal = "";
+
+                fillSucursales(bloqueTexto);
+
+                elSucursal.value = "";
+                saveState();
+            });
+
+            elSucursal.addEventListener("change", (e) => {
+                state.gate.sucursal = e.target.value;
+                saveState();
+            });
+
+            // ---- Entrar ----
+            btnEntrar.addEventListener("click", () => {
+                state.gate.usuario = elUsuario.value;
+                state.gate.password = elPassword.value;
+                state.gate.bloque = elBloque.value;
+                state.gate.sucursal = elSucursal.value;
+
+                if (!gateValid()) {
+                    alert("Usuario/contraseña inválidos o faltan Bloque y Sucursal.");
+                    return;
+                }
+
+                if (!state.hora_inicio) state.hora_inicio = nowISO();
+                saveState();
+
+                showWizardUI();
+
+                const totalSteps = Array.isArray(window.SECTIONS) ? (window.SECTIONS.length + 1) : 1;
+                if (!Number.isFinite(state.step) || state.step < 0 || state.step >= totalSteps) state.step = 0;
+
+                renderStep();
+            });
+
+            // ---- Navegación ----
+            // ---- Botón para volver al dashboard ----
+            const btnVolverDashboard = document.getElementById("btnVolverDashboard");
+
+            if (btnVolverDashboard) {
+                btnVolverDashboard.addEventListener("click", function () {
+                    // Guardar estado actual antes de redirigir
+                    saveState();
+
+                    // Obtener la URL desde el data attribute
+                    const homeUrl = this.getAttribute('data-home-url');
+
+                    // Verificar si tenemos una URL válida
+                    if (homeUrl) {
+                        // Redirigir a la ruta home de Flask
+                        window.location.href = homeUrl;
+                    } else {
+                        // Fallback: intentar con una ruta por defecto
+                        console.warn("URL de home no encontrada, usando ruta por defecto");
+                        window.location.href = "/home";
+                    }
+                });
+            }
+            const btnPrev = document.getElementById("btnPrev");
+            const btnNext = document.getElementById("btnNext");
+            const btnGuardarBorrador = document.getElementById("btnGuardarBorrador");
+            const btnEnviar = document.getElementById("btnEnviar");
+
+            if (btnPrev) {
+                btnPrev.addEventListener("click", () => {
+                    if (state.step <= 0) return;
+                    state.step--;
+                    saveState();
+                    renderStep();
+                });
+            }
+
+            if (btnNext) {
+                btnNext.addEventListener("click", () => {
+                    if (!Array.isArray(window.SECTIONS)) return;
+
+                    const totalSteps = window.SECTIONS.length + 1;
+                    const isSummary = state.step === window.SECTIONS.length;
+
+                    if (isSummary) return; // en resumen "Listo" no avanza
+                    if (state.step >= totalSteps - 1) return;
+
+                    state.step++;
+                    saveState();
+                    renderStep();
+                });
+            }
+
+            if (btnGuardarBorrador) {
+                btnGuardarBorrador.addEventListener("click", () => {
+                    saveState();
+                    alert("Borrador guardado.");
+                });
+            }
+
+            if (btnEnviar) {
+                btnEnviar.addEventListener("click", () => {
+                    if (!gateValid()) {
+                        alert("No se puede enviar: faltan datos del acceso o credenciales inválidas.");
+                        return;
+                    }
+                    if (!state.hora_inicio) state.hora_inicio = nowISO();
+
+                    const payload = buildPayload();
+                    console.log("PAYLOAD LISTO PARA ENVIAR:", payload);
+
+                    lockAfterSend();
+                });
+            }
+
+            // ---- Botón para regresar al menú ----
+            const btnMenu = document.getElementById("btnMenu");
+            const btnMenuSummary = document.getElementById("btnMenuSummary");
+
+            function returnToMenu() {
+                // Preguntar confirmación
+                if (!confirm("¿Regresar al menú principal? Se guardará el progreso actual.")) {
+                    return;
+                }
+
+                // Guardar estado actual
+                saveState();
+
+                // Ocultar todas las secciones de evaluación
+                const wizardCard = document.getElementById("wizardCard");
+                const summaryCard = document.getElementById("summaryCard");
+                const footerbar = document.getElementById("footerbar");
+                const kpiBar = document.getElementById("kpiBar");
+                const gateCard = document.getElementById("gateCard");
+
+                if (wizardCard) wizardCard.style.display = "none";
+                if (summaryCard) summaryCard.style.display = "none";
+                if (footerbar) footerbar.style.display = "none";
+                if (kpiBar) kpiBar.style.display = "none";
+                if (gateCard) gateCard.style.display = "block";
+
+                // Mostrar mensaje opcional
+                console.log("Regresando al menú principal. Progreso guardado.");
+            }
+            if (btnMenu) {
+                btnMenu.addEventListener("click", returnToMenu);
+            }
+
+            if (btnMenuSummary) {
+                btnMenuSummary.addEventListener("click", returnToMenu);
+            }
+
+            // ---- Cerrar modal al hacer clic fuera ----
+            document.addEventListener('click', function (e) {
+                if (e.target.classList.contains('evaluation-modal')) {
+                    e.target.style.display = 'none';
+                }
+            });
+
+            // ---- Auto re-entrar ----
+            if (gateValid() && state.hora_inicio) {
+                showWizardUI();
+                renderStep();
+            } else {
+                updateKPIs();
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", init);
+    </script>
+
+</body>
+
+</html>

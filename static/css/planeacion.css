@@ -1,0 +1,792 @@
+        :root {
+            --color-bg: #000000;
+            --color-card: #1a1a1a;
+            --color-text: #ffffff;
+            --color-accent: #b71c1c;
+            --color-accent-dark: #8b0000;
+            --color-accent-light: #ff5252;
+            --color-border: #333333;
+            --color-success: #2e7d32;
+            --color-warning: #f57c00;
+            --color-info: #0288d1;
+        }
+
+        body {
+            background-color: var(--color-bg);
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            color: var(--color-text);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background-color: #1a1a1a !important;
+            border-bottom: 2px solid var(--color-accent);
+            padding: 1rem 0;
+        }
+
+        .navbar-brand {
+            font-weight: 300;
+            letter-spacing: 2px;
+            font-size: 1.3rem;
+        }
+
+        .nav-link {
+            font-weight: 400;
+            transition: color 0.3s;
+            margin-left: 1rem;
+        }
+
+        .nav-link:hover {
+            color: var(--color-accent) !important;
+        }
+
+        .corporate-header {
+            background: linear-gradient(135deg, var(--color-accent-dark) 0%, var(--color-accent) 50%, var(--color-accent-light) 100%);
+            color: white;
+            padding: 2.5rem 0;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(183, 28, 28, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .corporate-header::before {
+            content: "計";
+            position: absolute;
+            font-size: 15rem;
+            opacity: 0.1;
+            right: 5%;
+            top: 50%;
+            transform: translateY(-50%);
+            font-weight: bold;
+        }
+
+        .header-logo {
+            font-size: 2.8rem;
+            font-weight: 300;
+            letter-spacing: 4px;
+            margin-bottom: 0.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header-subtitle {
+            font-size: 1.1rem;
+            letter-spacing: 3px;
+            opacity: 0.9;
+            font-weight: 300;
+            position: relative;
+            z-index: 1;
+        }
+
+        .main-container {
+            padding: 2rem 1.5rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .summary-cards {
+            margin-top: -3rem;
+            position: relative;
+            z-index: 10;
+        }
+
+        .summary-card {
+            background-color: var(--color-card);
+            border-radius: 12px;
+            padding: 1.5rem;
+            height: 100%;
+            border: 1px solid var(--color-border);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s, box-shadow 0.3s;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .summary-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(183, 28, 28, 0.2);
+        }
+
+        .summary-card::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 6px;
+            background-color: var(--card-color, var(--color-accent));
+        }
+
+        .summary-card.sales::before {
+            background-color: var(--color-accent);
+        }
+
+        .summary-card.customers::before {
+            background-color: var(--color-success);
+        }
+
+        .summary-card.average::before {
+            background-color: var(--color-info);
+        }
+
+        .summary-card.target::before {
+            background-color: var(--color-warning);
+        }
+
+        .card-number {
+            font-size: 2.5rem;
+            font-weight: 300;
+            text-align: center;
+            color: var(--color-text);
+            margin: 1rem 0;
+        }
+
+        .card-label {
+            text-align: center;
+            color: #aaa;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .view-controls {
+            background-color: var(--color-card);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+            border: 1px solid var(--color-border);
+        }
+
+        .view-btn {
+            background-color: transparent;
+            border: 1px solid var(--color-border);
+            color: var(--color-text);
+            padding: 0.7rem 1.5rem;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: all 0.3s;
+            margin-right: 0.5rem;
+        }
+
+        .view-btn:hover {
+            border-color: var(--color-accent);
+            color: var(--color-accent);
+        }
+
+        .view-btn.active {
+            background-color: var(--color-accent);
+            border-color: var(--color-accent);
+            color: white;
+        }
+
+        .kanji-header {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px;
+            height: 30px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            margin-right: 0.5rem;
+            font-weight: bold;
+        }
+
+        .filter-section {
+            background-color: var(--color-card);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--color-border);
+        }
+
+        .filter-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            align-items: flex-end;
+        }
+
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .filter-label {
+            display: block;
+            color: #aaa;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .filter-select,
+        .search-input {
+            width: 100%;
+            background-color: #2a2a2a;
+            border: 1px solid var(--color-border);
+            color: var(--color-text);
+            padding: 0.6rem 1rem;
+            border-radius: 6px;
+            font-size: 0.95rem;
+        }
+
+        .search-input:focus,
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--color-accent);
+        }
+
+        .search-box {
+            flex: 2;
+            min-width: 300px;
+        }
+
+        .btn-primary-custom {
+            background-color: var(--color-accent);
+            border: none;
+            color: white;
+            padding: 0.7rem 1.8rem;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .btn-primary-custom:hover {
+            background-color: var(--color-accent-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(183, 28, 28, 0.3);
+        }
+
+        .btn-secondary-custom {
+            background-color: transparent;
+            border: 1px solid var(--color-accent);
+            color: var(--color-accent);
+            padding: 0.7rem 1.8rem;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .btn-secondary-custom:hover {
+            background-color: rgba(183, 28, 28, 0.1);
+        }
+
+        .section-divider {
+            height: 2px;
+            background: linear-gradient(90deg, transparent 0%, var(--color-accent) 50%, transparent 100%);
+            margin: 2rem 0;
+            opacity: 0.5;
+        }
+
+        .data-table-container {
+            background-color: var(--color-card);
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid var(--color-border);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table thead {
+            background-color: #2a2a2a;
+        }
+
+        .data-table th {
+            padding: 1.2rem 1rem;
+            text-align: left;
+            font-weight: 500;
+            color: #ccc;
+            border-bottom: 2px solid var(--color-accent);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .data-table tbody tr {
+            border-bottom: 1px solid var(--color-border);
+            transition: background-color 0.2s;
+        }
+
+        .data-table tbody tr:nth-child(even) {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        .data-table tbody tr:hover {
+            background-color: rgba(183, 28, 28, 0.05);
+        }
+
+        .data-table td {
+            padding: 1.2rem 1rem;
+            color: #ddd;
+            vertical-align: middle;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+        }
+
+        .document-link {
+            color: var(--color-accent-light);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            padding: 0.3rem 0.5rem;
+            border-radius: 4px;
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid transparent;
+        }
+
+        .document-link:hover {
+            color: white;
+            background-color: rgba(183, 28, 28, 0.1);
+            border-color: var(--color-accent);
+            text-decoration: none;
+        }
+
+        .table-action-btn {
+            background-color: transparent;
+            border: 1px solid var(--color-border);
+            color: #ccc;
+            padding: 0.4rem 0.8rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            margin-right: 0.3rem;
+        }
+
+        .table-action-btn:hover {
+            border-color: var(--color-accent);
+            color: var(--color-accent);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, .75);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            padding: 1rem;
+        }
+
+        .modal-box {
+            background: #111;
+            width: 90%;
+            max-width: 900px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--color-border);
+        }
+
+        .modal-header,
+        .modal-footer {
+            padding: 1rem 1.5rem;
+            background: #1a1a1a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.8rem;
+            color: #fff;
+            cursor: pointer;
+            line-height: 1;
+            padding: 0;
+            margin: 0;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+        }
+
+        .form-grid>div {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-grid label {
+            color: #aaa;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .form-grid input,
+        .form-grid select {
+            width: 100%;
+            padding: 0.6rem 0.8rem;
+            border-radius: 6px;
+            background-color: #2a2a2a;
+            border: 1px solid var(--color-border);
+            color: var(--color-text);
+            font-size: 0.95rem;
+        }
+
+        .file-info {
+            font-size: 0.85rem;
+            color: #4caf50;
+            margin-top: 0.3rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .file-info i {
+            color: var(--color-accent);
+        }
+
+        .modal-body iframe {
+            border-radius: 6px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-body pre {
+            background: #2a2a2a;
+            color: #e0e0e0;
+            padding: 1rem;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        .modal-body img {
+            border-radius: 6px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            max-width: 90%;
+            max-height: 70vh;
+            object-fit: contain;
+        }
+
+        /* ESTILOS KANBAN */
+        .kanban-view {
+            display: flex;
+            gap: 1rem;
+            padding: 1rem;
+            overflow-x: auto;
+            min-height: 500px;
+        }
+
+        .kanban-columna {
+            flex: 1;
+            min-width: 300px;
+            background-color: #1a1a1a;
+            border-radius: 10px;
+            border: 1px solid var(--color-border);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            max-height: 70vh;
+        }
+
+        .kanban-header {
+            padding: 1rem;
+            background-color: #2a2a2a;
+            border-bottom: 2px solid;
+            font-weight: 600;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .kanban-header.vigente {
+            border-color: #4caf50;
+            color: #4caf50;
+        }
+
+        .kanban-header.en-tramite {
+            border-color: #ff9800;
+            color: #ff9800;
+        }
+
+        .kanban-header.pendiente {
+            border-color: #9c27b0;
+            color: #9c27b0;
+        }
+
+        .kanban-header.vencido {
+            border-color: #f44336;
+            color: #f44336;
+        }
+
+        .kanban-tarjetas {
+            padding: 0.5rem;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .kanban-tarjeta {
+            background-color: #2a2a2a;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            border-left: 4px solid;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--color-border);
+        }
+
+        .kanban-tarjeta:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            border-color: var(--color-accent);
+        }
+
+        .kanban-tarjeta.vigente {
+            border-left-color: #4caf50;
+        }
+
+        .kanban-tarjeta.en-tramite {
+            border-left-color: #ff9800;
+        }
+
+        .kanban-tarjeta.pendiente {
+            border-left-color: #9c27b0;
+        }
+
+        .kanban-tarjeta.vencido {
+            border-left-color: #f44336;
+        }
+
+        .kanban-sucursal {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .kanban-sucursal i {
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+
+        .kanban-info {
+            font-size: 0.9rem;
+            color: #ccc;
+            margin-bottom: 0.3rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .kanban-info strong {
+            color: white;
+            min-width: 120px;
+            display: inline-block;
+        }
+
+        .kanban-archivo {
+            margin-top: 0.8rem;
+            padding-top: 0.8rem;
+            border-top: 1px solid var(--color-border);
+        }
+
+        .kanban-sin-actividades {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 2rem;
+            font-size: 0.9rem;
+        }
+
+        /* ESTILOS MODAL REPORTES */
+        #reporteModal .modal-dialog {
+            max-width: 95%;
+            min-height: 80vh;
+        }
+
+        #reporteModal .modal-content {
+            background-color: #111;
+            border: 1px solid #333;
+            border-radius: 10px;
+            color: #fff;
+        }
+
+        #reporteModal .modal-header {
+            background: linear-gradient(135deg, #b71c1c 0%, #8b0000 100%);
+            border-bottom: 2px solid #333;
+            padding: 1.2rem 1.5rem;
+        }
+
+        #reporteModal .modal-title {
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        #reporteModal .modal-body {
+            max-height: 70vh;
+            overflow-y: auto;
+            padding: 1.5rem;
+        }
+
+        #reporteModal .table {
+            color: #ddd;
+            margin-bottom: 0;
+        }
+
+        #reporteModal .table th {
+            background-color: #2a2a2a;
+            color: #ccc;
+            border-bottom: 2px solid #b71c1c;
+            font-weight: 500;
+            padding: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        #reporteModal .table td {
+            padding: 0.8rem 1rem;
+            border-bottom: 1px solid #333;
+            vertical-align: middle;
+        }
+
+        #reporteModal .table tbody tr:hover {
+            background-color: rgba(183, 28, 28, 0.05);
+        }
+
+        #reporteModal .badge {
+            font-size: 0.85rem;
+            padding: 0.35em 0.65em;
+            font-weight: 500;
+        }
+
+        #reporteModal .bg-success {
+            background-color: #2e7d32 !important;
+        }
+
+        #reporteModal .bg-danger {
+            background-color: #c62828 !important;
+        }
+
+        #reporteModal .bg-warning {
+            background-color: #ef6c00 !important;
+            color: #fff !important;
+        }
+
+        #reporteModal .bg-secondary {
+            background-color: #616161 !important;
+        }
+
+        #reporteModal .bg-info {
+            background-color: #0277bd !important;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .main-container {
+                padding: 1rem;
+            }
+
+            .header-logo {
+                font-size: 2rem;
+            }
+
+            .card-number {
+                font-size: 2rem;
+            }
+
+            .filter-row {
+                flex-direction: column;
+            }
+
+            .filter-group,
+            .search-box {
+                min-width: 100%;
+            }
+
+            .data-table {
+                display: block;
+                overflow-x: auto;
+            }
+
+            .form-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            #reporteModal .modal-dialog {
+                max-width: 100%;
+                margin: 0.5rem;
+            }
+
+            #reporteModal .modal-body {
+                padding: 1rem;
+            }
+
+            #reporteModal .table {
+                font-size: 0.85rem;
+            }
+
+            #reporteModal .table th,
+            #reporteModal .table td {
+                padding: 0.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ANIMACIONES */
+        @keyframes modalSlideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal.fade .modal-dialog {
+            animation: modalSlideIn 0.3s ease-out;
+        }
+
+        .summary-card.clicked {
+            transform: scale(0.98);
+            transition: transform 0.1s;
+        }

@@ -1,0 +1,330 @@
+        :root {
+            --color-bg: #000000;
+            --color-card: #ffffff;
+            --color-text: #ffffff;
+            --color-text-dark: #2c2c2c;
+            --color-accent: #b71c1c;
+            --color-accent-hover: #8b0000;
+            --color-border: #e0e0e0;
+            --color-navbar: #1a1a1a;
+        }
+
+        body {
+            background-color: var(--color-bg);
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            color: var(--color-text);
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+        }
+
+        /* HEADER */
+        .page-header {
+            text-align: center;
+            margin-bottom: 3rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 1.5rem;
+        }
+
+        .brand-title {
+            font-size: 2.2rem;
+            font-weight: 300;
+            letter-spacing: 3px;
+            margin-bottom: 0.5rem;
+            color: var(--color-text);
+        }
+
+        .brand-subtitle {
+            font-size: 0.9rem;
+            letter-spacing: 4px;
+            opacity: 0.8;
+            margin-bottom: 1rem;
+            color: var(--color-text);
+        }
+
+        .page-title {
+            font-size: 1.8rem;
+            font-weight: 400;
+            color: var(--color-text);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* KANJI CIRCLE */
+        .kanji-circle {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 60px;
+            height: 60px;
+            background-color: var(--color-accent);
+            border-radius: 50%;
+            color: white;
+            font-weight: bold;
+            font-size: 1.8rem;
+            margin-right: 1rem;
+            box-shadow: 0 4px 8px rgba(183, 28, 28, 0.3);
+        }
+
+        /* BOTONES */
+        .btn-primary {
+            background-color: var(--color-accent);
+            border: none;
+            border-radius: 6px;
+            padding: 0.5rem 1.5rem;
+            font-weight: 500;
+            color: white !important;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--color-accent-hover);
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: var(--color-text) !important;
+            border-radius: 6px;
+            padding: 0.5rem 1.5rem;
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* FORMULARIOS */
+        .filter-form {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .form-label {
+            color: var(--color-text) !important;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-control,
+        .form-select {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: var(--color-text) !important;
+            border-radius: 6px;
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: var(--color-accent);
+            color: var(--color-text) !important;
+            box-shadow: 0 0 0 0.2rem rgba(183, 28, 28, 0.25);
+        }
+
+        /* BOTONES DE SUCURSAL */
+        .sucursal-btn {
+            transition: all 0.3s ease;
+            min-width: 120px;
+            border-radius: 6px;
+        }
+
+        .sucursal-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(183, 28, 28, 0.3);
+        }
+
+        .sucursal-btn.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* TARJETAS */
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-header {
+            background: rgba(0, 0, 0, 0.3) !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--color-text) !important;
+        }
+
+        .bg-primary {
+            background: rgba(183, 28, 28, 0.3) !important;
+        }
+
+        .bg-success {
+            background: rgba(40, 167, 69, 0.3) !important;
+        }
+
+        .bg-warning {
+            background: rgba(255, 193, 7, 0.3) !important;
+            color: white !important;
+        }
+
+        .bg-info {
+            background: rgba(23, 162, 184, 0.3) !important;
+        }
+
+        .bg-purple {
+            background: rgba(111, 66, 193, 0.3) !important;
+        }
+
+        .bg-danger {
+            background: rgba(220, 53, 69, 0.3) !important;
+        }
+
+        .bg-dark {
+            background: rgba(52, 58, 64, 0.3) !important;
+        }
+
+        /* ALERTAS */
+        .alert {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: var(--color-text);
+        }
+
+        .alert-success {
+            background: rgba(40, 167, 69, 0.2) !important;
+            border-color: rgba(40, 167, 69, 0.5);
+        }
+
+        .alert-warning {
+            background: rgba(255, 193, 7, 0.2) !important;
+            border-color: rgba(255, 193, 7, 0.5);
+        }
+
+        .alert-danger {
+            background: rgba(220, 53, 69, 0.2) !important;
+            border-color: rgba(220, 53, 69, 0.5);
+        }
+
+        /* TABLA */
+        .table {
+            color: #ffffff !important;
+            margin-bottom: 0;
+        }
+
+        .table th {
+            color: #ffffff !important;
+            font-weight: 600;
+            background: rgba(0, 0, 0, 0.6) !important;
+        }
+
+        .table td {
+            color: #ffffff !important;
+            background-color: rgba(0, 0, 0, 0.3) !important;
+        }
+
+        .table-striped tbody tr:nth-of-type(odd) {
+            background-color: rgba(255, 255, 255, 0.1) !important;
+        }
+
+        .table-striped tbody tr:nth-of-type(even) {
+            background-color: rgba(255, 255, 255, 0.05) !important;
+        }
+
+        .table-bordered th,
+        .table-bordered td {
+            border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        }
+
+        /* BADGES */
+        .badge {
+            font-weight: 500;
+            border-radius: 4px;
+        }
+
+        /* MARCA DE AGUA */
+        .watermark {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            opacity: 0.1;
+            z-index: -1;
+        }
+
+        .watermark-symbol {
+            width: 100px;
+            height: 100px;
+            background-color: var(--color-accent);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 2.5rem;
+        }
+
+        /* IMAGEN DEL DISPOSITIVO */
+        .device-image {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            opacity: 0.1;
+            transition: opacity 0.3s;
+        }
+
+        .device-image:hover {
+            opacity: 0.8;
+        }
+
+        .device-watermark {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 100;
+            text-decoration: none;
+        }
+
+        #contenedor-sucursales {
+            justify-content: center;
+            /* Añade esta línea */
+            gap: 0.5rem;
+            /* Reduce el gap para mejor ajuste */
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .brand-title {
+                font-size: 1.8rem;
+            }
+
+            .page-title {
+                font-size: 1.4rem;
+            }
+
+            .kanji-circle {
+                width: 50px;
+                height: 50px;
+                font-size: 1.5rem;
+                margin-right: 0.8rem;
+            }
+
+            .sucursal-btn {
+                min-width: 100px;
+                font-size: 0.9rem;
+            }
+        }
