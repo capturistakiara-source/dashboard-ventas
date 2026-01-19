@@ -349,15 +349,14 @@ def planeacion():
 @app.route("/home")
 @login_required
 def home():
-    if current_user.rol == 'Gerentes':
-        return redirect(url_for('reporte_semanal_grafica'))
+    # 🔒 Gerentes SIEMPRE a la gráfica
+    if current_user.id == 'Gerentes':
+        return redirect(url_for('reporte_grafica'))
 
-    elif current_user.rol == 'Supervisores':
+    elif current_user.id == 'Supervisores':
         return redirect(url_for('supervision'))
 
-    # CUALQUIER OTRO ROL entra al home completo
     return render_template("home.html")
-
 
 # ==================== supervision ====================
 @app.route("/supervision")
@@ -1213,77 +1212,77 @@ def ranking_sucursales():
                              opciones_semanas=[],
                              error=f"Error: {str(e)}")
 
-# ==================== REPORTE SEMANAL SIMPLIFICADO PARA USUARIO GRAFICA ====================
+# ==================== REPORTE SEMANAL SIMPLIFICADO PARA USUARIO Gerentes ====================
 @app.route("/reporte-grafica")
 @login_required
-def reporte_semanal_grafica():
-    # Verificar que el usuario sea "Grafica"
+def reporte_grafica():
     if current_user.id != 'Gerentes':
         flash('❌ No tienes permisos para acceder a esta página', 'error')
         return redirect(url_for('home'))
-    
+
     try:
         sheets_data = get_spreadsheet_data()
         sucursales = list(sheets_data.keys()) if sheets_data else []
-        
+
         if not sucursales:
-            return render_template("reporte_grafica.html",
-                                 datos_semana_anterior=[],
-                                 rango_semana="No disponible",
-                                 error="No se pudieron cargar los datos")
-        
-        # Calcular semana ANTERIOR (lunes a domingo de la semana pasada)
+            return render_template(
+                "reporte_grafica.html",
+                datos_semana_anterior=[],
+                rango_semana="No disponible",
+                error="No se pudieron cargar los datos"
+            )
+
         hoy = datetime.now().date()
-        
-        # Calcular lunes de esta semana y restar 7 días para ir a la semana anterior
         lunes_semana_actual = hoy - timedelta(days=hoy.weekday())
         lunes_semana_anterior = lunes_semana_actual - timedelta(days=7)
         domingo_semana_anterior = lunes_semana_anterior + timedelta(days=6)
-        
-        rango_semana = f"{lunes_semana_anterior.strftime('%d/%m/%Y')} al {domingo_semana_anterior.strftime('%d/%m/%Y')}"
-        
-        # Obtener datos de la SEMANA ANTERIOR para todas las sucursales
+
+        rango_semana = (
+            f"{lunes_semana_anterior.strftime('%d/%m/%Y')} "
+            f"al {domingo_semana_anterior.strftime('%d/%m/%Y')}"
+        )
+
         datos_semana_anterior = []
+
         for sucursal in sucursales:
-            if sucursal in sheets_data:
-                data_rows = sheets_data[sucursal]
-                
-                if len(data_rows) > 1:
-                    headers = [_norm(h) for h in data_rows[0]]
-                    data_records = []
-                    
-                    # Filtrar datos de la SEMANA ANTERIOR
-                    for row in data_rows[1:]:
-                        if len(row) >= len(headers):
-                            record = {headers[i]: row[i] for i in range(len(headers))}
-                            
-                            fecha_str = record.get('APERTURA', '')
-                            fecha_row = parse_fecha(fecha_str)
-                            
-                            if fecha_row and lunes_semana_anterior <= fecha_row <= domingo_semana_anterior:
-                                data_records.append(record)
-                    
-                    # Calcular total de la semana anterior
-                    total_semanal = sum(num(fila.get('TOTAL SUCURSAL', 0)) for fila in data_records)
-                    
-                    datos_semana_anterior.append({
-                        'nombre': sucursal,
-                        'total_semanal': total_semanal
-                    })
-        
-        # Ordenar por total (mayor a menor)
+            data_rows = sheets_data.get(sucursal, [])
+            if len(data_rows) <= 1:
+                continue
+
+            headers = [_norm(h) for h in data_rows[0]]
+            data_records = []
+
+            for row in data_rows[1:]:
+                if len(row) >= len(headers):
+                    record = {headers[i]: row[i] for i in range(len(headers))}
+                    fecha_row = parse_fecha(record.get('APERTURA', ''))
+
+                    if fecha_row and lunes_semana_anterior <= fecha_row <= domingo_semana_anterior:
+                        data_records.append(record)
+
+            total_semanal = sum(num(r.get('TOTAL SUCURSAL', 0)) for r in data_records)
+
+            datos_semana_anterior.append({
+                'nombre': sucursal,
+                'total_semanal': total_semanal
+            })
+
         datos_semana_anterior.sort(key=lambda x: x['total_semanal'], reverse=True)
-        
-        return render_template("reporte_grafica.html",
-                             datos_semana_anterior=datos_semana_anterior,
-                             rango_semana=rango_semana)  # ✅ CORREGIDO: rango_semana
-                             
+
+        return render_template(
+            "reporte_grafica.html",
+            datos_semana_anterior=datos_semana_anterior,
+            rango_semana=rango_semana
+        )
+
     except Exception as e:
         print(f"❌ Error en reporte gráfica: {e}")
-        return render_template("reporte_grafica.html",
-                             datos_semana_anterior=[],
-                             rango_semana="Error",
-                             error=f"Error: {str(e)}")
+        return render_template(
+            "reporte_grafica.html",
+            datos_semana_anterior=[],
+            rango_semana="Error",
+            error=str(e)
+        )
 
 # ==================== ACTUALIZAR ESTATUS AUTOMÁTICO ====================
 @app.route("/actualizar_estatus_automatico", methods=["POST"])
