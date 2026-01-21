@@ -161,10 +161,48 @@
 
         <!-- TABLA DE DATOS -->
         <div class="data-table-container" id="tablaContainer">
+
+            <!-- CONTROLES-->
+            <div class="table-toolbar">
+                <div class="table-toolbar__left">
+                    <div class="table-count">
+                        Mostrando <span id="contadorRegistros">0</span> de <span id="contadorTotalFiltrados">0</span>
+                        registros
+                    </div>
+
+                    <div class="table-pager">
+                        <label class="table-pager__label" for="rowsPerPage">Mostrar</label>
+                        <select id="rowsPerPage" class="table-pager__select">
+                            <option value="25">25</option>
+                            <option value="50" selected>50</option>
+                            <option value="100">100</option>
+                            <option value="200">200</option>
+                            <option value="all">Todos</option>
+                        </select>
+                        <span class="table-pager__label">registros</span>
+                    </div>
+
+                    <div class="table-nav">
+                        <button id="prevPage" type="button"
+                            class="btn-secondary-custom table-nav__btn">Anterior</button>
+                        <span id="pageInfo" class="table-nav__info">Página 1 de 1</span>
+                        <button id="nextPage" type="button"
+                            class="btn-secondary-custom table-nav__btn">Siguiente</button>
+                    </div>
+                </div>
+
+                <div class="table-toolbar__right">
+                    <button id="btnAgregar" class="btn-secondary-custom">
+                        <i class="fas fa-plus me-1"></i> Agregar
+                    </button>
+                </div>
+            </div>
+
             <div class="table-responsive">
                 <table class="data-table">
                     <thead>
                         <tr>
+                            <th style="width: 4%;">#</th>
                             <th style="width: 5%;">BLOQUE</th>
                             <th style="width: 20%;">SUCURSAL</th>
                             <th style="width: 10%;">PERMISO</th>
@@ -182,19 +220,6 @@
                 </table>
             </div>
 
-            <!-- PIE DE TABLA -->
-            <div style="padding: 1rem 1.5rem; background-color: #1a1a1a; border-top: 1px solid var(--color-border);">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div style="color: #aaa; font-size: 0.9rem;">
-                        Mostrando <span id="contadorRegistros">0</span> registros
-                    </div>
-                    <div>
-                        <button id="btnAgregar" class="btn-secondary-custom">
-                            <i class="fas fa-plus me-1"></i> Agregar
-                        </button>
-                    </div>
-                </div>
-            </div>
         </div>
 
         <!-- CONTENEDOR KANBAN -->
@@ -329,10 +354,32 @@
                 </div>
             </div>
         </div>
+
+        <!--MODAL PDF (Preview + Print)-->
+        <div id="pdfModal" class="pdf-modal" aria-hidden="true">
+            <div class="pdf-modal__backdrop" onclick="cerrarPdfModal()"></div>
+
+            <div class="pdf-modal__dialog" role="dialog" aria-modal="true" aria-label="Vista previa de PDF">
+                <div class="pdf-modal__header">
+                    <div class="pdf-modal__title">Vista previa del reporte</div>
+
+                    <div class="pdf-modal__actions">
+                        <button type="button" class="pdf-btn" onclick="imprimirPdfModal()">Imprimir</button>
+                        <button type="button" class="pdf-btn pdf-btn--ghost" onclick="cerrarPdfModal()">Cerrar</button>
+                    </div>
+                </div>
+
+                <div class="pdf-modal__body">
+                    <iframe id="pdfIframe" class="pdf-modal__iframe" title="PDF preview"></iframe>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 
     <script>
         // CONFIGURACIÓN SUPABASE
@@ -380,26 +427,366 @@
         let currentView = 'tabla';
         let reporteActual = '';
 
-        // =========================
         // UTILIDADES
-        // =========================
         function getFileIcon(filename) {
             if (!filename) return fileIcons.default;
             const extension = filename.split('.').pop().toLowerCase();
             return fileIcons[extension] || fileIcons.default;
         }
+        // PDF (KPI -> Modal Preview)
 
+        let __pdfBlobUrl = null;
+
+        // Tus KPI cards llaman esto
+        function generarReporte(tipoCard) {
+            const tipo = (tipoCard || '').toString().trim().toLowerCase();
+
+            const map = {
+                'vigentes': 'vigentes',
+                'vencidos': 'vencidos',
+                'en-tramite': 'en-tramite',
+                'pendientes': 'pendientes',
+                'proximos-a-vencer': 'proximos-a-vencer',
+                'proximos': 'proximos-a-vencer',
+                'todos': 'todos',
+                'total': 'todos'
+            };
+
+            imprimirCardEnPDF(map[tipo] || tipo);
+        }
+
+        function _tituloEstatusParaPDF(tipo) {
+            switch (tipo) {
+                case 'vigentes': return 'Vigentes';
+                case 'vencidos': return 'Vencidos';
+                case 'en-tramite': return 'En trámite';
+                case 'pendientes': return 'Pendientes';
+                case 'proximos-a-vencer': return 'Próximo a vencer';
+                case 'todos': return 'Total';
+                default: return 'Reporte';
+            }
+        }
+
+        function _filtrarPorCard(tipo) {
+            const data = Array.isArray(permisosGuardados) ? permisosGuardados : [];
+
+            switch (tipo) {
+                case 'vigentes': return data.filter(p => p.estatus === 'vigente');
+                case 'vencidos': return data.filter(p => p.estatus === 'vencido');
+                case 'en-tramite': return data.filter(p => p.estatus === 'en-tramite');
+                case 'pendientes': return data.filter(p => !p.estatus || p.estatus === 'pendiente');
+                case 'proximos-a-vencer': return data.filter(p => p.estatus === 'proximo-a-vencer');
+                case 'todos':
+                default: return data;
+            }
+        }
+
+        function _aplicarFiltrosUI(registros) {
+            const blockFilter = document.getElementById('blockFilter')?.value || 'all';
+            const branchFilter = document.getElementById('branchFilter')?.value || 'all';
+            const permisoFilter = document.getElementById('permisoFilter')?.value || 'all';
+            const estatusFilter = document.getElementById('estatusFilter')?.value || 'all';
+            const busqueda = (document.getElementById('busquedaInput')?.value || '').toLowerCase();
+
+            let filtrados = [...registros];
+
+            if (blockFilter !== 'all') filtrados = filtrados.filter(p => String(p.bloque) === String(blockFilter));
+            if (branchFilter !== 'all') filtrados = filtrados.filter(p => (p.sucursal || '') === branchFilter);
+            if (permisoFilter !== 'all') filtrados = filtrados.filter(p => (p.permiso || '') === permisoFilter);
+            if (estatusFilter !== 'all') filtrados = filtrados.filter(p => (p.estatus || '') === estatusFilter);
+
+            if (busqueda) {
+                filtrados = filtrados.filter(p =>
+                    (p.sucursal && p.sucursal.toLowerCase().includes(busqueda)) ||
+                    (p.permiso && p.permiso.toLowerCase().includes(busqueda)) ||
+                    (p.existencia && p.existencia.toLowerCase().includes(busqueda)) ||
+                    (p.estatusLegal && String(p.estatusLegal).toLowerCase().includes(busqueda))
+                );
+            }
+
+            return filtrados;
+        }
+
+        function _formatFechaHoraMX() {
+            const d = new Date();
+            const fecha = d.toLocaleDateString('es-MX');
+            const hora = d.toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' });
+            return `${fecha}, ${hora}`;
+        }
+
+        function _getNombreGenerador() {
+            return window.currentUserName || sessionStorage.getItem('user_name') || '';
+        }
+
+        function _estatusLabelTabla(estatus) {
+            switch (estatus) {
+                case 'vigente': return 'VIGENTE';
+                case 'vencido': return 'VENCIDO';
+                case 'en-tramite': return 'EN TRÁMITE';
+                case 'pendiente': return 'PENDIENTE';
+                case 'proximo-a-vencer': return 'PRÓXIMO A VENCER';
+                default: return (estatus || '').toString().toUpperCase();
+            }
+        }
+
+        // FIX: imprime lo que se eligió en Estatus Legal
+        function _estatusLegalBool(v) {
+            if (v === null || v === undefined) return false;
+
+            if (typeof v === 'boolean') return v;
+            if (typeof v === 'number') return v === 1;
+
+            const s = String(v).trim().toLowerCase();
+
+            // positivos típicos
+            return ['si', 'sí', 'ok', 'aprobado', 'activo', 'valido', 'válido', 'cumple', '1', 'x', '✓', 'check', 'true'].includes(s);
+        }
+
+        function _estatusLegalTexto(v) {
+            if (v === null || v === undefined) return '';
+            const s = String(v).trim();
+
+            // si viene con entidad html, la limpiamos
+            return s.replace(/&nbsp;/gi, ' ')
+                .replace(/&amp;/gi, '&')
+                .replace(/&#39;/g, "'");
+        }
+
+        // Modal 
+        function abrirPdfModal(blob) {
+            const modal = document.getElementById('pdfModal');
+            const iframe = document.getElementById('pdfIframe');
+
+            if (!modal || !iframe) {
+                alert('No se encontró el modal PDF (pdfModal / pdfIframe).');
+                return;
+            }
+
+            if (__pdfBlobUrl) URL.revokeObjectURL(__pdfBlobUrl);
+            __pdfBlobUrl = URL.createObjectURL(blob);
+
+            iframe.src = __pdfBlobUrl;
+            modal.classList.add('is-open');
+            modal.setAttribute('aria-hidden', 'false');
+        }
+
+        function cerrarPdfModal() {
+            const modal = document.getElementById('pdfModal');
+            const iframe = document.getElementById('pdfIframe');
+
+            if (modal) {
+                modal.classList.remove('is-open');
+                modal.setAttribute('aria-hidden', 'true');
+            }
+
+            if (iframe) iframe.src = 'about:blank';
+
+            if (__pdfBlobUrl) {
+                URL.revokeObjectURL(__pdfBlobUrl);
+                __pdfBlobUrl = null;
+            }
+        }
+
+        function imprimirPdfModal() {
+            const iframe = document.getElementById('pdfIframe');
+            if (!iframe) return;
+            iframe.contentWindow?.focus();
+            iframe.contentWindow?.print();
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') cerrarPdfModal();
+        });
+
+        // Generación PDF
+        function imprimirCardEnPDF(tipo) {
+            try {
+                if (!window.jspdf || !window.jspdf.jsPDF) {
+                    alert('Falta cargar jsPDF.');
+                    return;
+                }
+
+                const { jsPDF } = window.jspdf;
+
+                const base = _aplicarFiltrosUI(Array.isArray(permisosGuardados) ? permisosGuardados : []);
+                let registros = (tipo === 'todos') ? base : _aplicarFiltrosUI(_filtrarPorCard(tipo));
+
+                if (!registros.length) {
+                    alert('No hay registros para imprimir con los filtros actuales.');
+                    return;
+                }
+
+                // Contadores
+                const total = base.length;
+                const cVig = base.filter(p => p.estatus === 'vigente').length;
+                const cProx = base.filter(p => p.estatus === 'proximo-a-vencer').length;
+                const cTram = base.filter(p => p.estatus === 'en-tramite').length;
+                const cPend = base.filter(p => !p.estatus || p.estatus === 'pendiente').length;
+                const cVenc = base.filter(p => p.estatus === 'vencido').length;
+
+                const filtroAplicado = _tituloEstatusParaPDF(tipo);
+                const fechaGen = _formatFechaHoraMX();
+                const generadoPor = _getNombreGenerador();
+                const depto = 'Planeación';
+
+                const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'letter' });
+
+                const wine = [128, 52, 64];
+                const gray = [70, 70, 70];
+                const M = 12;
+
+                // Header
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(16);
+                doc.setTextColor(wine[0], wine[1], wine[2]);
+                doc.text('Reporte de Permisos - La Postal', M, 14);
+
+                doc.setFontSize(12);
+                doc.setTextColor(gray[0], gray[1], gray[2]);
+                doc.text(filtroAplicado, M, 22);
+
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(9);
+                doc.text(`Fecha de generación: ${fechaGen}`, M, 28);
+
+                doc.setDrawColor(wine[0], wine[1], wine[2]);
+                doc.setLineWidth(0.8);
+                doc.line(M, 32, 270, 32);
+
+                // Meta
+                doc.setFontSize(9);
+                doc.setTextColor(40, 40, 40);
+                doc.text(`Filtro aplicado: ${filtroAplicado}`, M, 40);
+                doc.text(`Total de registros: ${registros.length}`, M, 45);
+                if (generadoPor) doc.text(`Generado por: ${generadoPor}`, M, 50);
+                doc.text(`Departamento: ${depto}`, M, 55);
+
+                // KPI cards
+                const kpiY = 62;
+                const kpiH = 14;
+                const kpiGap = 6;
+                const kpiW = 38;
+
+                const cards = [
+                    { label: 'TOTAL', value: total },
+                    { label: 'VIGENTES', value: cVig },
+                    { label: 'PRÓXIMOS', value: cProx },
+                    { label: 'EN TRÁMITE', value: cTram },
+                    { label: 'PENDIENTES', value: cPend },
+                    { label: 'VENCIDOS', value: cVenc },
+                ];
+
+                doc.setDrawColor(210, 210, 210);
+                doc.setTextColor(60, 60, 60);
+
+                cards.forEach((c, i) => {
+                    const row = i < 4 ? 0 : 1;
+                    const col = i < 4 ? i : (i - 4);
+
+                    const x = M + col * (kpiW + kpiGap);
+                    const y = kpiY + row * (kpiH + 6);
+
+                    doc.roundedRect(x, y, kpiW, kpiH, 2, 2, 'S');
+
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(12);
+                    doc.text(String(c.value), x + 5, y + 8);
+
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(8);
+                    doc.text(c.label, x + 5, y + 12.2);
+                });
+
+                // Tabla
+                const startY = kpiY + (kpiH + 6) * 2 + 8;
+
+                const body = registros.map((p, idx) => ([
+                    idx + 1,
+                    p.bloque ?? '',
+                    p.sucursal ?? '',
+                    p.permiso ?? '',
+                    p.existencia ?? '',
+                    p.fechaExpedicion ?? '',
+                    p.fechaRenovacion ?? '',
+                    _estatusLabelTabla(p.estatus),
+                    _estatusLegalBool(p.estatusLegal) ? '__CHECK__' : _estatusLegalTexto(p.estatusLegal)
+                ]));
+
+                if (typeof doc.autoTable !== 'function') {
+                    alert('Falta cargar jspdf-autotable.');
+                    return;
+                }
+
+                doc.autoTable({
+                    startY,
+                    head: [[
+                        '#', 'BLOQUE', 'SUCURSAL', 'PERMISO', 'EXISTENCIA',
+                        'FECHA EXP.', 'FECHA REN.', 'ESTATUS', 'ESTATUS LEGAL'
+                    ]],
+                    body,
+                    theme: 'grid',
+                    styles: { fontSize: 8, cellPadding: 2 },
+                    headStyles: {
+                        fillColor: [245, 245, 245],
+                        textColor: [40, 40, 40],
+                        lineColor: [210, 210, 210],
+                        lineWidth: 0.2
+                    },
+                    bodyStyles: {
+                        textColor: [40, 40, 40],
+                        lineColor: [230, 230, 230],
+                        lineWidth: 0.2
+                    },
+                    margin: { left: M, right: M },
+
+                    didParseCell: function (data) {
+                        // Columna 8 
+                        if (data.section === 'body' && data.column.index === 8) {
+                            if (data.cell.raw === '__CHECK__') {
+                                // Dingbats
+                                data.cell.text = ['3'];
+                                data.cell.styles.font = 'zapfdingbats';
+                                data.cell.styles.fontSize = 12;
+                                data.cell.styles.halign = 'center';
+                            } else {
+                                // texto normal
+                                data.cell.styles.font = 'helvetica';
+                                data.cell.styles.fontSize = 8;
+                                data.cell.styles.halign = 'left';
+                            }
+                        }
+                    },
+                });
+
+                const finalY = doc.lastAutoTable?.finalY || (startY + 10);
+
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(9);
+                doc.setTextColor(60, 60, 60);
+                doc.text(`Total de permisos: ${registros.length}`, 270 - M - 45, finalY + 8);
+
+                doc.setFontSize(8);
+                doc.setTextColor(110, 110, 110);
+                doc.text('Sistema de Gestión de Permisos - La Postal © 2026', 140, 202, { align: 'center' });
+                doc.text('Este reporte fue generado automáticamente por el sistema.', 140, 206, { align: 'center' });
+
+                // Mostrar modal
+                const blob = doc.output('blob');
+                abrirPdfModal(blob);
+
+            } catch (err) {
+                console.error('Error PDF:', err);
+                alert('Se produjo un error generando el PDF. Revisa la consola (F12) -> Console.');
+            }
+        }
         function normalizarTxt(x) {
             return (x ?? '').toString().trim();
         }
 
-        // =========================
-        // CARGA PRINCIPAL (SIN ARCHIVE_DATA)
-        // =========================
+        // CARGA PRINCIPAL
         async function cargarDatosIniciales() {
             console.log('Cargando datos desde Supabase...');
 
-            // IMPORTANTE: NO TRAER archive_data EN LISTADO
             const { data, error } = await supabaseClient
                 .from('datos_financieros')
                 .select(`
@@ -441,7 +828,6 @@
                 permisoLegal: item.permiso_legal ?? '',
                 archivoNombre: item.archive_nombre ?? null,
                 archivoTipo: item.archive_tipo ?? null,
-                // NO viene en la carga inicial (se trae bajo demanda)
                 archivoData: null
             }));
 
@@ -455,9 +841,7 @@
             else mostrarKanban(registros);
         }
 
-        // =========================
         // TABLA
-        // =========================
         function mostrarRegistrosEnTabla(registros) {
             const tablaBody = document.getElementById('tablaBody');
             if (!tablaBody) return;
@@ -575,9 +959,7 @@
             });
         }
 
-        // =========================
         // ARCHIVOS: CARGA BAJO DEMANDA
-        // =========================
         async function obtenerArchivoDataPorId(id) {
             const { data, error } = await supabaseClient
                 .from('datos_financieros')
@@ -708,9 +1090,7 @@
             }
         }
 
-        // =========================
         // MODAL AGREGAR/EDITAR
-        // =========================
         function abrirModal(editarIndex = -1) {
             editingIndex = editarIndex;
             const modal = document.getElementById('modalAgregar');
@@ -792,9 +1172,7 @@
             });
         }
 
-        // =========================
         // GUARDAR
-        // =========================
         function calcularEstatusAlGuardar(fechaRenovacion, estatusSeleccionado) {
             if (!fechaRenovacion) return estatusSeleccionado || 'pendiente';
 
@@ -827,7 +1205,7 @@
             const estatusCalculado = calcularEstatusAlGuardar(fechaRenovacion, estatusSeleccionado);
 
             const nuevoPermiso = {
-                // IMPORTANTE: NO INVENTAR ID PARA INSERT, lo pone la BD
+
                 id: (editingIndex >= 0 ? permisosGuardados[editingIndex].id : null),
                 asigna,
                 bloque,
@@ -849,8 +1227,7 @@
             if (fileInput && fileInput.files.length > 0) {
                 const file = fileInput.files[0];
 
-                // Recomendación: si suben archivos grandes, aquí es donde te puede explotar.
-                // Si quieres, pongo límite de tamaño.
+
                 const reader = new FileReader();
                 reader.onload = function (e) {
                     nuevoPermiso.archivoNombre = file.name;
@@ -860,9 +1237,8 @@
                 };
                 reader.readAsDataURL(file);
             } else if (editingIndex >= 0 && permisosGuardados[editingIndex].archivoNombre) {
-                // Mantener archivo actual si no cargan otro
                 nuevoPermiso.archivoNombre = permisosGuardados[editingIndex].archivoNombre;
-                nuevoPermiso.archivoData = permisosGuardados[editingIndex].archivoData || ''; // puede estar null, se trae bajo demanda
+                nuevoPermiso.archivoData = permisosGuardados[editingIndex].archivoData || '';
                 nuevoPermiso.archivoTipo = permisosGuardados[editingIndex].archivoTipo || '';
                 finalizarGuardado(nuevoPermiso);
             } else {
@@ -881,7 +1257,6 @@
                 fecha_expedicion: nuevoPermiso.fechaExpedicion || null,
                 fecha_renovacion: nuevoPermiso.fechaRenovacion || null,
                 estatus_legal: nuevoPermiso.estatusLegal || '',
-                // OJO: aquí estaba mal mapeado en tu código
                 permiso_legal: nuevoPermiso.permisoLegal || '',
                 archive_nombre: nuevoPermiso.archivoNombre || null,
                 archive_data: (nuevoPermiso.archivoData ? nuevoPermiso.archivoData : null),
@@ -906,7 +1281,6 @@
                         ...permisosGuardados[editingIndex],
                         ...nuevoPermiso,
                         id,
-                        // si no trajiste archivoData (porque era bajo demanda), no lo borres
                         archivoData: (nuevoPermiso.archivoData ? nuevoPermiso.archivoData : permisosGuardados[editingIndex].archivoData)
                     };
 
@@ -925,7 +1299,6 @@
                     permisosGuardados.unshift({
                         ...nuevoPermiso,
                         id: data.id,
-                        // no guardes base64 en memoria si no lo necesitas
                         archivoData: (nuevoPermiso.archivoData ? nuevoPermiso.archivoData : null)
                     });
                 }
@@ -941,9 +1314,7 @@
             }
         }
 
-        // =========================
-        // ELIMINAR (OJO: en tu código original solo borrabas local)
-        // =========================
+        // ELIMINAR
         async function eliminarRegistro(index) {
             const permiso = permisosGuardados[index];
             if (!permiso?.id) return;
@@ -967,9 +1338,7 @@
             }
         }
 
-        // =========================
         // CONTADORES
-        // =========================
         function actualizarContadores() {
             const vigentes = permisosGuardados.filter(p => p.estatus === 'vigente').length;
             const vencidos = permisosGuardados.filter(p => p.estatus === 'vencido').length;
@@ -986,9 +1355,7 @@
             document.getElementById('contadorTotal').textContent = total;
         }
 
-        // =========================
-        // VISTAS: TABLA / KANBAN (tu kanban original lo dejo tal cual, solo llama mostrarArchivoModal)
-        // =========================
+        // VISTAS: TABLA / KANBAN
         function mostrarKanban(registros) {
             const kanbanView = document.getElementById('kanbanView');
             if (!kanbanView) return;
@@ -1069,9 +1436,7 @@
             });
         }
 
-        // =========================
-        // DETALLE (tu lógica original funciona; aquí solo dejo lo mínimo para no romper)
-        // =========================
+        // DETALLE
         function getColorPorEstatus(estatus) {
             switch (estatus) {
                 case 'vigente': return '#4caf50';
@@ -1179,9 +1544,7 @@
             if (modal) modal.style.display = 'none';
         }
 
-        // =========================
         // VISTA
-        // =========================
         function cambiarVista(vista) {
             currentView = vista;
             const tablaBtn = document.getElementById('btnVistaTabla');
@@ -1204,9 +1567,7 @@
             }
         }
 
-        // =========================
-        // FILTROS (igual a tu lógica)
-        // =========================
+        // FILTROS
         function inicializarFiltros() {
             const blockFilter = document.getElementById('blockFilter');
 
@@ -1271,9 +1632,6 @@
             mostrarVistaActual(filtrados);
         }
 
-        // =========================
-        // ACTUALIZACIÓN AUTOMÁTICA DE ESTATUS (tu lógica, pero sin usar actualizado_en si no existe)
-        // =========================
         async function actualizarEstatusAutomaticamente() {
             const hoy = new Date();
 
@@ -1311,9 +1669,7 @@
             actualizarContadores();
         }
 
-        // =========================
         // INICIO
-        // =========================
         document.addEventListener('DOMContentLoaded', async function () {
             await cargarDatosIniciales();
             inicializarFiltros();
@@ -1350,6 +1706,105 @@
 
         document.getElementById('modalDetalle').addEventListener('click', function (e) {
             if (e.target === this) cerrarDetalleModal();
+        });
+
+        // =========================
+        // PAGINACIÓN FRONT
+        // =========================
+
+        let __page = 1;
+        let __rowsPerPage = 50;
+        let __filteredCache = []; // datos filtrados totales (sin paginar)
+
+        function _rowsPerPageValue() {
+            const v = document.getElementById('rowsPerPage')?.value || '50';
+            if (v === 'all') return Infinity;
+            const n = parseInt(v, 10);
+            return Number.isFinite(n) && n > 0 ? n : 50;
+        }
+
+        function _totalPages() {
+            const total = __filteredCache.length;
+            if (__rowsPerPage === Infinity) return 1;
+            return Math.max(1, Math.ceil(total / __rowsPerPage));
+        }
+
+        function _slicePage() {
+            if (__rowsPerPage === Infinity) return __filteredCache;
+            const start = (__page - 1) * __rowsPerPage;
+            return __filteredCache.slice(start, start + __rowsPerPage);
+        }
+
+        function _updatePagerUI() {
+            const total = __filteredCache.length;
+            const pages = _totalPages();
+
+            if (__page > pages) __page = pages;
+            if (__page < 1) __page = 1;
+
+            const slice = _slicePage();
+            const countVisible = slice.length;
+
+            const elCount = document.getElementById('contadorRegistros');
+            const elTotal = document.getElementById('contadorTotalFiltrados');
+            const elInfo = document.getElementById('pageInfo');
+            const prev = document.getElementById('prevPage');
+            const next = document.getElementById('nextPage');
+
+            if (elCount) elCount.textContent = String(countVisible);
+            if (elTotal) elTotal.textContent = String(total);
+            if (elInfo) elInfo.textContent = `Página ${__page} de ${pages}`;
+
+            if (prev) prev.disabled = (__page <= 1);
+            if (next) next.disabled = (__page >= pages);
+        }
+
+        // Esta es la función “puente”: la llamas cada vez que ya tienes los filtrados.
+        function aplicarPaginacionConData(filtrados) {
+            __filteredCache = Array.isArray(filtrados) ? filtrados : [];
+            __rowsPerPage = _rowsPerPageValue();
+            __page = 1;
+
+            const slice = _slicePage();
+            _updatePagerUI();
+
+            // CAMBIA ESTA FUNCIÓN por la tuya real de render
+            renderTablaWeb(slice);
+        }
+
+        function irPagina(delta) {
+            __rowsPerPage = _rowsPerPageValue();
+            __page += delta;
+
+            const pages = _totalPages();
+            if (__page < 1) __page = 1;
+            if (__page > pages) __page = pages;
+
+            const slice = _slicePage();
+            _updatePagerUI();
+
+            // CAMBIA ESTA FUNCIÓN por la tuya real de render
+            renderTablaWeb(slice);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const rowsSel = document.getElementById('rowsPerPage');
+            const prevBtn = document.getElementById('prevPage');
+            const nextBtn = document.getElementById('nextPage');
+
+            if (rowsSel) {
+                rowsSel.addEventListener('change', () => {
+                    __rowsPerPage = _rowsPerPageValue();
+                    __page = 1;
+                    const slice = _slicePage();
+                    _updatePagerUI();
+                    // CAMBIA ESTA FUNCIÓN por la tuya real de render
+                    renderTablaWeb(slice);
+                });
+            }
+
+            if (prevBtn) prevBtn.addEventListener('click', () => irPagina(-1));
+            if (nextBtn) nextBtn.addEventListener('click', () => irPagina(1));
         });
 
     </script>
