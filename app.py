@@ -1,5 +1,6 @@
-import os
+﻿import os
 import json
+import re
 import unicodedata
 import gspread
 import time
@@ -17,17 +18,17 @@ from functools import wraps
 from flask import abort
 from flask import Flask, render_template, url_for
 
-# ==================== CONFIGURACIÓN INICIAL ====================
+# ==================== CONFIGURACIÃ“N INICIAL ====================
 app = Flask(__name__)
 app.secret_key = 'Lapostal01'
 
-# Configuración de Flask-Login
+# ConfiguraciÃ³n de Flask-Login
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
-login_manager.login_message = 'Por favor inicia sesión para acceder a esta página.'
+login_manager.login_message = 'Por favor inicia sesiÃ³n para acceder a esta pÃ¡gina.'
 
-# USUARIOS - CONTRASEÑAS EN TEXTO PLANO
+# USUARIOS - CONTRASEÃ‘AS EN TEXTO PLANO
 USUARIOS = {
     'C.E.O': {
         'password': 'Dpostal01',
@@ -36,7 +37,7 @@ USUARIOS = {
     },
     'Direccion': {
         'password': 'Dpostal01',
-        'nombre': 'Pedraza  Jose Luis',
+        'nombre': 'Pedraza Jose Luis',
         'rol': 'C.E.O'
     },
     'Gerente Operativo': {
@@ -51,13 +52,13 @@ USUARIOS = {
     },
     'Capacitador de Gerentes': {
         'password': 'CGpostal01',
-        'nombre': 'Sánchez Rangel Carlos Javier',
+        'nombre': 'SÃ¡nchez Rangel Carlos Javier',
         'rol': 'Capacitador de Gerentes'
     },
-    'Gerente Administración': {
+    'Gerente AdministraciÃ³n': {
         'password': 'GApostal01',
         'nombre': 'Abaroa Esqueda Leonardo',
-        'rol': 'Gerente Administración'
+        'rol': 'Gerente AdministraciÃ³n'
     },
     'Gerente Regional': {
         'password': 'GRpostal01',
@@ -71,7 +72,7 @@ USUARIOS = {
     },
     'Gerente Mkt': {
         'password': 'GMpostal01',
-        'nombre': 'Franco Alonzo  Jesus Omar',
+        'nombre': 'Franco Alonzo Jesus Omar',
         'rol': 'Gerente Mkt'
     },
     'Chef Ejecutivo': {
@@ -98,11 +99,6 @@ USUARIOS = {
         'password': 'Lcapostal01',
         'nombre': 'Martinez Peralta Christian Ignacio',
         'rol': ''
-    },
-    'Supervisores': {
-        'password': 'Sapostal01',
-        'nombre': 'supervisión',
-        'rol': 'Supervision Sucursales'
     },
     'Gerentes': {
         'password': 'Gpostal01',
@@ -139,16 +135,26 @@ def only_users(*allowed_user_ids):
         return wrapper
     return decorator
 
-# ==================== AUTENTICACIÓN GOOGLE ====================
+# ==================== AUTENTICACIÃ“N GOOGLE ====================
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 load_dotenv(find_dotenv())
 SHEET_NAME = os.getenv("SHEET_NAME")
 GOOGLE_CREDS_FILE = os.getenv("GOOGLE_CREDENTIALS_FILE")
 
 if not GOOGLE_CREDS_FILE:
-    raise RuntimeError("❌ La informacion de google_credentials.json no se encuentra disponible")
+    raise RuntimeError("âŒ La informacion de google_credentials.json no se encuentra disponible")
 
-creds_data = json.loads(GOOGLE_CREDS_FILE)
+try:
+    creds_data = json.loads(GOOGLE_CREDS_FILE)
+except json.JSONDecodeError:
+    # python-dotenv may transform \n into real line breaks in quoted values.
+    fixed_creds = re.sub(
+        r'("private_key"\s*:\s*")(.*?)("\s*,\s*"client_email")',
+        lambda m: m.group(1) + m.group(2).replace("\r\n", "\\n").replace("\n", "\\n").replace("\r", "\\n") + m.group(3),
+        GOOGLE_CREDS_FILE,
+        flags=re.DOTALL,
+    )
+    creds_data = json.loads(fixed_creds)
 
 if isinstance(creds_data, str):
   creds_data = json.loads(creds_data)
@@ -157,47 +163,47 @@ private_key = creds_data.get("private_key", "").strip()
 if "\\n" in private_key:
     private_key = private_key.replace("\\n", "\n")
 if private_key == "-----BEGIN PRIVATE KEY-----\n-----END PRIVATE KEY-----":
-    raise RuntimeError("El bloque de la clave privada está vacío. Vuelve a descargarlo de Google Cloud.")
+    raise RuntimeError("El bloque de la clave privada estÃ¡ vacÃ­o. Vuelve a descargarlo de Google Cloud.")
 creds_data["private_key"] = private_key
 
 creds = Credentials.from_service_account_info(creds_data, scopes=scope)
 client = gspread.authorize(creds)
-print("✅ Conexión exitosa con Google Sheets")
+print("âœ… ConexiÃ³n exitosa con Google Sheets")
 
 SHEET_NAME = "ventas"
 
-# ==================== CACHÉS GLOBALES ====================
+# ==================== CACHÃ‰S GLOBALES ====================
 cache_sheets = {"data": None, "timestamp": 0}
 cache_global = {"data": None, "timestamp": 0}
 cache_comparativa = {"data": None, "timestamp": 0}
 CACHE_TTL = 300
 
 def get_spreadsheet_data():
-    """Obtiene datos del spreadsheet con caché mejorado"""
+    """Obtiene datos del spreadsheet con cachÃ© mejorado"""
     global cache_sheets
     now = time.time()
     
     if cache_sheets["data"] and (now - cache_sheets["timestamp"]) < CACHE_TTL:
-        print("✅ Usando datos en caché (sheets)")
+        print("âœ… Usando datos en cachÃ© (sheets)")
         return cache_sheets["data"]
     
-    print("📡 Leyendo Google Sheets...")
+    print("ðŸ“¡ Leyendo Google Sheets...")
     try:
         spreadsheet = client.open(SHEET_NAME)
         hojas = spreadsheet.worksheets()
         data = {}
         
-        print(f"🔍 Hojas encontradas: {[hoja.title for hoja in hojas]}")
+        print(f"ðŸ” Hojas encontradas: {[hoja.title for hoja in hojas]}")
         
-        # ✅ CORREGIDO: Leer TODAS las hojas, sin filtrar
+        # âœ… CORREGIDO: Leer TODAS las hojas, sin filtrar
         for hoja in hojas:
             try:
-                print(f"📖 Leyendo: '{hoja.title}'")
+                print(f"ðŸ“– Leyendo: '{hoja.title}'")
                 filas = hoja.get_all_values()
                 data[hoja.title] = filas
-                print(f"✅ '{hoja.title}': {len(filas)} filas")
+                print(f"âœ… '{hoja.title}': {len(filas)} filas")
             except Exception as e:
-                print(f"❌ Error en '{hoja.title}': {e}")
+                print(f"âŒ Error en '{hoja.title}': {e}")
                 data[hoja.title] = []
         
         cache_sheets["data"] = data
@@ -205,7 +211,7 @@ def get_spreadsheet_data():
         return data
         
     except Exception as e:
-        print(f"❌ Error general: {e}")
+        print(f"âŒ Error general: {e}")
         return cache_sheets["data"] or {}
 
 # ==================== COLUMNAS ====================
@@ -235,7 +241,7 @@ ORDEN_MESES = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "O
 
 # ==================== HELPERS ====================
 def _norm(s: str) -> str:
-    """Normaliza encabezados/strings para comparaciones robustas (mayúsculas, sin acentos, espacios limpitos)."""
+    """Normaliza encabezados/strings para comparaciones robustas (mayÃºsculas, sin acentos, espacios limpitos)."""
     if s is None:
         return ""
     s = str(s)
@@ -244,10 +250,10 @@ def _norm(s: str) -> str:
     # Luego limpiar espacios y caracteres especiales
     s = s.replace("\u00A0", " ")  # NBSP
     s = " ".join(s.strip().split())
-    # Convertir a mayúsculas y quitar caracteres problemáticos
+    # Convertir a mayÃºsculas y quitar caracteres problemÃ¡ticos
     s = s.upper()
-    s = s.replace("Á", "A").replace("É", "E").replace("Í", "I").replace("Ó", "O").replace("Ú", "U")
-    s = s.replace("Ñ", "N")
+    s = s.replace("Ã", "A").replace("Ã‰", "E").replace("Ã", "I").replace("Ã“", "O").replace("Ãš", "U")
+    s = s.replace("Ã‘", "N")
     return s
 
 def num(val):
@@ -285,7 +291,7 @@ def normalizar_nombre_sucursal(nombre: str) -> str:
     
     # Reemplazos comunes
     reemplazos = {
-        "Á": "A", "É": "E", "Í": "I", "Ó": "O", "Ú": "U", "Ñ": "N",
+        "Ã": "A", "Ã‰": "E", "Ã": "I", "Ã“": "O", "Ãš": "U", "Ã‘": "N",
         "ZONA RIO": "ZONA RIO",
         "DARUMITA LIBERTAD": "DARUMITA LIBERTAD", 
         "DARUMITALIBERTAD": "DARUMITA LIBERTAD",
@@ -301,7 +307,7 @@ def normalizar_nombre_sucursal(nombre: str) -> str:
     
     return nombre
 
-# ==================== RUTAS DE AUTENTICACIÓN ====================
+# ==================== RUTAS DE AUTENTICACIÃ“N ====================
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
@@ -312,19 +318,19 @@ def login():
         password = request.form.get('password')
         
         # DEBUG TEMPORAL
-        print(f"🔍 USUARIO INGRESADO: '{username}'")
-        print(f"🔍 CONTRASEÑA INGRESADA: '{password}'")
+        print(f"ðŸ” USUARIO INGRESADO: '{username}'")
+        print(f"ðŸ” CONTRASEÃ‘A INGRESADA: '{password}'")
         
         if username in USUARIOS:
-            print(f"🔍 CONTRASEÑA ESPERADA: '{USUARIOS[username]['password']}'")
-            print(f"🔍 ¿COINCIDEN?: {USUARIOS[username]['password'] == password}")
+            print(f"ðŸ” CONTRASEÃ‘A ESPERADA: '{USUARIOS[username]['password']}'")
+            print(f"ðŸ” Â¿COINCIDEN?: {USUARIOS[username]['password'] == password}")
         
         if username in USUARIOS and USUARIOS[username]['password'] == password:
             user = User(username, USUARIOS[username]['nombre'], USUARIOS[username]['rol'])
             login_user(user)
             return redirect(url_for('home'))
         else:
-            flash('❌ Usuario o contraseña incorrectos', 'error')
+            flash('âŒ Usuario o contraseÃ±a incorrectos', 'error')
     
     return render_template('login.html')
 
@@ -332,7 +338,7 @@ def login():
 @login_required
 def logout():
     logout_user()
-    flash('✅ Sesión cerrada correctamente', 'success')
+    flash('âœ… SesiÃ³n cerrada correctamente', 'success')
     return redirect(url_for('login'))
 
 @app.route('/perfil')
@@ -349,7 +355,7 @@ def planeacion():
 @app.route("/home")
 @login_required
 def home():
-    # 🔒 Gerentes SIEMPRE a la gráfica
+    # ðŸ”’ Gerentes SIEMPRE a la grÃ¡fica
     if current_user.id == 'Gerentes':
         return redirect(url_for('reporte_grafica'))
 
@@ -453,7 +459,7 @@ def resumen_mensual():
     sheet = spreadsheet.worksheet(sucursal_seleccionada)
 
     columnas_resumen = [
-        'G.AÑO', 'G.MES', 'G.TOTAL VENTA C/IVA', 'G.EFECTIVO', 'G.T.C.', 'G.UBER', 'G.PEDIDOS UBER',
+        'G.AÃ‘O', 'G.MES', 'G.TOTAL VENTA C/IVA', 'G.EFECTIVO', 'G.T.C.', 'G.UBER', 'G.PEDIDOS UBER',
         'G.DIDI TC', 'G.PEDIDOS DIDI', 'G.RAPPI TC', 'G.PEDIDOS RAPPI', 'G.TOTAL APPS',
         'G.TOTAL SUCURSAL', 'G.VENTA COMEDOR', 'G.CUENTAS COMEDOR', 'G.VENTA DOMICILIO',
         'G.CUENTAS DOMICILIO', 'G.VENTA RAPIDO', 'G.CUENTAS RAPIDO', 'G.TICKET PROMEDIO'
@@ -463,17 +469,17 @@ def resumen_mensual():
     headers = [_norm(h) for h in all_rows[0]] if all_rows else []
 
     try:
-        # Buscar índice de G.MES (la primera columna del resumen)
+        # Buscar Ã­ndice de G.MES (la primera columna del resumen)
         mes_index = headers.index(_norm("G.MES"))
-        # El índice de G.AÑO debería estar justo antes de G.MES
+        # El Ã­ndice de G.AÃ‘O deberÃ­a estar justo antes de G.MES
         year_index = mes_index - 1
-        # Verificar que efectivamente es G.AÑO
-        if _norm(all_rows[0][year_index]) != _norm("G.AÑO"):
+        # Verificar que efectivamente es G.AÃ‘O
+        if _norm(all_rows[0][year_index]) != _norm("G.AÃ‘O"):
             raise ValueError("La estructura de columnas no es la esperada")
     except (ValueError, IndexError):
-        return f"La hoja '{sucursal_seleccionada}' no tiene la estructura correcta (G.AÑO, G.MES, ...)", 400
+        return f"La hoja '{sucursal_seleccionada}' no tiene la estructura correcta (G.AÃ‘O, G.MES, ...)", 400
 
-    # Calcular índices automáticamente basado en columnas_resumen
+    # Calcular Ã­ndices automÃ¡ticamente basado en columnas_resumen
     indices = []
     headers_finales = []
     
@@ -486,7 +492,7 @@ def resumen_mensual():
             # Si falta una columna, la omitimos
             continue
 
-    # Obtener todos los años disponibles de los datos reales
+    # Obtener todos los aÃ±os disponibles de los datos reales
     years_disponibles = set()
     data = []
     
@@ -497,15 +503,15 @@ def resumen_mensual():
         year_valor = row[year_index].strip() if year_index < len(row) else ""
         mes_valor = row[mes_index].strip().upper() if mes_index < len(row) else ""
         
-        # Solo procesar filas con año y mes válidos
+        # Solo procesar filas con aÃ±o y mes vÃ¡lidos
         if not year_valor or mes_valor not in ORDEN_MESES:
             continue
             
-        # Agregar año a la lista de disponibles
+        # Agregar aÃ±o a la lista de disponibles
         if year_valor.isdigit():
             years_disponibles.add(year_valor)
         
-        # Filtrar por año seleccionado
+        # Filtrar por aÃ±o seleccionado
         if year_seleccionado != "Todos" and year_valor != year_seleccionado:
             continue
         
@@ -517,20 +523,20 @@ def resumen_mensual():
             else:
                 fila[headers_finales[j]] = ""
         
-        # Solo agregar si tiene algún dato (no solo encabezados vacíos)
-        if any(value for key, value in fila.items() if key not in ['G.AÑO', 'G.MES']):
+        # Solo agregar si tiene algÃºn dato (no solo encabezados vacÃ­os)
+        if any(value for key, value in fila.items() if key not in ['G.AÃ‘O', 'G.MES']):
             data.append(fila)
 
-    # Ordenar años disponibles (más reciente primero)
+    # Ordenar aÃ±os disponibles (mÃ¡s reciente primero)
     years_disponibles = sorted(years_disponibles, key=int, reverse=True)
     
-    # Ordenar datos por año y mes
+    # Ordenar datos por aÃ±o y mes
     data = sorted(data, key=lambda x: (
-        int(x.get(_norm("G.AÑO"), 0)),
+        int(x.get(_norm("G.AÃ‘O"), 0)),
         ORDEN_MESES.index(x[_norm("G.MES")].upper()) if x.get(_norm("G.MES")) in ORDEN_MESES else 99
     ))
 
-    # Preparar datos para gráficos (solo del año seleccionado o todos)
+    # Preparar datos para grÃ¡ficos (solo del aÃ±o seleccionado o todos)
     datos_graficos = preparar_datos_para_graficos(data, year_seleccionado)
     
     return render_template("resumen.html", 
@@ -543,22 +549,20 @@ def resumen_mensual():
 
 
 def preparar_datos_para_graficos(data, year_seleccionado):
-    """Prepara datos para gráficos filtrando por año y organizando por mes"""
-    
-    # Agrupar datos por año y mes
+    """Prepara datos para graficos filtrando por anio y organizando por mes"""
+
     datos_agrupados = {}
-    
+
     for fila in data:
-        año = fila.get(_norm("G.AÑO"), "")
+        anio = fila.get(_norm("G.AÃ‘O"), "")
         mes = fila.get(_norm("G.MES"), "")
-        
-        if not año or not mes:
+
+        if not anio or not mes:
             continue
-            
-        if año not in datos_agrupados:
-            datos_agrupados[año] = {}
-        
-        # Convertir valores numéricos
+
+        if anio not in datos_agrupados:
+            datos_agrupados[anio] = {}
+
         try:
             venta = float(fila.get(_norm("G.TOTAL VENTA C/IVA"), 0) or 0)
             efectivo = float(fila.get(_norm("G.EFECTIVO"), 0) or 0)
@@ -569,90 +573,84 @@ def preparar_datos_para_graficos(data, year_seleccionado):
             rappi = float(fila.get(_norm("G.RAPPI TC"), 0) or 0)
         except (ValueError, TypeError):
             continue
-            
-        datos_agrupados[año][mes] = {
+
+        datos_agrupados[anio][mes] = {
             'venta': venta,
             'efectivo': efectivo,
             'tarjeta': tarjeta,
             'apps': apps,
             'uber': uber,
             'didi': didi,
-            'rappi': rappi
+            'rappi': rappi,
         }
-    
-    # Preparar estructura para gráficos
+
     resultado = {
-        'labels': [],          # Meses
-        'ventas_totales': [],  # Ventas por mes
-        'efectivo': [],        # Efectivo por mes
-        'tarjeta': [],         # Tarjeta por mes
-        'apps_totales': [],    # Apps por mes
-        'por_año': {}          # Datos separados por año (para comparativa)
+        'labels': [],
+        'ventas_totales': [],
+        'efectivo': [],
+        'tarjeta': [],
+        'apps_totales': [],
+        'por_aÃ±o': {},
     }
-    
-    # Si se seleccionó "Todos", combinar todos los años
+
     if year_seleccionado == "Todos":
-        # Combinar todos los meses de todos los años
         todos_meses = set()
-        for año, meses_data in datos_agrupados.items():
+        for anio, meses_data in datos_agrupados.items():
             todos_meses.update(meses_data.keys())
-        
-        # Ordenar meses
-        meses_ordenados = sorted(todos_meses, 
-                               key=lambda m: ORDEN_MESES.index(m) if m in ORDEN_MESES else 99)
-        
+
+        meses_ordenados = sorted(
+            todos_meses,
+            key=lambda m: ORDEN_MESES.index(m) if m in ORDEN_MESES else 99,
+        )
+
         for mes in meses_ordenados:
             venta_total = 0
             efectivo_total = 0
             tarjeta_total = 0
             apps_total = 0
-            
-            for año, meses_data in datos_agrupados.items():
+
+            for anio, meses_data in datos_agrupados.items():
                 if mes in meses_data:
                     venta_total += meses_data[mes]['venta']
                     efectivo_total += meses_data[mes]['efectivo']
                     tarjeta_total += meses_data[mes]['tarjeta']
                     apps_total += meses_data[mes]['apps']
-            
+
             resultado['labels'].append(f"{mes}")
             resultado['ventas_totales'].append(venta_total)
             resultado['efectivo'].append(efectivo_total)
             resultado['tarjeta'].append(tarjeta_total)
             resultado['apps_totales'].append(apps_total)
-            
-        # También guardar datos por año separados
-        for año in sorted(datos_agrupados.keys(), key=int):
-            resultado['por_año'][año] = {
+
+        for anio in sorted(datos_agrupados.keys(), key=int):
+            resultado['por_aÃ±o'][anio] = {
                 'labels': [],
                 'ventas': [],
                 'efectivo': [],
                 'tarjeta': [],
-                'apps': []
+                'apps': [],
             }
-            
-            for mes in ORDEN_MESES:
-                if mes in datos_agrupados[año]:
-                    resultado['por_año'][año]['labels'].append(mes)
-                    resultado['por_año'][año]['ventas'].append(datos_agrupados[año][mes]['venta'])
-                    resultado['por_año'][año]['efectivo'].append(datos_agrupados[año][mes]['efectivo'])
-                    resultado['por_año'][año]['tarjeta'].append(datos_agrupados[año][mes]['tarjeta'])
-                    resultado['por_año'][año]['apps'].append(datos_agrupados[año][mes]['apps'])
-    
-    else:
-        # Solo un año específico
-        if year_seleccionado in datos_agrupados:
-            año_data = datos_agrupados[year_seleccionado]
-            
-            for mes in ORDEN_MESES:
-                if mes in año_data:
-                    resultado['labels'].append(mes)
-                    resultado['ventas_totales'].append(año_data[mes]['venta'])
-                    resultado['efectivo'].append(año_data[mes]['efectivo'])
-                    resultado['tarjeta'].append(año_data[mes]['tarjeta'])
-                    resultado['apps_totales'].append(año_data[mes]['apps'])
-    
-    return resultado
 
+            for mes in ORDEN_MESES:
+                if mes in datos_agrupados[anio]:
+                    resultado['por_aÃ±o'][anio]['labels'].append(mes)
+                    resultado['por_aÃ±o'][anio]['ventas'].append(datos_agrupados[anio][mes]['venta'])
+                    resultado['por_aÃ±o'][anio]['efectivo'].append(datos_agrupados[anio][mes]['efectivo'])
+                    resultado['por_aÃ±o'][anio]['tarjeta'].append(datos_agrupados[anio][mes]['tarjeta'])
+                    resultado['por_aÃ±o'][anio]['apps'].append(datos_agrupados[anio][mes]['apps'])
+    else:
+        if year_seleccionado in datos_agrupados:
+            anio_data = datos_agrupados[year_seleccionado]
+
+            for mes in ORDEN_MESES:
+                if mes in anio_data:
+                    resultado['labels'].append(mes)
+                    resultado['ventas_totales'].append(anio_data[mes]['venta'])
+                    resultado['efectivo'].append(anio_data[mes]['efectivo'])
+                    resultado['tarjeta'].append(anio_data[mes]['tarjeta'])
+                    resultado['apps_totales'].append(anio_data[mes]['apps'])
+
+    return resultado
 
 # ==================== COMPARATIVA ENTRE SUCURSALES ====================
 @app.route("/comparativa", methods=["GET", "POST"])
@@ -759,18 +757,18 @@ def comparativa():
                              fecha_fin=fecha_fin_str)
                              
     except Exception as e:
-        print(f"❌ Error en comparativa: {e}")
+        print(f"âŒ Error en comparativa: {e}")
         return render_template("comparativa.html", 
                              sucursales=[],
                              sucursales_seleccionadas=[],
                              datos_comparativa=[],
                              error=f"Error: {str(e)}")
 
-# ==================== DATOS PARA GRÁFICAS ====================
+# ==================== DATOS PARA GRÃFICAS ====================
 @app.route("/datos_grafica/<sucursal>")
 @login_required
 def datos_grafica(sucursal):
-    """API que devuelve datos para gráficas - MESES siempre de 2025, datos del año seleccionado"""
+    """API que devuelve datos para grÃ¡ficas - MESES siempre de 2025, datos del aÃ±o seleccionado"""
     
     year_seleccionado = request.args.get('year', '2025')
     
@@ -782,13 +780,13 @@ def datos_grafica(sucursal):
     
     all_rows = sheet.get_all_values()
     if not all_rows:
-        return jsonify({'error': 'Hoja vacía'}), 400
+        return jsonify({'error': 'Hoja vacÃ­a'}), 400
     
     headers = [_norm(h) for h in all_rows[0]]
     
     try:
         mes_idx = headers.index(_norm("G.MES"))
-        year_idx = headers.index(_norm("G.AÑO"))
+        year_idx = headers.index(_norm("G.AÃ‘O"))
         uber_idx = headers.index(_norm("G.UBER"))
         didi_idx = headers.index(_norm("G.DIDI TC"))
         rappi_idx = headers.index(_norm("G.RAPPI TC"))
@@ -900,7 +898,7 @@ def datos_grafica_global():
     now = time.time()
 
     if cache_global["data"] and (now - cache_global["timestamp"] < CACHE_TTL):
-        print("Usando datos globales en caché")
+        print("Usando datos globales en cachÃ©")
         return jsonify(cache_global["data"])
 
     try:
@@ -943,7 +941,7 @@ def datos_grafica_global():
         print("Error global:", e)
         return jsonify({"error": str(e)}), 500
 
-# ==================== DATOS PARA GRÁFICAS FILTRADAS (UNA SUCURSAL) ====================
+# ==================== DATOS PARA GRÃFICAS FILTRADAS (UNA SUCURSAL) ====================
 @app.route("/datos_grafica_filtrada", methods=["POST"])
 @login_required
 def datos_grafica_filtrada():
@@ -1007,13 +1005,13 @@ def handle_404(e):
 
 # ==================== RANKING DE SUCURSALES (COMPARADOR SEMANAL) ====================
 def obtener_ultima_semana():
-    """Obtiene la última semana disponible"""
+    """Obtiene la Ãºltima semana disponible"""
     hoy = datetime.now().date()
     lunes = hoy - timedelta(days=hoy.weekday())
     return lunes.strftime("%Y-%m-%d")
 
 def obtener_datos_ranking(semana):
-    """Obtiene los datos del ranking para una semana específica"""
+    """Obtiene los datos del ranking para una semana especÃ­fica"""
     try:
         sheets_data = get_spreadsheet_data()
         sucursales = list(sheets_data.keys()) if sheets_data else []
@@ -1064,14 +1062,14 @@ def obtener_datos_ranking(semana):
         return datos_semana
         
     except Exception as e:
-        print(f"❌ Error en obtener_datos_ranking: {e}")
+        print(f"âŒ Error en obtener_datos_ranking: {e}")
         return []
 
 def procesar_comparacion_automatica(datos_actual, datos_anterior, semana_actual, semana_anterior):
-    """Combina los datos de ambas semanas para la comparación"""
+    """Combina los datos de ambas semanas para la comparaciÃ³n"""
     datos_comparacion = []
     
-    # Crear diccionarios para acceso rápido
+    # Crear diccionarios para acceso rÃ¡pido
     dict_actual = {d['sucursal']: d for d in datos_actual}
     dict_anterior = {d['sucursal']: d for d in datos_anterior}
     
@@ -1115,7 +1113,7 @@ def procesar_comparacion_automatica(datos_actual, datos_anterior, semana_actual,
     return datos_comparacion
 
 def obtener_fechas_semana(semana):
-    """Obtiene las fechas de inicio y fin para una semana específica"""
+    """Obtiene las fechas de inicio y fin para una semana especÃ­fica"""
     try:
         fecha_inicio = datetime.strptime(semana, "%Y-%m-%d").date()
         fecha_fin = fecha_inicio + timedelta(days=6)
@@ -1124,7 +1122,7 @@ def obtener_fechas_semana(semana):
         return ("dd/mm/yyyy", "dd/mm/yyyy")
 
 def generar_opciones_semanas():
-    """Genera opciones de semanas para el selector (últimas 12 semanas)"""
+    """Genera opciones de semanas para el selector (Ãºltimas 12 semanas)"""
     opciones = []
     hoy = datetime.now().date()
     
@@ -1144,26 +1142,26 @@ def generar_opciones_semanas():
 @login_required
 def ranking_sucursales():
     try:
-        # Obtener la semana actual del formulario o usar la última disponible
+        # Obtener la semana actual del formulario o usar la Ãºltima disponible
         semana_actual = request.form.get("semana")
         
         if not semana_actual:
             semana_actual = obtener_ultima_semana()
         
-        # Calcular semana anterior automáticamente
+        # Calcular semana anterior automÃ¡ticamente
         try:
             fecha_actual = datetime.strptime(semana_actual, "%Y-%m-%d").date()
             fecha_anterior = fecha_actual - timedelta(days=7)
             semana_anterior = fecha_anterior.strftime("%Y-%m-%d")
         except:
-            # Si hay error en el cálculo, usar semana anterior numérica
+            # Si hay error en el cÃ¡lculo, usar semana anterior numÃ©rica
             semana_anterior = "semana-anterior"
         
         # Obtener datos de ambas semanas
         datos_actual = obtener_datos_ranking(semana_actual)
         datos_anterior = obtener_datos_ranking(semana_anterior)
         
-        # Procesar comparación automática
+        # Procesar comparaciÃ³n automÃ¡tica
         datos_comparacion = procesar_comparacion_automatica(datos_actual, datos_anterior, semana_actual, semana_anterior)
         
         # Calcular totales y crecimiento
@@ -1196,8 +1194,8 @@ def ranking_sucursales():
                              opciones_semanas=opciones_semanas)
                              
     except Exception as e:
-        print(f"❌ Error en ranking: {e}")
-        # En caso de error, mostrar página con datos vacíos
+        print(f"âŒ Error en ranking: {e}")
+        # En caso de error, mostrar pÃ¡gina con datos vacÃ­os
         return render_template("ranking.html", 
                              datos_comparacion=[],
                              semana_actual="",
@@ -1217,7 +1215,7 @@ def ranking_sucursales():
 @login_required
 def reporte_grafica():
     if current_user.id != 'Gerentes':
-        flash('❌ No tienes permisos para acceder a esta página', 'error')
+        flash('âŒ No tienes permisos para acceder a esta pÃ¡gina', 'error')
         return redirect(url_for('home'))
 
     try:
@@ -1276,7 +1274,7 @@ def reporte_grafica():
         )
 
     except Exception as e:
-        print(f"❌ Error en reporte gráfica: {e}")
+        print(f"âŒ Error en reporte grÃ¡fica: {e}")
         return render_template(
             "reporte_grafica.html",
             datos_semana_anterior=[],
@@ -1284,11 +1282,11 @@ def reporte_grafica():
             error=str(e)
         )
 
-# ==================== ACTUALIZAR ESTATUS AUTOMÁTICO ====================
+# ==================== ACTUALIZAR ESTATUS AUTOMÃTICO ====================
 @app.route("/actualizar_estatus_automatico", methods=["POST"])
 @login_required
 def actualizar_estatus_automatico():
-    """Función que cambia automáticamente el estatus de permisos próximos a vencer"""
+    """FunciÃ³n que cambia automÃ¡ticamente el estatus de permisos prÃ³ximos a vencer"""
     
     try:
         # Conectar a Supabase
@@ -1305,12 +1303,12 @@ def actualizar_estatus_automatico():
             'Prefer': 'return=minimal'
         }
         
-        # Fecha actual (hora de México)
+        # Fecha actual (hora de MÃ©xico)
         timezone_mx = pytz.timezone('America/Mexico_City')
         hoy = datetime.now(timezone_mx).date()
         fecha_limite = hoy + timedelta(days=7)
         
-        # 1. BUSCAR PERMISOS QUE ESTÁN POR VENCER (7 días o menos)
+        # 1. BUSCAR PERMISOS QUE ESTÃN POR VENCER (7 dÃ­as o menos)
         print(f"Buscando permisos que vencen entre {hoy} y {fecha_limite}")
         
         # Obtener todos los permisos que tienen fecha_renovacion
@@ -1338,9 +1336,9 @@ def actualizar_estatus_automatico():
                 fecha_renovacion = datetime.strptime(permiso['fecha_renovacion'], '%Y-%m-%d').date()
                 dias_faltantes = (fecha_renovacion - hoy).days
                 
-                # Si faltan 7 días o menos y NO está ya como "proximo-a-vencer"
+                # Si faltan 7 dÃ­as o menos y NO estÃ¡ ya como "proximo-a-vencer"
                 if 0 <= dias_faltantes <= 7 and permiso.get('estatus') != 'proximo-a-vencer':
-                    print(f"✓ {permiso['sucursal']}: Cambiando a 'proximo-a-vencer' (vence en {dias_faltantes} días)")
+                    print(f"âœ“ {permiso['sucursal']}: Cambiando a 'proximo-a-vencer' (vence en {dias_faltantes} dÃ­as)")
                     
                     # Actualizar en Supabase
                     update_response = requests.patch(
@@ -1357,9 +1355,9 @@ def actualizar_estatus_automatico():
                     else:
                         print(f"Error actualizando {permiso['sucursal']}: {update_response.text}")
                 
-                # Si ya venció y NO está como "vencido"
+                # Si ya venciÃ³ y NO estÃ¡ como "vencido"
                 elif dias_faltantes < 0 and permiso.get('estatus') != 'vencido':
-                    print(f"✗ {permiso['sucursal']}: Cambiando a 'vencido'")
+                    print(f"âœ— {permiso['sucursal']}: Cambiando a 'vencido'")
                     
                     update_response = requests.patch(
                         f"{supabase_url}/rest/v1/datos_financieros?id=eq.{permiso['id']}",
@@ -1377,7 +1375,7 @@ def actualizar_estatus_automatico():
                 print(f"Error procesando permiso {permiso.get('id')}: {e}")
                 continue
         
-        print(f"✅ {cambios_realizados} permisos actualizados")
+        print(f"âœ… {cambios_realizados} permisos actualizados")
         return jsonify({
             'success': True,
             'cambios': cambios_realizados,
@@ -1385,7 +1383,7 @@ def actualizar_estatus_automatico():
         })
         
     except Exception as e:
-        print(f"❌ Error general: {e}")
+        print(f"âŒ Error general: {e}")
         return jsonify({'error': str(e)}), 500
 
 # ==================== ACTUALIZAR ESTATUS (API PARA FRONTEND) ====================
@@ -1397,7 +1395,7 @@ def api_actualizar_estatus():
         import requests
         from datetime import datetime, timedelta
         
-        # Configuración Supabase
+        # ConfiguraciÃ³n Supabase
         SUPABASE_URL = 'https://uooffrtjajluvhcauctk.supabase.co'
         SUPABASE_KEY = 'sb_publishable_ib_7iPl1ccS0PGo3yKzggQ_nWMi9CU8'
         
@@ -1411,9 +1409,9 @@ def api_actualizar_estatus():
         hoy = datetime.now().date()
         fecha_limite = hoy + timedelta(days=7)
         
-        print(f"🔄 Buscando permisos que vencen hasta {fecha_limite}")
+        print(f"ðŸ”„ Buscando permisos que vencen hasta {fecha_limite}")
         
-        # Obtener todos los permisos con fecha de renovación
+        # Obtener todos los permisos con fecha de renovaciÃ³n
         response = requests.get(
             f'{SUPABASE_URL}/rest/v1/datos_financieros',
             headers=headers,
@@ -1440,11 +1438,11 @@ def api_actualizar_estatus():
                 
                 nuevo_estatus = None
                 
-                # Si ya venció
+                # Si ya venciÃ³
                 if fecha_ven < hoy and permiso.get('estatus') != 'vencido':
                     nuevo_estatus = 'vencido'
                 
-                # Si faltan 7 días o menos
+                # Si faltan 7 dÃ­as o menos
                 elif 0 <= dias_faltantes <= 7 and permiso.get('estatus') != 'proximo-a-vencer':
                     nuevo_estatus = 'proximo-a-vencer'
                 
@@ -1472,7 +1470,7 @@ def api_actualizar_estatus():
                 print(f"Error con permiso {permiso.get('id')}: {e}")
                 continue
         
-        print(f"✅ {len(cambios)} permisos actualizados")
+        print(f"âœ… {len(cambios)} permisos actualizados")
         return jsonify({
             'success': True,
             'total_cambios': len(cambios),
@@ -1481,7 +1479,7 @@ def api_actualizar_estatus():
         })
         
     except Exception as e:
-        print(f"❌ Error general: {e}")
+        print(f"âŒ Error general: {e}")
         return jsonify({'error': str(e)}), 500
         
         # ==================== RUTAS PARA REPORTES DE PERMISOS ====================
@@ -1492,7 +1490,7 @@ def obtener_permisos():
     try:
         import requests
         
-        # Configuración Supabase
+        # ConfiguraciÃ³n Supabase
         SUPABASE_URL = 'https://uooffrtjajluvhcauctk.supabase.co'
         SUPABASE_KEY = 'sb_publishable_ib_7iPl1ccS0PGo3yKzggQ_nWMi9CU8'
         
@@ -1538,17 +1536,17 @@ def obtener_permisos():
         })
         
     except Exception as e:
-        print(f"❌ Error obteniendo permisos: {e}")
+        print(f"âŒ Error obteniendo permisos: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route("/api/permisos/estadisticas")
 @login_required
 def obtener_estadisticas_permisos():
-    """API para obtener estadísticas de permisos"""
+    """API para obtener estadÃ­sticas de permisos"""
     try:
         import requests
         
-        # Configuración Supabase
+        # ConfiguraciÃ³n Supabase
         SUPABASE_URL = 'https://uooffrtjajluvhcauctk.supabase.co'
         SUPABASE_KEY = 'sb_publishable_ib_7iPl1ccS0PGo3yKzggQ_nWMi9CU8'
         
@@ -1568,7 +1566,7 @@ def obtener_estadisticas_permisos():
         )
         
         if response.status_code != 200:
-            return jsonify({'error': 'No se pudieron obtener las estadísticas'}), 400
+            return jsonify({'error': 'No se pudieron obtener las estadÃ­sticas'}), 400
         
         permisos = response.json()
         
@@ -1576,9 +1574,9 @@ def obtener_estadisticas_permisos():
         contador = {
             'VIGENTE': 0,
             'VENCIDO': 0,
-            'EN TRÁMITE': 0,
+            'EN TRÃMITE': 0,
             'PENDIENTE': 0,
-            'PRÓXIMO A VENCER': 0
+            'PRÃ“XIMO A VENCER': 0
         }
         
         for permiso in permisos:
@@ -1587,12 +1585,12 @@ def obtener_estadisticas_permisos():
                 contador[estatus] += 1
             elif 'VENCID' in estatus:
                 contador['VENCIDO'] += 1
-            elif 'TRÁMITE' in estatus or 'TRAMITE' in estatus:
-                contador['EN TRÁMITE'] += 1
+            elif 'TRÃMITE' in estatus or 'TRAMITE' in estatus:
+                contador['EN TRÃMITE'] += 1
             elif 'PENDIENTE' in estatus:
                 contador['PENDIENTE'] += 1
-            elif 'PRÓXIMO' in estatus or 'PROXIMO' in estatus:
-                contador['PRÓXIMO A VENCER'] += 1
+            elif 'PRÃ“XIMO' in estatus or 'PROXIMO' in estatus:
+                contador['PRÃ“XIMO A VENCER'] += 1
             elif 'VIGENTE' in estatus:
                 contador['VIGENTE'] += 1
         
@@ -1611,7 +1609,7 @@ def obtener_estadisticas_permisos():
         })
         
     except Exception as e:
-        print(f"❌ Error obteniendo estadísticas: {e}")
+        print(f"âŒ Error obteniendo estadÃ­sticas: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route("/api/permisos/filtrar/<estatus>")
@@ -1621,7 +1619,7 @@ def filtrar_permisos_por_estatus(estatus):
     try:
         import requests
         
-        # Configuración Supabase
+        # ConfiguraciÃ³n Supabase
         SUPABASE_URL = 'https://uooffrtjajluvhcauctk.supabase.co'
         SUPABASE_KEY = 'sb_publishable_ib_7iPl1ccS0PGo3yKzggQ_nWMi9CU8'
         
@@ -1635,9 +1633,9 @@ def filtrar_permisos_por_estatus(estatus):
         estatus_map = {
             'vigentes': 'VIGENTE',
             'vencidos': 'VENCIDO',
-            'en-tramite': 'EN TRÁMITE',
+            'en-tramite': 'EN TRÃMITE',
             'pendientes': 'PENDIENTE',
-            'proximos-a-vencer': 'PRÓXIMO A VENCER'
+            'proximos-a-vencer': 'PRÃ“XIMO A VENCER'
         }
         
         estatus_bd = estatus_map.get(estatus.lower(), estatus.upper())
@@ -1680,7 +1678,7 @@ def filtrar_permisos_por_estatus(estatus):
         })
         
     except Exception as e:
-        print(f"❌ Error filtrando permisos: {e}")
+        print(f"âŒ Error filtrando permisos: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route("/reporte-permisos/todos")
@@ -1691,7 +1689,7 @@ def generar_reporte_general():
         import requests
         from datetime import datetime
         
-        # Configuración Supabase
+        # ConfiguraciÃ³n Supabase
         SUPABASE_URL = 'https://uooffrtjajluvhcauctk.supabase.co'
         SUPABASE_KEY = 'sb_publishable_ib_7iPl1ccS0PGo3yKzggQ_nWMi9CU8'
         
@@ -1815,20 +1813,20 @@ def generar_reporte_general():
             <div class="header">
                 <h1>Reporte General de Permisos - La Postal</h1>
                 <h3>Todos los permisos</h3>
-                <p><strong>Fecha de generación:</strong> {fecha_actual}</p>
+                <p><strong>Fecha de generaciÃ³n:</strong> {fecha_actual}</p>
                 <p><strong>Total de permisos:</strong> {len(permisos)}</p>
             </div>
             
             <div class="stats-container">
         '''
         
-        # Agregar tarjetas de estadísticas
+        # Agregar tarjetas de estadÃ­sticas
         for estatus, cantidad in contador_estatus.items():
             clase_color = 'vigente' if estatus == 'VIGENTE' else \
                          'vencido' if estatus == 'VENCIDO' else \
-                         'tramite' if 'TRÁMITE' in estatus else \
+                         'tramite' if 'TRÃMITE' in estatus else \
                          'pendiente' if estatus == 'PENDIENTE' else \
-                         'proximo' if 'PRÓXIMO' in estatus else ''
+                         'proximo' if 'PRÃ“XIMO' in estatus else ''
             
             html += f'''
                 <div class="stat-card {clase_color}">
@@ -1848,8 +1846,8 @@ def generar_reporte_general():
                         <th>Sucursal</th>
                         <th>Permiso</th>
                         <th>Existencia</th>
-                        <th>Fecha Expedición</th>
-                        <th>Fecha Renovación</th>
+                        <th>Fecha ExpediciÃ³n</th>
+                        <th>Fecha RenovaciÃ³n</th>
                         <th>Estatus</th>
                     </tr>
                 </thead>
@@ -1864,11 +1862,11 @@ def generar_reporte_general():
                 estatus_class = 'background-color: #d4edda; color: #155724;'
             elif estatus_text == 'VENCIDO':
                 estatus_class = 'background-color: #f8d7da; color: #721c24;'
-            elif 'TRÁMITE' in estatus_text:
+            elif 'TRÃMITE' in estatus_text:
                 estatus_class = 'background-color: #fff3cd; color: #856404;'
             elif estatus_text == 'PENDIENTE':
                 estatus_class = 'background-color: #e2e3e5; color: #383d41;'
-            elif 'PRÓXIMO' in estatus_text:
+            elif 'PRÃ“XIMO' in estatus_text:
                 estatus_class = 'background-color: #ffeaa7; color: #8c7e00;'
             
             html += f'''
@@ -1889,7 +1887,7 @@ def generar_reporte_general():
             </table>
             
             <div class="footer" style="margin-top: 30px; text-align: center; color: #666; font-size: 0.9rem;">
-                <p>Sistema de Gestión de Permisos - La Postal</p>
+                <p>Sistema de GestiÃ³n de Permisos - La Postal</p>
             </div>
         </body>
         </html>
@@ -1898,7 +1896,7 @@ def generar_reporte_general():
         return html
         
     except Exception as e:
-        print(f"❌ Error generando reporte general: {e}")
+        print(f"âŒ Error generando reporte general: {e}")
         return f"Error al generar el reporte: {str(e)}", 500
 
 @app.route("/reporte-permisos/<estatus>")
@@ -1909,11 +1907,11 @@ def generar_reporte_permisos(estatus):
         import requests
         from datetime import datetime
         
-        # Configuración Supabase
+        # ConfiguraciÃ³n Supabase
         SUPABASE_URL = 'https://uooffrtjajluvhcauctk.supabase.co'
         SUPABASE_KEY = 'sb_publishable_ib_7iPl1ccS0PGo3yKzggQ_nWMi9CU8'
         
-        print(f"🔍 Generando reporte para estatus: {estatus}")
+        print(f"ðŸ” Generando reporte para estatus: {estatus}")
         
         headers = {
             'apikey': SUPABASE_KEY,
@@ -1921,8 +1919,8 @@ def generar_reporte_permisos(estatus):
             'Content-Type': 'application/json'
         }
         
-        # DEBUG: Primero probar la conexión sin filtros
-        print("🔍 Probando conexión a Supabase...")
+        # DEBUG: Primero probar la conexiÃ³n sin filtros
+        print("ðŸ” Probando conexiÃ³n a Supabase...")
         test_response = requests.get(
             f'{SUPABASE_URL}/rest/v1/datos_financieros',
             headers=headers,
@@ -1932,22 +1930,22 @@ def generar_reporte_permisos(estatus):
             }
         )
         
-        print(f" Conexión Supabase: {test_response.status_code}")
+        print(f" ConexiÃ³n Supabase: {test_response.status_code}")
         if test_response.status_code != 200:
-            print(f" Error conexión: {test_response.text}")
+            print(f" Error conexiÃ³n: {test_response.text}")
         
         # Mapear nombres de estatus con diferentes formatos posibles
         estatus_map = {
             'vigentes': ['VIGENTE', 'Vigente', 'vigente'],
             'vencidos': ['VENCIDO', 'Vencido', 'vencido'],
-            'en-tramite': ['EN TRÁMITE', 'En Trámite', 'en trámite', 'TRAMITE'],
+            'en-tramite': ['EN TRÃMITE', 'En TrÃ¡mite', 'en trÃ¡mite', 'TRAMITE'],
             'pendientes': ['PENDIENTE', 'Pendiente', 'pendiente'],
-            'proximos-a-vencer': ['PRÓXIMO A VENCER', 'Próximo a Vencer', 'próximo a vencer', 'PROXIMO A VENCER']
+            'proximos-a-vencer': ['PRÃ“XIMO A VENCER', 'PrÃ³ximo a Vencer', 'prÃ³ximo a vencer', 'PROXIMO A VENCER']
         }
         
         # Para "todos", obtener sin filtrar
         if estatus.lower() == 'todos':
-            print("🔍 Obteniendo TODOS los permisos (sin filtro)")
+            print("ðŸ” Obteniendo TODOS los permisos (sin filtro)")
             response = requests.get(
                 f'{SUPABASE_URL}/rest/v1/datos_financieros',
                 headers=headers,
@@ -1958,7 +1956,7 @@ def generar_reporte_permisos(estatus):
             )
             estatus_bd = "TODOS"
         else:
-            # Para filtros específicos, probar diferentes formatos
+            # Para filtros especÃ­ficos, probar diferentes formatos
             estatus_options = estatus_map.get(estatus.lower(), [estatus.upper()])
             print(f" Buscando estatus: {estatus_options}")
             
@@ -1988,9 +1986,9 @@ def generar_reporte_permisos(estatus):
                 else:
                     print(f"   Error con formato '{estatus_format}': {response.status_code}")
             
-            # Si no encontramos con ningún formato, intentar búsqueda case-insensitive
+            # Si no encontramos con ningÃºn formato, intentar bÃºsqueda case-insensitive
             if not permisos and estatus.lower() != 'todos':
-                print("🔍 Intentando búsqueda case-insensitive...")
+                print("ðŸ” Intentando bÃºsqueda case-insensitive...")
                 response = requests.get(
                     f'{SUPABASE_URL}/rest/v1/datos_financieros',
                     headers=headers,
@@ -2008,7 +2006,7 @@ def generar_reporte_permisos(estatus):
                         p for p in all_permisos 
                         if p.get('estatus') and search_term in p.get('estatus', '').lower()
                     ]
-                    print(f" Encontrados {len(permisos)} permisos con búsqueda case-insensitive")
+                    print(f" Encontrados {len(permisos)} permisos con bÃºsqueda case-insensitive")
                     estatus_bd = estatus.upper()
         
         if response.status_code != 200:
@@ -2016,11 +2014,11 @@ def generar_reporte_permisos(estatus):
             print(f" {error_msg}")
             return f"<h1>Error</h1><p>{error_msg}</p>", 400
         
-        # Si estamos en el flujo "todos" o búsqueda específica
+        # Si estamos en el flujo "todos" o bÃºsqueda especÃ­fica
         if estatus.lower() == 'todos':
             permisos = response.json()
             print(f" Obtenidos {len(permisos)} permisos (todos)")
-        elif not permisos:  # Si aún no tenemos permisos
+        elif not permisos:  # Si aÃºn no tenemos permisos
             permisos = []
             print("  No se encontraron permisos con el filtro aplicado")
         
@@ -2031,7 +2029,7 @@ def generar_reporte_permisos(estatus):
         for permiso in permisos:
             permiso_formateado = permiso.copy()
             
-            # Formatear fecha expedición
+            # Formatear fecha expediciÃ³n
             fecha_exp = permiso.get('fecha_expedicion', '')
             if fecha_exp:
                 try:
@@ -2050,7 +2048,7 @@ def generar_reporte_permisos(estatus):
             else:
                 permiso_formateado['fecha_expedicion_formatted'] = 'N/A'
             
-            # Formatear fecha renovación
+            # Formatear fecha renovaciÃ³n
             fecha_ren = permiso.get('fecha_renovacion', '')
             if fecha_ren:
                 try:
@@ -2262,7 +2260,7 @@ def generar_reporte_permisos(estatus):
                 <div class="header">
                     <h1>Reporte de Permisos - La Postal</h1>
                     <h2>{estatus_bd.title()}</h2>
-                    <p><strong>Fecha de generación:</strong> {fecha_actual}</p>
+                    <p><strong>Fecha de generaciÃ³n:</strong> {fecha_actual}</p>
                 </div>
                 
                 <div class="info-box">
@@ -2275,7 +2273,7 @@ def generar_reporte_permisos(estatus):
                         </div>
                         <div class="col-md-4">
                             <p><strong>Generado por:</strong> {nombre_usuario}</p>
-                            <p><strong>Departamento:</strong> Planeación</p>
+                            <p><strong>Departamento:</strong> PlaneaciÃ³n</p>
                         </div>
                     </div>
                 </div>
@@ -2299,8 +2297,8 @@ def generar_reporte_permisos(estatus):
                                 <th>Sucursal</th>
                                 <th>Permiso</th>
                                 <th>Existencia</th>
-                                <th>Fecha Expedición</th>
-                                <th>Fecha Renovación</th>
+                                <th>Fecha ExpediciÃ³n</th>
+                                <th>Fecha RenovaciÃ³n</th>
                                 <th>Estatus</th>
                             </tr>
                         </thead>
@@ -2316,11 +2314,11 @@ def generar_reporte_permisos(estatus):
                     estatus_class = 'vigente'
                 elif 'VENCID' in estatus_text:
                     estatus_class = 'vencido'
-                elif 'TRÁMITE' in estatus_text or 'TRAMITE' in estatus_text:
+                elif 'TRÃMITE' in estatus_text or 'TRAMITE' in estatus_text:
                     estatus_class = 'en-tramite'
                 elif 'PENDIENT' in estatus_text:
                     estatus_class = 'pendiente'
-                elif 'PRÓXIMO' in estatus_text or 'PROXIMO' in estatus_text:
+                elif 'PRÃ“XIMO' in estatus_text or 'PROXIMO' in estatus_text:
                     estatus_class = 'proximo'
                 else:
                     estatus_class = 'vigente'  
@@ -2360,8 +2358,8 @@ def generar_reporte_permisos(estatus):
                 </div>
                 
                 <div class="footer">
-                    <p>Sistema de Gestión de Permisos - La Postal © {datetime.now().year}</p>
-                    <p>Este reporte fue generado automáticamente por el sistema.</p>
+                    <p>Sistema de GestiÃ³n de Permisos - La Postal Â© {datetime.now().year}</p>
+                    <p>Este reporte fue generado automÃ¡ticamente por el sistema.</p>
                 </div>
             </div>
             
@@ -2374,7 +2372,7 @@ def generar_reporte_permisos(estatus):
                 //     }}, 1000);
                 // }};
                 
-                // Mejorar experiencia de impresión
+                // Mejorar experiencia de impresiÃ³n
                 document.querySelector('.btn-print').addEventListener('click', function() {{
                     window.print();
                 }});
@@ -2415,7 +2413,7 @@ def generar_reporte_permisos(estatus):
                 <p><strong>Mensaje:</strong> {str(e)}</p>
                 <p><strong>Estatus solicitado:</strong> {estatus}</p>
             </div>
-            <p><a href="javascript:history.back()">← Volver</a></p>
+            <p><a href="javascript:history.back()">â† Volver</a></p>
         </body>
         </html>
         '''
@@ -2424,7 +2422,7 @@ def generar_reporte_permisos(estatus):
 @app.route("/planeacion-reportes")
 @login_required
 def planeacion_reportes():
-    """Página principal de reportes (en caso de que la necesites)"""
+    """PÃ¡gina principal de reportes (en caso de que la necesites)"""
     return render_template("planeacion.html")
 
 @app.route("/descargar-reporte/<estatus>/<formato>")
@@ -2437,7 +2435,7 @@ def descargar_reporte(estatus, formato):
         import io
         from datetime import datetime
         
-        # Configuración Supabase
+        # ConfiguraciÃ³n Supabase
         SUPABASE_URL = 'https://uooffrtjajluvhcauctk.supabase.co'
         SUPABASE_KEY = 'sb_publishable_ib_7iPl1ccS0PGo3yKzggQ_nWMi9CU8'
         
@@ -2451,9 +2449,9 @@ def descargar_reporte(estatus, formato):
         estatus_map = {
             'vigentes': 'VIGENTE',
             'vencidos': 'VENCIDO',
-            'en-tramite': 'EN TRÁMITE',
+            'en-tramite': 'EN TRÃMITE',
             'pendientes': 'PENDIENTE',
-            'proximos-a-vencer': 'PRÓXIMO A VENCER'
+            'proximos-a-vencer': 'PRÃ“XIMO A VENCER'
         }
         
         estatus_bd = estatus_map.get(estatus.lower(), estatus.upper())
@@ -2485,10 +2483,10 @@ def descargar_reporte(estatus, formato):
             # Encabezados
             writer.writerow(['Reporte de Permisos - La Postal'])
             writer.writerow([f'Estatus: {estatus_bd}'])
-            writer.writerow([f'Fecha de generación: {datetime.now().strftime("%d/%m/%Y %H:%M")}'])
+            writer.writerow([f'Fecha de generaciÃ³n: {datetime.now().strftime("%d/%m/%Y %H:%M")}'])
             writer.writerow(['Generado por:', current_user.nombre])
             writer.writerow([])
-            writer.writerow(['#', 'Bloque', 'Sucursal', 'Permiso', 'Existencia', 'Fecha Expedición', 'Fecha Renovación', 'Estatus'])
+            writer.writerow(['#', 'Bloque', 'Sucursal', 'Permiso', 'Existencia', 'Fecha ExpediciÃ³n', 'Fecha RenovaciÃ³n', 'Estatus'])
             
             # Datos
             for i, permiso in enumerate(permisos, 1):
@@ -2522,3 +2520,5 @@ def descargar_reporte(estatus, formato):
 # ==================== MAIN ====================
 if __name__ == "__main__":
     app.run(debug=True)
+
+

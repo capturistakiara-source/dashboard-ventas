@@ -8,7 +8,7 @@
             --color-border: #e0e0e0;
             --color-navbar: #1a1a1a;
         }
-
+ 
         body {
             background-color: var(--color-bg);
             font-family: 'Helvetica Neue', Arial, sans-serif;
