@@ -172,7 +172,7 @@ print("âœ… ConexiÃ³n exitosa con Google Sheets")
 
 SHEET_NAME = "ventas"
 
-EXCLUDED_WORKSHEETS = {"MALECON", "MALECON 2", "VILLAFONTANA", "RANKING_SEMANAL"}
+EXCLUDED_WORKSHEETS = {"MALECON", "MALECON 2", "VILLAFONTANA", "RANKING_SEMANAL", "MATRIZ"}
 
 
 def _sheet_key(name):
@@ -397,7 +397,7 @@ def tabla_completa():
     fecha_inicio = datetime.strptime(fecha_inicio_str, "%Y-%m-%d").date() if fecha_inicio_str else None
     fecha_fin = datetime.strptime(fecha_fin_str, "%Y-%m-%d").date() if fecha_fin_str else None
 
-    sheet = spreadsheet.worksheet(sucursal_seleccionada)
+    all_rows_iniciales = sheets_data.get(sucursal_seleccionada, [])
     all_rows = sheet.get_all_values()
     if not all_rows:
         return render_template("tabla.html",
@@ -465,113 +465,119 @@ def tabla_completa():
 @app.route("/resumen", methods=["GET", "POST"])
 @login_required
 def resumen_mensual():
-    spreadsheet = client.open(SHEET_NAME)
-    sucursales = [ws.title for ws in spreadsheet.worksheets() if not _is_excluded_sheet(ws.title)]
+    sheets_data = get_spreadsheet_data()
+    sucursales = list(sheets_data.keys()) if sheets_data else []
     if not sucursales:
         return "No hay hojas disponibles para mostrar.", 400
 
     sucursal_seleccionada = request.form.get("sucursal") or sucursales[0]
     year_seleccionado = request.form.get("year") or "Todos"
-    sheet = spreadsheet.worksheet(sucursal_seleccionada)
 
+    # T(19) ... AM(38): estructura fija del resumen mensual
+    resumen_start_idx = 19
+    resumen_end_idx = 38
     columnas_resumen = [
-        'G.AÃ‘O', 'G.MES', 'G.TOTAL VENTA C/IVA', 'G.EFECTIVO', 'G.T.C.', 'G.UBER', 'G.PEDIDOS UBER',
-        'G.DIDI TC', 'G.PEDIDOS DIDI', 'G.RAPPI TC', 'G.PEDIDOS RAPPI', 'G.TOTAL APPS',
-        'G.TOTAL SUCURSAL', 'G.VENTA COMEDOR', 'G.CUENTAS COMEDOR', 'G.VENTA DOMICILIO',
-        'G.CUENTAS DOMICILIO', 'G.VENTA RAPIDO', 'G.CUENTAS RAPIDO', 'G.TICKET PROMEDIO'
+        "G.ANO", "G.MES", "G.TOTAL VENTA C/IVA", "G.EFECTIVO", "G.T.C.", "G.UBER", "G.PEDIDOS UBER",
+        "G.DIDI TC", "G.PEDIDOS DIDI", "G.RAPPI TC", "G.PEDIDOS RAPPI", "G.TOTAL APPS",
+        "G.TOTAL SUCURSAL", "G.VENTA COMEDOR", "G.CUENTAS COMEDOR", "G.VENTA DOMICILIO",
+        "G.CUENTAS DOMICILIO", "G.VENTA RAPIDO", "G.CUENTAS RAPIDO", "G.TICKET PROMEDIO",
     ]
+    expected_norm = [_norm(c) for c in columnas_resumen]
+    year_key = _norm("G.ANO")
+    mes_key = _norm("G.MES")
 
-    all_rows = sheet.get_all_values()
-    headers = [_norm(h) for h in all_rows[0]] if all_rows else []
+    def _extraer_estructura_resumen(rows):
+        if not rows or len(rows[0]) <= resumen_end_idx:
+            return None
 
-    try:
-        # Buscar Ã­ndice de G.MES (la primera columna del resumen)
-        mes_index = headers.index(_norm("G.MES"))
-        # El Ã­ndice de G.AÃ‘O deberÃ­a estar justo antes de G.MES
-        year_index = mes_index - 1
-        # Verificar que efectivamente es G.AÃ‘O
-        if _norm(all_rows[0][year_index]) != _norm("G.AÃ‘O"):
-            raise ValueError("La estructura de columnas no es la esperada")
-    except (ValueError, IndexError):
-        return f"La hoja '{sucursal_seleccionada}' no tiene la estructura correcta (G.AÃ‘O, G.MES, ...)", 400
+        headers_slice = rows[0][resumen_start_idx:resumen_end_idx + 1]
+        headers_norm = [_norm(h) for h in headers_slice]
+        if headers_norm != expected_norm:
+            return None
 
-    # Calcular Ã­ndices automÃ¡ticamente basado en columnas_resumen
-    indices = []
-    headers_finales = []
-    
-    for col_name in columnas_resumen:
-        try:
-            idx = headers.index(_norm(col_name))
-            indices.append(idx)
-            headers_finales.append(_norm(col_name))
-        except ValueError:
-            # Si falta una columna, la omitimos
-            continue
+        indices_local = list(range(resumen_start_idx, resumen_end_idx + 1))
+        year_idx = resumen_start_idx
+        mes_idx = resumen_start_idx + 1
+        headers_finales_local = expected_norm.copy()
+        return rows, mes_idx, year_idx, indices_local, headers_finales_local
 
-    # Obtener todos los aÃ±os disponibles de los datos reales
+    estructura = _extraer_estructura_resumen(sheets_data.get(sucursal_seleccionada, []))
+
+    if not estructura:
+        for sucursal in sucursales:
+            estructura = _extraer_estructura_resumen(sheets_data.get(sucursal, []))
+            if estructura:
+                sucursal_seleccionada = sucursal
+                break
+
+    if not estructura:
+        return render_template(
+            "resumen.html",
+            sucursales=sucursales,
+            sucursal_actual=sucursal_seleccionada,
+            years=[],
+            year_actual=year_seleccionado,
+            data=[],
+            datos_graficos=preparar_datos_para_graficos([], year_seleccionado),
+            error="Ninguna hoja tiene estructura valida en columnas T:AM (G.ANO ... G.TICKET PROMEDIO).",
+        )
+
+    all_rows, mes_index, year_index, indices, headers_finales = estructura
     years_disponibles = set()
     data = []
-    
+
     for row in all_rows[1:]:
-        if len(row) <= max(indices, default=0):
+        if len(row) <= resumen_end_idx:
             continue
-            
+
         year_valor = row[year_index].strip() if year_index < len(row) else ""
         mes_valor = row[mes_index].strip().upper() if mes_index < len(row) else ""
-        
-        # Solo procesar filas con aÃ±o y mes vÃ¡lidos
+
         if not year_valor or mes_valor not in ORDEN_MESES:
             continue
-            
-        # Agregar aÃ±o a la lista de disponibles
+
         if year_valor.isdigit():
             years_disponibles.add(year_valor)
-        
-        # Filtrar por aÃ±o seleccionado
+
         if year_seleccionado != "Todos" and year_valor != year_seleccionado:
             continue
-        
-        # Construir fila de datos
+
         fila = {}
         for j, idx in enumerate(indices):
-            if idx < len(row):
-                fila[headers_finales[j]] = row[idx]
-            else:
-                fila[headers_finales[j]] = ""
-        
-        # Solo agregar si tiene algÃºn dato (no solo encabezados vacÃ­os)
-        if any(value for key, value in fila.items() if key not in ['G.AÃ‘O', 'G.MES']):
+            fila[headers_finales[j]] = row[idx] if idx < len(row) else ""
+
+        if any(value for key, value in fila.items() if key not in [year_key, mes_key]):
             data.append(fila)
 
-    # Ordenar aÃ±os disponibles (mÃ¡s reciente primero)
     years_disponibles = sorted(years_disponibles, key=int, reverse=True)
-    
-    # Ordenar datos por aÃ±o y mes
     data = sorted(data, key=lambda x: (
-        int(x.get(_norm("G.AÃ‘O"), 0)),
-        ORDEN_MESES.index(x[_norm("G.MES")].upper()) if x.get(_norm("G.MES")) in ORDEN_MESES else 99
+        int(x.get(year_key, 0)),
+        ORDEN_MESES.index(x[mes_key].upper()) if x.get(mes_key) in ORDEN_MESES else 99
     ))
 
-    # Preparar datos para grÃ¡ficos (solo del aÃ±o seleccionado o todos)
     datos_graficos = preparar_datos_para_graficos(data, year_seleccionado)
-    
-    return render_template("resumen.html", 
-                         sucursales=sucursales, 
-                         sucursal_actual=sucursal_seleccionada,
-                         years=years_disponibles,
-                         year_actual=year_seleccionado,
-                         data=data,
-                         datos_graficos=datos_graficos)
+
+    return render_template(
+        "resumen.html",
+        sucursales=sucursales,
+        sucursal_actual=sucursal_seleccionada,
+        years=years_disponibles,
+        year_actual=year_seleccionado,
+        data=data,
+        datos_graficos=datos_graficos,
+    )
 
 
 def preparar_datos_para_graficos(data, year_seleccionado):
     """Prepara datos para graficos filtrando por anio y organizando por mes"""
 
     datos_agrupados = {}
+    year_key = _norm("G.ANO")
+    mes_key = _norm("G.MES")
 
     for fila in data:
-        anio = fila.get(_norm("G.AÃ‘O"), "")
-        mes = fila.get(_norm("G.MES"), "")
+        anio = fila.get(year_key, "")
+        mes = fila.get(mes_key, "")
 
         if not anio or not mes:
             continue
@@ -784,126 +790,125 @@ def comparativa():
 @app.route("/datos_grafica/<sucursal>")
 @login_required
 def datos_grafica(sucursal):
-    """API que devuelve datos para grÃ¡ficas - MESES siempre de 2025, datos del aÃ±o seleccionado"""
-    
-    year_seleccionado = request.args.get('year', '2025')
-    
-    if year_seleccionado == "Todos":
-        year_seleccionado = "2025"
-    
-    spreadsheet = client.open(SHEET_NAME)
-    sheet = spreadsheet.worksheet(sucursal)
-    
-    all_rows = sheet.get_all_values()
+    """API de graficas para resumen mensual usando columnas fijas T:AM."""
+
+    if _is_excluded_sheet(sucursal):
+        return jsonify({'error': f"Sucursal no permitida: {sucursal}"}), 400
+
+    year_seleccionado = request.args.get('year', 'Todos')
+    sheets_data = get_spreadsheet_data()
+    all_rows = sheets_data.get(sucursal, []) if sheets_data else []
     if not all_rows:
-        return jsonify({'error': 'Hoja vacÃ­a'}), 400
-    
-    headers = [_norm(h) for h in all_rows[0]]
-    
-    try:
-        mes_idx = headers.index(_norm("G.MES"))
-        year_idx = headers.index(_norm("G.AÃ‘O"))
-        uber_idx = headers.index(_norm("G.UBER"))
-        didi_idx = headers.index(_norm("G.DIDI TC"))
-        rappi_idx = headers.index(_norm("G.RAPPI TC"))
-        comedor_idx = headers.index(_norm("G.VENTA COMEDOR"))
-        domicilio_idx = headers.index(_norm("G.VENTA DOMICILIO"))
-        rapido_idx = headers.index(_norm("G.VENTA RAPIDO"))
-        pedidos_uber_idx = headers.index(_norm("G.PEDIDOS UBER"))
-        pedidos_didi_idx = headers.index(_norm("G.PEDIDOS DIDI"))
-        pedidos_rappi_idx = headers.index(_norm("G.PEDIDOS RAPPI"))
-        cuentas_comedor_idx = headers.index(_norm("G.CUENTAS COMEDOR"))
-        cuentas_domicilio_idx = headers.index(_norm("G.CUENTAS DOMICILIO"))
-        cuentas_rapido_idx = headers.index(_norm("G.CUENTAS RAPIDO"))
-    except ValueError as e:
-        return jsonify({'error': f'Columna no encontrada: {e}'}), 400
-    
-    
-    meses_2025 = []
+        return jsonify({'error': 'Hoja vacia'}), 400
+
+    # T(19) ... AM(38)
+    start_idx = 19
+    end_idx = 38
+    if len(all_rows[0]) <= end_idx:
+        return jsonify({'error': 'La hoja no contiene columnas T:AM'}), 400
+
+    expected_headers = [
+        "G.ANO", "G.MES", "G.TOTAL VENTA C/IVA", "G.EFECTIVO", "G.T.C.", "G.UBER", "G.PEDIDOS UBER",
+        "G.DIDI TC", "G.PEDIDOS DIDI", "G.RAPPI TC", "G.PEDIDOS RAPPI", "G.TOTAL APPS",
+        "G.TOTAL SUCURSAL", "G.VENTA COMEDOR", "G.CUENTAS COMEDOR", "G.VENTA DOMICILIO",
+        "G.CUENTAS DOMICILIO", "G.VENTA RAPIDO", "G.CUENTAS RAPIDO", "G.TICKET PROMEDIO",
+    ]
+    headers_norm = [_norm(h) for h in all_rows[0][start_idx:end_idx + 1]]
+    expected_norm = [_norm(h) for h in expected_headers]
+    if headers_norm != expected_norm:
+        return jsonify({'error': 'Encabezados invalidos en T:AM'}), 400
+
+    year_idx = start_idx
+    mes_idx = start_idx + 1
+    uber_idx = start_idx + 5
+    pedidos_uber_idx = start_idx + 6
+    didi_idx = start_idx + 7
+    pedidos_didi_idx = start_idx + 8
+    rappi_idx = start_idx + 9
+    pedidos_rappi_idx = start_idx + 10
+    comedor_idx = start_idx + 13
+    cuentas_comedor_idx = start_idx + 14
+    domicilio_idx = start_idx + 15
+    cuentas_domicilio_idx = start_idx + 16
+    rapido_idx = start_idx + 17
+    cuentas_rapido_idx = start_idx + 18
+
+    def to_float(val, default=0):
+        try:
+            if isinstance(val, str):
+                val = val.replace('$', '').replace(',', '').strip()
+            return float(val) if val else default
+        except Exception:
+            return default
+
+    def to_int(val, default=0):
+        try:
+            return int(to_float(val, default))
+        except Exception:
+            return default
+
+    def year_match(y):
+        if year_seleccionado == "Todos":
+            return True
+        return y == year_seleccionado
+
+    meses = []
     for row in all_rows[1:]:
-        if len(row) <= max(mes_idx, year_idx):
+        if len(row) <= end_idx:
             continue
-            
-        year_valor = row[year_idx].strip() if year_idx < len(row) else ""
-        mes_valor = row[mes_idx].strip().upper() if mes_idx < len(row) else ""
-        
-        if year_valor == "2025" and mes_valor in ORDEN_MESES:
-            if mes_valor not in meses_2025:
-                meses_2025.append(mes_valor)
-    
-   
-    meses_2025.sort(key=lambda m: ORDEN_MESES.index(m) if m in ORDEN_MESES else 99)
-    
-   
-    if not meses_2025:
-        meses_2025 = ORDEN_MESES.copy()
-    
-  
+        year_valor = row[year_idx].strip()
+        mes_valor = row[mes_idx].strip().upper()
+        if not year_match(year_valor) or mes_valor not in ORDEN_MESES:
+            continue
+        if mes_valor not in meses:
+            meses.append(mes_valor)
+
+    meses.sort(key=lambda m: ORDEN_MESES.index(m) if m in ORDEN_MESES else 99)
+    if not meses:
+        meses = ORDEN_MESES.copy()
+
     respuesta = {
-        'meses': meses_2025,
-        'uber': [0] * len(meses_2025),
-        'didi': [0] * len(meses_2025),
-        'rappi': [0] * len(meses_2025),
-        'comedor': [0] * len(meses_2025),
-        'domicilio': [0] * len(meses_2025),
-        'rapido': [0] * len(meses_2025),
-        'pedidos_uber': [0] * len(meses_2025),
-        'pedidos_didi': [0] * len(meses_2025),
-        'pedidos_rappi': [0] * len(meses_2025),
-        'cuentas_comedor': [0] * len(meses_2025),
-        'cuentas_domicilio': [0] * len(meses_2025),
-        'cuentas_rapido': [0] * len(meses_2025),
+        'meses': meses,
+        'uber': [0] * len(meses),
+        'didi': [0] * len(meses),
+        'rappi': [0] * len(meses),
+        'comedor': [0] * len(meses),
+        'domicilio': [0] * len(meses),
+        'rapido': [0] * len(meses),
+        'pedidos_uber': [0] * len(meses),
+        'pedidos_didi': [0] * len(meses),
+        'pedidos_rappi': [0] * len(meses),
+        'cuentas_comedor': [0] * len(meses),
+        'cuentas_domicilio': [0] * len(meses),
+        'cuentas_rapido': [0] * len(meses),
         'filtro_aplicado': year_seleccionado,
-        'year_meses': "2025"  
+        'year_meses': year_seleccionado,
     }
-    
-   
+
     for row in all_rows[1:]:
-        if len(row) <= max(mes_idx, year_idx, uber_idx, didi_idx, rappi_idx):
+        if len(row) <= end_idx:
             continue
-            
-        year_valor = row[year_idx].strip() if year_idx < len(row) else ""
-        mes_valor = row[mes_idx].strip().upper() if mes_idx < len(row) else ""
-        
-        if year_valor != year_seleccionado or mes_valor not in meses_2025:
+
+        year_valor = row[year_idx].strip()
+        mes_valor = row[mes_idx].strip().upper()
+        if not year_match(year_valor) or mes_valor not in meses:
             continue
-        
-      
-        if mes_valor in meses_2025:
-            idx = meses_2025.index(mes_valor)
-        else:
-            continue
-        
-        
-        def to_float(val, default=0):
-            try:
-                if isinstance(val, str):
-                    val = val.replace('$', '').replace(',', '').strip()
-                return float(val) if val else default
-            except:
-                return default
-        
-        def to_int(val, default=0):
-            try:
-                return int(to_float(val, default))
-            except:
-                return default
-        
-       
-        respuesta['uber'][idx] = to_float(row[uber_idx] if uber_idx < len(row) else 0)
-        respuesta['didi'][idx] = to_float(row[didi_idx] if didi_idx < len(row) else 0)
-        respuesta['rappi'][idx] = to_float(row[rappi_idx] if rappi_idx < len(row) else 0)
-        respuesta['comedor'][idx] = to_float(row[comedor_idx] if comedor_idx < len(row) else 0)
-        respuesta['domicilio'][idx] = to_float(row[domicilio_idx] if domicilio_idx < len(row) else 0)
-        respuesta['rapido'][idx] = to_float(row[rapido_idx] if rapido_idx < len(row) else 0)
-        
-        respuesta['pedidos_uber'][idx] = to_int(row[pedidos_uber_idx] if pedidos_uber_idx < len(row) else 0)
-        respuesta['pedidos_didi'][idx] = to_int(row[pedidos_didi_idx] if pedidos_didi_idx < len(row) else 0)
-        respuesta['pedidos_rappi'][idx] = to_int(row[pedidos_rappi_idx] if pedidos_rappi_idx < len(row) else 0)
-        respuesta['cuentas_comedor'][idx] = to_int(row[cuentas_comedor_idx] if cuentas_comedor_idx < len(row) else 0)
-        respuesta['cuentas_domicilio'][idx] = to_int(row[cuentas_domicilio_idx] if cuentas_domicilio_idx < len(row) else 0)
-        respuesta['cuentas_rapido'][idx] = to_int(row[cuentas_rapido_idx] if cuentas_rapido_idx < len(row) else 0)
-    
+
+        idx = meses.index(mes_valor)
+        respuesta['uber'][idx] += to_float(row[uber_idx])
+        respuesta['didi'][idx] += to_float(row[didi_idx])
+        respuesta['rappi'][idx] += to_float(row[rappi_idx])
+        respuesta['comedor'][idx] += to_float(row[comedor_idx])
+        respuesta['domicilio'][idx] += to_float(row[domicilio_idx])
+        respuesta['rapido'][idx] += to_float(row[rapido_idx])
+
+        respuesta['pedidos_uber'][idx] += to_int(row[pedidos_uber_idx])
+        respuesta['pedidos_didi'][idx] += to_int(row[pedidos_didi_idx])
+        respuesta['pedidos_rappi'][idx] += to_int(row[pedidos_rappi_idx])
+        respuesta['cuentas_comedor'][idx] += to_int(row[cuentas_comedor_idx])
+        respuesta['cuentas_domicilio'][idx] += to_int(row[cuentas_domicilio_idx])
+        respuesta['cuentas_rapido'][idx] += to_int(row[cuentas_rapido_idx])
+
     return jsonify(respuesta)
 
 # ==================== DATOS GLOBAL ====================
@@ -2536,6 +2541,11 @@ def descargar_reporte(estatus, formato):
 # ==================== MAIN ====================
 if __name__ == "__main__":
     app.run(debug=True)
+
+
+
+
+
 
 
 
