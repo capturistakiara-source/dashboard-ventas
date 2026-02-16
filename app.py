@@ -172,6 +172,16 @@ print("âœ… ConexiÃ³n exitosa con Google Sheets")
 
 SHEET_NAME = "ventas"
 
+EXCLUDED_WORKSHEETS = {"MALECON", "MALECON 2", "VILLAFONTANA", "RANKING_SEMANAL"}
+
+
+def _sheet_key(name):
+    return str(name).strip().upper()
+
+
+def _is_excluded_sheet(name):
+    return _sheet_key(name) in EXCLUDED_WORKSHEETS
+
 # ==================== CACHÃ‰S GLOBALES ====================
 cache_sheets = {"data": None, "timestamp": 0}
 cache_global = {"data": None, "timestamp": 0}
@@ -190,7 +200,7 @@ def get_spreadsheet_data():
     print("ðŸ“¡ Leyendo Google Sheets...")
     try:
         spreadsheet = client.open(SHEET_NAME)
-        hojas = spreadsheet.worksheets()
+        hojas = [ws for ws in spreadsheet.worksheets() if not _is_excluded_sheet(ws.title)]
         data = {}
         
         print(f"ðŸ” Hojas encontradas: {[hoja.title for hoja in hojas]}")
@@ -375,7 +385,10 @@ def supervision():
 @login_required
 def tabla_completa():
     spreadsheet = client.open(SHEET_NAME)
-    sucursales = [ws.title for ws in spreadsheet.worksheets()]
+    sucursales = [ws.title for ws in spreadsheet.worksheets() if not _is_excluded_sheet(ws.title)]
+
+    if not sucursales:
+        return "No hay hojas disponibles para mostrar.", 400
 
     sucursal_seleccionada = request.form.get("sucursal") or sucursales[0]
     fecha_inicio_str = request.form.get("fecha_inicio")
@@ -453,7 +466,10 @@ def tabla_completa():
 @login_required
 def resumen_mensual():
     spreadsheet = client.open(SHEET_NAME)
-    sucursales = [ws.title for ws in spreadsheet.worksheets()]
+    sucursales = [ws.title for ws in spreadsheet.worksheets() if not _is_excluded_sheet(ws.title)]
+    if not sucursales:
+        return "No hay hojas disponibles para mostrar.", 400
+
     sucursal_seleccionada = request.form.get("sucursal") or sucursales[0]
     year_seleccionado = request.form.get("year") or "Todos"
     sheet = spreadsheet.worksheet(sucursal_seleccionada)
@@ -903,7 +919,7 @@ def datos_grafica_global():
 
     try:
         spreadsheet = client.open(SHEET_NAME)
-        hojas = spreadsheet.worksheets()
+        hojas = [ws for ws in spreadsheet.worksheets() if not _is_excluded_sheet(ws.title)]
 
         nombres_sucursales = []
         totales_sucursal = []
@@ -2520,5 +2536,8 @@ def descargar_reporte(estatus, formato):
 # ==================== MAIN ====================
 if __name__ == "__main__":
     app.run(debug=True)
+
+
+
 
 
