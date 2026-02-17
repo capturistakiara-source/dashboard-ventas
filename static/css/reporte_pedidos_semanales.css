@@ -1,0 +1,89 @@
+:root {
+    --bg: #050505;
+    --surface: #141414;
+    --surface-border: #2a2a2a;
+    --text: #f4f4f4;
+    --muted: #b7b7b7;
+    --accent: #b71c1c;
+}
+
+body {
+    background: radial-gradient(circle at top, #1f1f1f 0%, var(--bg) 55%);
+    color: var(--text);
+    min-height: 100vh;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.page-header {
+    text-align: center;
+}
+
+.page-header h1 {
+    font-size: 2rem;
+    letter-spacing: 2px;
+    margin-bottom: 0.35rem;
+}
+
+.subtitle {
+    color: var(--muted);
+    letter-spacing: 0.5px;
+}
+
+.range-text {
+    color: #e7e7e7;
+    font-weight: 500;
+}
+
+.card-custom {
+    background: linear-gradient(180deg, #171717, #111111);
+    border: 1px solid var(--surface-border);
+    border-radius: 14px;
+}
+
+.card-custom .card-header {
+    border-bottom: 1px solid var(--surface-border);
+    background: rgba(183, 28, 28, 0.2);
+    color: #ffffff;
+}
+
+.card-custom .card-header h5 {
+    color: #ffffff;
+}
+
+.form-label {
+    color: var(--muted);
+}
+
+.form-select {
+    background-color: var(--surface);
+    color: var(--text);
+    border: 1px solid #3a3a3a;
+}
+
+.form-select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 0.2rem rgba(183, 28, 28, 0.25);
+}
+
+.chart-wrap {
+    background: rgba(0, 0, 0, 0.35);
+    border-radius: 10px;
+    border: 1px solid #2f2f2f;
+    padding: 14px;
+    min-height: 420px;
+}
+
+.btn-outline-light {
+    border-color: #999;
+}
+
+.btn-outline-light:hover {
+    background: #fff;
+    color: #111;
+}
+
+@media (max-width: 768px) {
+    .chart-wrap {
+        min-height: 320px;
+    }
+}

@@ -386,6 +386,7 @@ def supervision():
 def tabla_completa():
     spreadsheet = client.open(SHEET_NAME)
     sucursales = [ws.title for ws in spreadsheet.worksheets() if not _is_excluded_sheet(ws.title)]
+    sheets_data = get_spreadsheet_data()
 
     if not sucursales:
         return "No hay hojas disponibles para mostrar.", 400
@@ -397,8 +398,7 @@ def tabla_completa():
     fecha_inicio = datetime.strptime(fecha_inicio_str, "%Y-%m-%d").date() if fecha_inicio_str else None
     fecha_fin = datetime.strptime(fecha_fin_str, "%Y-%m-%d").date() if fecha_fin_str else None
 
-    all_rows_iniciales = sheets_data.get(sucursal_seleccionada, [])
-    all_rows = sheet.get_all_values()
+    all_rows = sheets_data.get(sucursal_seleccionada, [])
     if not all_rows:
         return render_template("tabla.html",
                                sucursales=sucursales,
@@ -1300,6 +1300,93 @@ def reporte_grafica():
             "reporte_grafica.html",
             datos_semana_anterior=[],
             rango_semana="Error",
+            error=str(e)
+        )
+
+
+# ==================== REPORTE SEMANAL DE PEDIDOS (TEMPLATE NUEVO) ====================
+@app.route("/reporte-pedidos-semanales")
+@login_required
+def reporte_pedidos_semanales():
+    try:
+        sheets_data = get_spreadsheet_data()
+        sucursales = list(sheets_data.keys()) if sheets_data else []
+
+        if not sucursales:
+            return render_template(
+                "reporte_pedidos_semanales.html",
+                sucursales=[],
+                rango_fechas="No disponible",
+                pedidos_chart_data={"labels": [], "series": {}},
+                error="No se pudieron cargar datos de sucursales."
+            )
+
+        hoy = datetime.now().date()
+        anio_inicio = hoy.year if hoy.month == 12 else hoy.year - 1
+        fecha_inicio = datetime(anio_inicio, 12, 1).date()
+        fecha_fin = hoy
+
+        labels = []
+        cursor = fecha_inicio
+        while cursor <= fecha_fin:
+            fin_semana = min(cursor + timedelta(days=6), fecha_fin)
+            labels.append(f"{cursor.strftime('%d/%m')} - {fin_semana.strftime('%d/%m')}")
+            cursor = fin_semana + timedelta(days=1)
+
+        series = {}
+        for sucursal in sucursales:
+            uber = [0.0] * len(labels)
+            didi = [0.0] * len(labels)
+            rows = sheets_data.get(sucursal, [])
+
+            if rows and len(rows) > 1:
+                headers_norm = [_norm(h) for h in rows[0]]
+
+                def _idx(col_name):
+                    key = _norm(col_name)
+                    return headers_norm.index(key) if key in headers_norm else -1
+
+                idx_apertura = _idx("APERTURA")
+                idx_uber = _idx("PEDIDOS UBER")
+                idx_didi = _idx("PEDIDOS DIDI")
+
+                if idx_apertura >= 0:
+                    for row in rows[1:]:
+                        if idx_apertura >= len(row):
+                            continue
+
+                        fecha_row = parse_fecha(row[idx_apertura])
+                        if not fecha_row or not (fecha_inicio <= fecha_row <= fecha_fin):
+                            continue
+
+                        idx_semana = (fecha_row - fecha_inicio).days // 7
+                        if idx_semana < 0 or idx_semana >= len(labels):
+                            continue
+
+                        if 0 <= idx_uber < len(row):
+                            uber[idx_semana] += num(row[idx_uber])
+                        if 0 <= idx_didi < len(row):
+                            didi[idx_semana] += num(row[idx_didi])
+
+            series[sucursal] = {
+                "uber": [round(v, 2) for v in uber],
+                "didi": [round(v, 2) for v in didi]
+            }
+
+        return render_template(
+            "reporte_pedidos_semanales.html",
+            sucursales=sucursales,
+            rango_fechas=f"{fecha_inicio.strftime('%d/%m/%Y')} al {fecha_fin.strftime('%d/%m/%Y')}",
+            pedidos_chart_data={"labels": labels, "series": series}
+        )
+
+    except Exception as e:
+        print(f"❌ Error en reporte_pedidos_semanales: {e}")
+        return render_template(
+            "reporte_pedidos_semanales.html",
+            sucursales=[],
+            rango_fechas="Error",
+            pedidos_chart_data={"labels": [], "series": {}},
             error=str(e)
         )
 
