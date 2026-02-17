@@ -172,7 +172,7 @@ print("âœ… ConexiÃ³n exitosa con Google Sheets")
 
 SHEET_NAME = "ventas"
 
-EXCLUDED_WORKSHEETS = {"MALECON", "MALECON 2", "VILLAFONTANA", "RANKING_SEMANAL", "MATRIZ"}
+EXCLUDED_WORKSHEETS = {"MALECON", "MALECON 2", "VILLAFONTANA", "RANKING_SEMANAL"}
 
 
 def _sheet_key(name):
@@ -1311,6 +1311,16 @@ def reporte_pedidos_semanales():
     try:
         sheets_data = get_spreadsheet_data()
         sucursales = list(sheets_data.keys()) if sheets_data else []
+
+        # Esta vista debe incluir MATRIZ aunque este excluida globalmente en otros modulos.
+        try:
+            if "MATRIZ" not in sheets_data:
+                ws_matriz = client.open(SHEET_NAME).worksheet("MATRIZ")
+                sheets_data["MATRIZ"] = ws_matriz.get_all_values()
+            if "MATRIZ" not in sucursales:
+                sucursales.append("MATRIZ")
+        except Exception:
+            pass
 
         if not sucursales:
             return render_template(
