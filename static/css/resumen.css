@@ -294,6 +294,21 @@
             background-color: rgba(255, 255, 255, 0.05) !important;
         }
 
+        /* SELECT AÑO: lista negra, seleccionado blanco */
+        #year {
+            color: #ffffff !important;
+        }
+
+        #year option {
+            color: #000000 !important;
+            background-color: #ffffff !important;
+        }
+
+        #year option:checked {
+            color: #ffffff !important;
+            background-color: #b71c1c !important;
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 1rem;
