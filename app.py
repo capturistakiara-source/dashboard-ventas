@@ -485,6 +485,29 @@ def resumen_mensual():
     expected_norm = [_norm(c) for c in columnas_resumen]
     year_key = _norm("G.ANO")
     mes_key = _norm("G.MES")
+    total_sucursal_key = _norm("G.TOTAL SUCURSAL")
+    columnas_cadena = columnas_resumen[2:]
+    columnas_cadena_norm = [_norm(c) for c in columnas_cadena]
+    columnas_cantidad_keys = {
+        _norm("G.PEDIDOS UBER"),
+        _norm("G.PEDIDOS DIDI"),
+        _norm("G.PEDIDOS RAPPI"),
+        _norm("G.CUENTAS COMEDOR"),
+        _norm("G.CUENTAS DOMICILIO"),
+        _norm("G.CUENTAS RAPIDO"),
+    }
+    columnas_monetarias_keys = [k for k in columnas_cadena_norm if k not in columnas_cantidad_keys]
+    hoy = datetime.now().date()
+    mes_actual_idx = hoy.month - 1
+
+    def _mes_permitido(year_valor, mes_valor):
+        if mes_valor not in ORDEN_MESES:
+            return False
+        if not year_valor or not year_valor.isdigit():
+            return True
+        if int(year_valor) != hoy.year:
+            return True
+        return ORDEN_MESES.index(mes_valor) <= mes_actual_idx
 
     def _extraer_estructura_resumen(rows):
         if not rows or len(rows[0]) <= resumen_end_idx:
@@ -500,6 +523,56 @@ def resumen_mensual():
         mes_idx = resumen_start_idx + 1
         headers_finales_local = expected_norm.copy()
         return rows, mes_idx, year_idx, indices_local, headers_finales_local
+
+    def _calcular_totales_cadena_resumen():
+        acumulado_por_mes = {mes: {col_key: 0.0 for col_key in columnas_cadena_norm} for mes in ORDEN_MESES}
+
+        for sucursal in sucursales:
+            estructura_local = _extraer_estructura_resumen(sheets_data.get(sucursal, []))
+            if not estructura_local:
+                continue
+
+            rows_local, mes_idx_local, year_idx_local, indices_local, headers_local = estructura_local
+            if any(col_key not in headers_local for col_key in columnas_cadena_norm):
+                continue
+
+            idxs_columnas_local = {
+                col_key: indices_local[headers_local.index(col_key)]
+                for col_key in columnas_cadena_norm
+            }
+
+            for row in rows_local[1:]:
+                if len(row) <= resumen_end_idx:
+                    continue
+
+                year_valor_local = row[year_idx_local].strip() if year_idx_local < len(row) else ""
+                mes_valor_local = row[mes_idx_local].strip().upper() if mes_idx_local < len(row) else ""
+
+                if not year_valor_local or mes_valor_local not in ORDEN_MESES:
+                    continue
+                if not _mes_permitido(year_valor_local, mes_valor_local):
+                    continue
+
+                if year_seleccionado != "Todos" and year_valor_local != year_seleccionado:
+                    continue
+
+                for col_key, idx_col in idxs_columnas_local.items():
+                    valor_col = num(row[idx_col]) if idx_col < len(row) else 0
+                    acumulado_por_mes[mes_valor_local][col_key] += valor_col
+
+        salida = []
+        for mes in ORDEN_MESES:
+            fila = {"mes": mes}
+            for col_key in columnas_cadena_norm:
+                fila[col_key] = round(acumulado_por_mes[mes].get(col_key, 0.0), 2)
+            salida.append(fila)
+
+        totales_finales = {
+            col_key: round(sum(fila.get(col_key, 0.0) for fila in salida), 2)
+            for col_key in columnas_cadena_norm
+        }
+        cadena_total_final = round(totales_finales.get(total_sucursal_key, 0.0), 2)
+        return salida, totales_finales, cadena_total_final
 
     estructura = _extraer_estructura_resumen(sheets_data.get(sucursal_seleccionada, []))
 
@@ -519,6 +592,13 @@ def resumen_mensual():
             year_actual=year_seleccionado,
             data=[],
             datos_graficos=preparar_datos_para_graficos([], year_seleccionado),
+            cadena_totales_resumen=[],
+            cadena_columnas=[{"label": c, "key": _norm(c)} for c in columnas_cadena],
+            cadena_columnas_cantidad=list(columnas_cantidad_keys),
+            cadena_columnas_monetarias=columnas_monetarias_keys,
+            cadena_totales_finales={},
+            total_sucursal_key=total_sucursal_key,
+            cadena_total_final=0,
             error="Ninguna hoja tiene estructura valida en columnas T:AM (G.ANO ... G.TICKET PROMEDIO).",
         )
 
@@ -534,6 +614,8 @@ def resumen_mensual():
         mes_valor = row[mes_index].strip().upper() if mes_index < len(row) else ""
 
         if not year_valor or mes_valor not in ORDEN_MESES:
+            continue
+        if not _mes_permitido(year_valor, mes_valor):
             continue
 
         if year_valor.isdigit():
@@ -556,6 +638,7 @@ def resumen_mensual():
     ))
 
     datos_graficos = preparar_datos_para_graficos(data, year_seleccionado)
+    cadena_totales_resumen, cadena_totales_finales, cadena_total_final = _calcular_totales_cadena_resumen()
 
     return render_template(
         "resumen.html",
@@ -565,6 +648,13 @@ def resumen_mensual():
         year_actual=year_seleccionado,
         data=data,
         datos_graficos=datos_graficos,
+        cadena_totales_resumen=cadena_totales_resumen,
+        cadena_columnas=[{"label": c, "key": _norm(c)} for c in columnas_cadena],
+        cadena_columnas_cantidad=list(columnas_cantidad_keys),
+        cadena_columnas_monetarias=columnas_monetarias_keys,
+        cadena_totales_finales=cadena_totales_finales,
+        total_sucursal_key=total_sucursal_key,
+        cadena_total_final=cadena_total_final,
     )
 
 
@@ -796,6 +886,8 @@ def datos_grafica(sucursal):
         return jsonify({'error': f"Sucursal no permitida: {sucursal}"}), 400
 
     year_seleccionado = request.args.get('year', 'Todos')
+    hoy = datetime.now().date()
+    mes_actual_idx = hoy.month - 1
     sheets_data = get_spreadsheet_data()
     all_rows = sheets_data.get(sucursal, []) if sheets_data else []
     if not all_rows:
@@ -852,6 +944,15 @@ def datos_grafica(sucursal):
             return True
         return y == year_seleccionado
 
+    def month_allowed(y, m):
+        if m not in ORDEN_MESES:
+            return False
+        if not y or not y.isdigit():
+            return True
+        if int(y) != hoy.year:
+            return True
+        return ORDEN_MESES.index(m) <= mes_actual_idx
+
     meses = []
     for row in all_rows[1:]:
         if len(row) <= end_idx:
@@ -859,6 +960,8 @@ def datos_grafica(sucursal):
         year_valor = row[year_idx].strip()
         mes_valor = row[mes_idx].strip().upper()
         if not year_match(year_valor) or mes_valor not in ORDEN_MESES:
+            continue
+        if not month_allowed(year_valor, mes_valor):
             continue
         if mes_valor not in meses:
             meses.append(mes_valor)
@@ -892,6 +995,8 @@ def datos_grafica(sucursal):
         year_valor = row[year_idx].strip()
         mes_valor = row[mes_idx].strip().upper()
         if not year_match(year_valor) or mes_valor not in meses:
+            continue
+        if not month_allowed(year_valor, mes_valor):
             continue
 
         idx = meses.index(mes_valor)
