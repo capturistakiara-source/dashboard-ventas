@@ -73,6 +73,19 @@ body {
     min-height: 420px;
 }
 
+#tablaTotalesSemanales {
+    --bs-table-bg: #111111;
+    --bs-table-striped-bg: #171717;
+    --bs-table-hover-bg: #1c1c1c;
+    --bs-table-border-color: #2f2f2f;
+}
+
+#tablaTotalesSemanales tfoot th {
+    color: #ffffff;
+    font-weight: 700;
+    border-top: 2px solid #3a3a3a;
+}
+
 .btn-outline-light {
     border-color: #999;
 }

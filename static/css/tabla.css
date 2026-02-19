@@ -1,4 +1,4 @@
-        :root {
+﻿        :root {
             --color-bg: #000000;
             --color-card: #ffffff;
             --color-text: #2c2c2c;
@@ -20,6 +20,7 @@
             background: rgba(255, 255, 255, 0.05);
             border-radius: 12px;
             padding: 2rem;
+            -webkit-backdrop-filter: blur(10px);
             backdrop-filter: blur(10px);
         }
 
@@ -153,7 +154,7 @@
             color: white;
         }
 
-        /* GRÁFICA */
+        /* GRÃFICA */
         .chart-container {
             background: rgba(255, 255, 255, 0.05);
             border-radius: 8px;
@@ -232,7 +233,7 @@
             text-decoration: none;
         }
 
-        /* ESTRUCTURA PARA KANJIS EN CÍRCULO ROJO */
+        /* ESTRUCTURA PARA KANJIS EN CÃRCULO ROJO */
         .kanji-circle {
             display: inline-flex;
             align-items: center;
@@ -248,7 +249,7 @@
             box-shadow: 0 4px 8px rgba(183, 28, 28, 0.3);
         }
 
-        /* Variante más pequeña */
+        /* Variante mÃ¡s pequeÃ±a */
         .kanji-circle-sm {
             width: 40px;
             height: 40px;
@@ -256,7 +257,7 @@
             margin-right: 0.8rem;
         }
 
-        /* Variante más grande */
+        /* Variante mÃ¡s grande */
         .kanji-circle-lg {
             width: 60px;
             height: 60px;
@@ -264,7 +265,7 @@
             margin-right: 1.2rem;
         }
 
-        /* Para títulos de página */
+        /* Para tÃ­tulos de pÃ¡gina */
         .page-title .kanji-circle {
             width: 70px;
             height: 70px;
@@ -335,3 +336,4 @@
                 margin-bottom: 0.5rem;
             }
         }
+

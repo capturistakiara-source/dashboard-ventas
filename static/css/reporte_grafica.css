@@ -1,4 +1,4 @@
-        :root {
+﻿        :root {
             --color-bg: #000000;
             --color-card: #ffffff;
             --color-text: #ffffff;
@@ -24,6 +24,7 @@
             background: rgba(255, 255, 255, 0.05);
             border-radius: 12px;
             padding: 2rem;
+            -webkit-backdrop-filter: blur(10px);
             backdrop-filter: blur(10px);
         }
 
@@ -77,7 +78,7 @@
             box-shadow: 0 4px 8px rgba(183, 28, 28, 0.3);
         }
 
-        /* BOTÓN DE SALIR */
+        /* BOTÃ“N DE SALIR */
         .btn-secondary {
             background-color: transparent;
             border: 1px solid rgba(255, 255, 255, 0.3);
@@ -115,7 +116,7 @@
             background: rgba(40, 167, 69, 0.3) !important;
         }
 
-        /* GRÁFICA CONTAINER - MEJORADO */
+        /* GRÃFICA CONTAINER - MEJORADO */
         .grafica-container {
             background: rgba(0, 0, 0, 0.2);
             border-radius: 8px;
@@ -232,6 +233,7 @@
             }
             
             .grafica-container {
-                height: 350px; /* Ajustamos para móviles */
+                height: 350px; /* Ajustamos para mÃ³viles */
             }
         }
+

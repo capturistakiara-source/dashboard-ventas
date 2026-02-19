@@ -1,4 +1,4 @@
-        :root {
+﻿        :root {
             --color-bg: #000000;
             --color-card: #ffffff;
             --color-text: #ffffff;
@@ -21,6 +21,7 @@
             background: rgba(255, 255, 255, 0.05);
             border-radius: 12px;
             padding: 2rem;
+            -webkit-backdrop-filter: blur(10px);
             backdrop-filter: blur(10px);
         }
 
@@ -239,7 +240,7 @@
             text-decoration: none;
         }
 
-        /* Específico para el formulario de filtro por semana */
+        /* EspecÃ­fico para el formulario de filtro por semana */
         .filter-form .card {
             color: #ffffff !important;
         }
@@ -267,7 +268,7 @@
             background-color: white !important;
         }
 
-        /* ESTILOS PARA COMPARACIÓN */
+        /* ESTILOS PARA COMPARACIÃ“N */
         .comparison-badge {
             font-size: 0.8rem;
             margin-left: 5px;
@@ -296,13 +297,13 @@
             padding-left: 10px;
         }
 
-        /* SOLO LOS TEXTOS DE COMPARACIÓN DE SEMANAS EN BLANCO */
+        /* SOLO LOS TEXTOS DE COMPARACIÃ“N DE SEMANAS EN BLANCO */
         .current-week *,
         .previous-week * {
             color: #ffffff !important;
         }
 
-        /* SOLO ESTOS TEXTOS ESPECÍFICOS EN BLANCO */
+        /* SOLO ESTOS TEXTOS ESPECÃFICOS EN BLANCO */
         .week-indicator,
         .card.text-center .card-body small {
             color: #ffffff !important;
@@ -329,3 +330,4 @@
                 margin-right: 0.8rem;
             }
         }
+

@@ -1,0 +1,63 @@
+﻿/* Global responsive helpers shared by all views */
+* {
+    box-sizing: border-box;
+}
+
+img,
+svg,
+canvas,
+video {
+    max-width: 100%;
+    height: auto;
+}
+
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 768px) {
+    body {
+        overflow-x: hidden;
+    }
+
+    .container,
+    .container-fluid,
+    .main-container,
+    .dashboard-container {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+
+    form .form-control,
+    form .form-select,
+    form .btn,
+    form button,
+    form input,
+    form select,
+    form textarea {
+        width: 100%;
+    }
+
+    .navbar .container {
+        flex-wrap: wrap;
+        row-gap: 0.5rem;
+    }
+
+    .navbar .navbar-nav {
+        width: 100%;
+    }
+
+    .navbar .navbar-text {
+        display: block;
+        margin-right: 0;
+    }
+
+    #detalleContenido .detail-grid-two-col {
+        grid-template-columns: 1fr !important;
+    }
+
+    #detalleContenido .detail-file-row {
+        flex-wrap: wrap;
+    }
+}

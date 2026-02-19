@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acceso Hoja de Visita - La Postal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
+    <style>
+        .auth-wrap {
+            max-width: 760px;
+            margin: 36px auto 0;
+            padding: 0 16px 40px;
+        }
+
+        .auth-card {
+            background: #0f0f0f;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 16px;
+            padding: 24px;
+        }
+
+        .auth-label {
+            color: #f2f2f2;
+            margin-bottom: 8px;
+        }
+
+        .auth-input,
+        .auth-select {
+            background: #161616;
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+
+        .auth-input:focus,
+        .auth-select:focus {
+            background: #161616;
+            color: #fff;
+            border-color: #b71c1c;
+            box-shadow: none;
+        }
+
+        .hidden-step {
+            display: none;
+        }
+    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
+</head>
+
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark rounded-0">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('supervision') }}">
+                LA POSTAL | ACCESO HOJA DE VISITA
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="{{ url_for('supervision') }}">Volver</a>
+                <a class="nav-link" href="{{ url_for('logout') }}">Salir</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="auth-wrap">
+        <div class="auth-card">
+            <h2 class="card-title mb-2">Identificación obligatoria</h2>
+            <p class="card-desc mb-4">
+                Para entrar a Hoja de Visita debes completar: usuario, contraseña, foto con uniforme, sucursal y foto de sucursal.
+            </p>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ 'danger' if category == 'error' else category }}" role="alert">
+                {{ message }}
+            </div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+
+            {% if error %}
+            <div class="alert alert-danger" role="alert">{{ error }}</div>
+            {% endif %}
+
+            <form method="post" enctype="multipart/form-data" autocomplete="off" id="supervisionForm">
+                <div class="mb-3">
+                    <label for="supervisor" class="form-label auth-label">Usuario</label>
+                    <select id="supervisor" name="supervisor" class="form-select auth-select" title="Selecciona usuario" required>
+                        <option value="">Selecciona usuario</option>
+                        {% for usuario in supervisores %}
+                        <option value="{{ usuario.value }}" {% if supervisor_seleccionado == usuario.value %}selected{% endif %}>
+                            {{ usuario.label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label for="password" class="form-label auth-label">Contraseña</label>
+                    <input id="password" name="password" type="password" class="form-control auth-input" title="Ingresa contraseña" required>
+                    <small class="text-secondary">Formato: <code>Lp + nombre de usuario</code>. Ejemplo: <code>Lpsupervisor1</code>.</small>
+                </div>
+
+                <div class="mb-3">
+                    <label for="foto_supervisor" class="form-label auth-label">Foto del supervisor con uniforme</label>
+                    <input id="foto_supervisor" name="foto_supervisor" type="file" class="form-control auth-input" title="Sube foto del supervisor" accept=".jpg,.jpeg,.png,.webp" required>
+                </div>
+
+                <div id="stepSucursal" class="hidden-step">
+                    <div class="mb-3">
+                        <label for="sucursal" class="form-label auth-label">Sucursal</label>
+                        <select id="sucursal" name="sucursal" class="form-select auth-select" title="Selecciona sucursal" required>
+                            <option value="">Selecciona sucursal</option>
+                            {% for suc in sucursales %}
+                            <option value="{{ suc }}" {% if sucursal_seleccionada == suc %}selected{% endif %}>
+                                {{ suc }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div id="stepFotoSucursal" class="hidden-step">
+                    <div class="mb-4">
+                        <label for="foto_sucursal" class="form-label auth-label">Foto de la sucursal</label>
+                        <input id="foto_sucursal" name="foto_sucursal" type="file" class="form-control auth-input" title="Sube foto de la sucursal" accept=".jpg,.jpeg,.png,.webp" required>
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-danger">Entrar a Hoja de Visita</button>
+                    <a href="{{ url_for('supervision') }}" class="btn btn-outline-light">Cancelar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            const fotoSupervisor = document.getElementById("foto_supervisor");
+            const sucursal = document.getElementById("sucursal");
+            const stepSucursal = document.getElementById("stepSucursal");
+            const stepFotoSucursal = document.getElementById("stepFotoSucursal");
+
+            function toggleSteps() {
+                const tieneFotoSupervisor = fotoSupervisor.files && fotoSupervisor.files.length > 0;
+                stepSucursal.style.display = tieneFotoSupervisor  "block" : "none";
+
+                const sucursalElegida = sucursal && sucursal.value && sucursal.value.trim() !== "";
+                stepFotoSucursal.style.display = (tieneFotoSupervisor && sucursalElegida)  "block" : "none";
+            }
+
+            fotoSupervisor.addEventListener("change", toggleSteps);
+            sucursal.addEventListener("change", toggleSteps);
+            toggleSteps();
+        })();
+    </script>
+</body>
+
+</html>
+

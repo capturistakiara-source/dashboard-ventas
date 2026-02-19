@@ -1,0 +1,51 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supervision | Sucursales</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
+    <style>
+        .wrap {
+            max-width: 860px;
+            margin: 44px auto;
+            padding: 0 16px;
+        }
+
+        .cardx {
+            background: #0f0f0f;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 14px;
+            padding: 22px;
+        }
+    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
+</head>
+
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark rounded-0">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('supervision') }}">
+                LA POSTAL | SUPERVISION | SUCURSALES
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="{{ url_for('supervision') }}">Volver</a>
+                <a class="nav-link" href="{{ url_for('logout') }}">Salir</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="wrap">
+        <div class="cardx">
+            <h2 class="card-title mb-2">Sucursales</h2>
+            <p class="card-desc mb-0">
+                Los indicadores de visitas se movieron al panel de <strong>Hoja de visita</strong>.
+            </p>
+        </div>
+    </div>
+</body>
+
+</html>
+

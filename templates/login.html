@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 
 <head>
@@ -7,6 +7,7 @@
     <title>Iniciar Sesión - La Postal</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="static/css/login.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
 </head>
 
 <body>
@@ -33,25 +34,25 @@
             <!-- Mensajes Flash -->
             <div class="alert alert-danger alert-dismissible fade show d-none" role="alert">
                 Credenciales incorrectas. Intenta nuevamente.
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar" title="Cerrar alerta"></button>
             </div>
 
             <form method="POST">
                 <div class="mb-3">
                     <label for="username" class="form-label">Usuario</label>
-                    <input type="text" class="form-control" id="username" name="username"
+                    <input type="text" class="form-control" id="username" name="username" title="Ingresa tu usuario"
                         placeholder="Ingresa tu usuario" required autofocus>
                 </div>
 
                 <div class="mb-3">
                     <label for="password" class="form-label">Contraseña</label>
-                    <input type="password" class="form-control" id="password" name="password"
+                    <input type="password" class="form-control" id="password" name="password" title="Ingresa tu contraseña"
                         placeholder="Ingresa tu contraseña" required>
                 </div>
 
                 <div class="form-options">
                     <div class="remember-me">
-                        <input type="checkbox" id="remember" name="remember">
+                        <input type="checkbox" id="remember" name="remember" title="Recordar sesión">
                         <label for="remember">Recordarme</label>
                     </div>
                 </div>

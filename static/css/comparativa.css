@@ -1,4 +1,4 @@
-        :root {
+﻿        :root {
             --color-bg: #000000;
             --color-card: #ffffff;
             --color-text: #ffffff;
@@ -21,6 +21,7 @@
             background: rgba(255, 255, 255, 0.05);
             border-radius: 12px;
             padding: 2rem;
+            -webkit-backdrop-filter: blur(10px);
             backdrop-filter: blur(10px);
         }
 
@@ -297,7 +298,7 @@
 
         #contenedor-sucursales {
             justify-content: center;
-            /* Añade esta línea */
+            /* AÃ±ade esta lÃ­nea */
             gap: 0.5rem;
             /* Reduce el gap para mejor ajuste */
         }
@@ -328,3 +329,4 @@
                 font-size: 0.9rem;
             }
         }
+

@@ -1,0 +1,273 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>General - Supervisión | La Postal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
+    <style>
+        .page-wrap {
+            max-width: 1040px;
+            margin: 28px auto 80px;
+            padding: 0 20px;
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 22px;
+        }
+
+        .hero-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            font-weight: 700;
+            color: #fff;
+            background: #b71c1c;
+            box-shadow: 0 8px 20px rgba(183, 28, 28, 0.35);
+            margin-right: 12px;
+        }
+
+        .hero-title {
+            display: inline-block;
+            font-size: 56px;
+            font-weight: 300;
+            color: #fff;
+            letter-spacing: 2px;
+            margin: 0;
+            vertical-align: middle;
+        }
+
+        .hero-sub {
+            margin: 6px 0 14px;
+            color: #bfc5cf;
+            letter-spacing: 5px;
+            text-transform: uppercase;
+            font-size: 15px;
+        }
+
+        .chips {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            padding: 7px 14px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            background: rgba(13, 16, 20, 0.75);
+            color: #f0f2f5;
+            font-size: 16px;
+        }
+
+        .panel-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 14px;
+        }
+
+        .panel {
+            background: rgba(10, 11, 14, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 16px;
+            padding: 14px 14px 10px;
+            min-height: 210px;
+        }
+
+        .panel h3 {
+            color: #f8f8f8;
+            font-size: 31px;
+            margin: 0 0 10px;
+        }
+
+        .panel-table {
+            width: 100%;
+            color: #f1f3f5;
+        }
+
+        .panel-table thead th {
+            font-weight: 600;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+            padding: 8px 8px;
+            font-size: 14px;
+        }
+
+        .panel-table tbody td {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 8px 8px;
+            font-size: 14px;
+        }
+
+        .btn-stack {
+            display: grid;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .btn-soft {
+            background: #d7dade;
+            border: 1px solid #d7dade;
+            color: #1a1a1a;
+            font-size: 20px;
+            border-radius: 10px;
+            padding: 10px 14px;
+            text-align: center;
+            text-decoration: none;
+        }
+
+        .btn-soft:hover {
+            background: #c9cdd3;
+            color: #111;
+        }
+
+        .muted {
+            color: #b7bcc5;
+            font-size: 17px;
+        }
+
+        @media (max-width: 980px) {
+            .hero-title {
+                font-size: 42px;
+            }
+
+            .panel-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
+</head>
+
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark rounded-0">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('home') }}">
+                LA POSTAL | DASHBOARD
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3">
+                    Hola, <span class="user-name">{{ current_user.nombre }}</span>
+                </span>
+                <a class="nav-link" href="{{ url_for('perfil') }}">Perfil</a>
+                <a class="nav-link" href="{{ url_for('logout') }}">Salir</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="page-wrap">
+        <section class="hero">
+            <span class="hero-icon">総</span>
+            <h1 class="hero-title">General</h1>
+            <p class="hero-sub">Supervision</p>
+            <div class="chips">
+                <span class="chip"><strong>Supervisor:</strong>&nbsp;{{ ingreso.supervisor or "-" }}</span>
+                <span class="chip"><strong>Ultima sucursal:</strong>&nbsp;{{ panel_stats.ultima_sucursal }}</span>
+            </div>
+        </section>
+
+        <section class="panel-grid">
+            <div class="panel">
+                <h3>Visitas por sucursal (ultimos 7 dias)</h3>
+                <table class="panel-table">
+                    <thead>
+                        <tr>
+                            <th>Sucursal</th>
+                            <th>Visitas</th>
+                            <th>Usuarios</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if panel_stats.visitas_7_dias %}
+                        {% for fila in panel_stats.visitas_7_dias %}
+                        <tr>
+                            <td>{{ fila.sucursal }}</td>
+                            <td>{{ fila.visitas }}</td>
+                            <td>{{ fila.usuarios }}</td>
+                        </tr>
+                        {% endfor %}
+                        {% else %}
+                        <tr>
+                            <td colspan="3" class="muted">Sin visitas registradas en los ultimos 7 dias.</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="panel">
+                <h3>Visitas por usuario (hoy)</h3>
+                {% if panel_stats.visitas_usuario_hoy %}
+                <table class="panel-table">
+                    <thead>
+                        <tr>
+                            <th>Usuario</th>
+                            <th>Visitas</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for fila in panel_stats.visitas_usuario_hoy %}
+                        <tr>
+                            <td>{{ fila.supervisor }}</td>
+                            <td>{{ fila.visitas }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="muted mb-0">Sin visitas registradas hoy.</p>
+                {% endif %}
+            </div>
+        </section>
+
+        <section class="panel mb-3">
+            <h3>Ingresos recientes (hora, usuario y sucursal)</h3>
+            <table class="panel-table">
+                <thead>
+                    <tr>
+                        <th>Fecha y hora</th>
+                        <th>Usuario</th>
+                        <th>Sucursal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if panel_stats.ingresos_recientes %}
+                    {% for fila in panel_stats.ingresos_recientes %}
+                    <tr>
+                        <td>{{ fila.ingreso_fecha_hora }}</td>
+                        <td>{{ fila.supervisor }}</td>
+                        <td>{{ fila.sucursal }}</td>
+                    </tr>
+                    {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="3" class="muted">Sin ingresos registrados.</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </section>
+
+        <section class="btn-stack">
+            <a class="btn-soft" href="{{ url_for('supervision_hoja_visita') }}">Nueva visita</a>
+            <a class="btn-soft" href="{{ url_for('supervision') }}">Volver a Supervision</a>
+        </section>
+    </div>
+
+    <div class="team-watermark">
+        <img src="{{ url_for('static', filename='logo personaje .png') }}" alt="Equipo La Postal" class="team-watermark-photo">
+    </div>
+</body>
+
+</html>
+

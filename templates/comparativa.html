@@ -1,12 +1,14 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Comparativa - La Postal</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/comparativa.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
 </head>
 
 <body>
@@ -25,7 +27,7 @@
         {% if error %}
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
             <strong>Error:</strong> {{ error }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar" title="Cerrar alerta"></button>
         </div>
         {% endif %}
 
@@ -41,12 +43,12 @@
                     <div class="row g-3 align-items-end">
                         <div class="col-md-4">
                             <label for="fecha_inicio" class="form-label fw-bold">Fecha inicio:</label>
-                            <input type="date" name="fecha_inicio" id="fecha_inicio" class="form-control"
+                            <input type="date" name="fecha_inicio" id="fecha_inicio" class="form-control" title="Selecciona fecha de inicio"
                                 value="{{ fecha_inicio or '' }}">
                         </div>
                         <div class="col-md-4">
                             <label for="fecha_fin" class="form-label fw-bold">Fecha fin:</label>
-                            <input type="date" name="fecha_fin" id="fecha_fin" class="form-control"
+                            <input type="date" name="fecha_fin" id="fecha_fin" class="form-control" title="Selecciona fecha de fin"
                                 value="{{ fecha_fin or '' }}">
                         </div>
                         <div class="col-md-4">
@@ -248,6 +250,8 @@
         <img src="../static/logo personaje .png" alt="Menú Inicio" class="device-image">
     </a>
 
+    <script id="datos-comparativa-json" type="application/json">{{ (datos_comparativa or []) | tojson }}</script>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
@@ -356,10 +360,11 @@
             // Inicializar contador
             actualizarContador();
 
-            {% if datos_comparativa %}
-            // GENERACIÓN DE GRÁFICAS
-            const datos = {{ datos_comparativa | tojson
-        }};
+            // GENERACION DE GRAFICAS
+            const datos = JSON.parse(document.getElementById('datos-comparativa-json').textContent);
+            if (!Array.isArray(datos) || datos.length === 0) {
+                return;
+            }
         const sucursales = datos.map(d => d.sucursal);
 
         // Colores para hasta 6 sucursales
@@ -539,9 +544,9 @@
             },
             options: chartOptions
         });
-        {% endif %}
         });
     </script>
 </body>
 
 </html>
+

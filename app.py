@@ -1,12 +1,15 @@
 ﻿import os
 import json
 import re
+import sqlite3
 import unicodedata
+import uuid
 import gspread
 import time
-from flask import Flask, render_template, request, jsonify, send_from_directory, redirect, url_for, flash
+from flask import Flask, render_template, request, jsonify, send_from_directory, redirect, url_for, flash, session
 from google.oauth2.service_account import Credentials
 from werkzeug.exceptions import HTTPException
+from werkzeug.utils import secure_filename
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from datetime import datetime, timedelta
 from dotenv import load_dotenv, find_dotenv
@@ -18,7 +21,7 @@ from functools import wraps
 from flask import abort
 from flask import Flask, render_template, url_for
 
-# ==================== CONFIGURACIÃ“N INICIAL ====================
+# ==================== CONFIGURACION INICIAL ====================
 app = Flask(__name__)
 app.secret_key = 'Lapostal01'
 
@@ -28,7 +31,7 @@ login_manager.init_app(app)
 login_manager.login_view = 'login'
 login_manager.login_message = 'Por favor inicia sesiÃ³n para acceder a esta pÃ¡gina.'
 
-# USUARIOS - CONTRASEÃ‘AS EN TEXTO PLANO
+# USUARIOS - CONTRASEÑAS EN TEXTO PLANO
 USUARIOS = {
     'C.E.O': {
         'password': 'Dpostal01',
@@ -85,11 +88,6 @@ USUARIOS = {
         'nombre': 'Santiago Ortega Joel',
         'rol': 'Gerente Sistemas'
     },
-    'Gerente supervision': {
-        'password': 'GSpostal01',
-        'nombre': 'Johana Meza',
-        'rol': 'Gerente supervision'
-    },
     'Gerente Recursos Humanos': {
         'password': 'GRHpostal01',
         'nombre': 'Garcia Rodriguez Genesis Clarise',
@@ -107,6 +105,91 @@ USUARIOS = {
     }
 }
 
+SUPERVISION_SUCURSALES = [
+    "BRISAS",
+    "CACHO",
+    "ENSENADA",
+    "MATRIZ",
+    "PLAYAS 1",
+    "TORRES",
+    "DARUMMITA PLAYAS",
+    "ROSARITO 3",
+    "5 Y 10",
+    "ALEMAN",
+    "CALIFORNIAS",
+    "CAMPESTRE MURUA",
+    "CAMPIÑA",
+    "CAPISTRANO",
+    "COLINA AZUL",
+    "DARUMMITA LIBERTAD",
+    "FLORIDO",
+    "INDEPENDENCIA",
+    "LAGO",
+    "LIBERTAD",
+    "MARIANO MATAMOROS",
+    "MURUA",
+    "PANAMERICANO",
+    "SOLER",
+    "VENECIA",
+    "ZONA NORTE",
+    "ZONA RIO",
+    "ALBA ROJA",
+    "ALTIPLANO",
+    "BELLAS ARTES",
+    "BUENOS AIRES",
+    "CAMINO VERDE",
+    "CASA BLANCA",
+    "CLINICA 1",
+    "CUCAPAH",
+    "DARUMMITA CALIFORNIAS",
+    "DARUMMITA MARIANO MATAMOROS",
+    "DARUMMITA TECNOLOGICO",
+    "DELICIAS",
+    "EL AGUILA",
+    "FLAMINGOS",
+    "FUNDADORES",
+    "GLORIA",
+    "GRAN FLORIDO",
+    "HUERTAS",
+    "JARDIN DORADO",
+    "JIBARITO/FLORES MAGON",
+    "LOMA BONITA",
+    "MALECON",
+    "MALECON 2",
+    "MESA / PENI",
+    "MIRADOR",
+    "NATURA",
+    "OASIS",
+    "OTAY CONSTITUYENTES",
+    "PACIFICO",
+    "PANAMERICANO II",
+    "PLAYAS 2",
+    "PRESA",
+    "RIO BRAVO",
+    "ROSARITO 1",
+    "ROSARITO 2 NORTE",
+    "RUBI",
+    "SANTA FE",
+    "TECNOLOGICO",
+    "UABC",
+    "URBI VILLA DEL PRADO",
+    "VILLA FLORESTA",
+    "VILLA FONTANA",
+    "VILLAS DEL CAMPO, ERMITA Y 20 NOV",
+]
+
+SUPERVISION_USUARIOS = [
+    {"value": "supervisor1", "label": "Supervisor 1"},
+    {"value": "supervisor2", "label": "Supervisor 2"},
+    {"value": "supervisor3", "label": "Supervisor 3"},
+]
+
+SUPERVISION_DB_PATH = os.path.join(os.path.dirname(__file__), "supervision_visitas.db")
+SUPERVISION_UPLOAD_ROOT = os.path.join("static", "uploads", "supervision")
+SUPERVISION_UPLOAD_SUPERVISOR_DIR = os.path.join(SUPERVISION_UPLOAD_ROOT, "supervisores")
+SUPERVISION_UPLOAD_SUCURSAL_DIR = os.path.join(SUPERVISION_UPLOAD_ROOT, "sucursales")
+TZ_TIJUANA = pytz.timezone("America/Tijuana")
+
 class User(UserMixin):
     def __init__(self, id, nombre, rol):
         self.id = id
@@ -123,7 +206,7 @@ def load_user(user_id):
 def only_users(*allowed_user_ids):
     """
     Permite acceso SOLO a los user.id indicados.
-    Ej: @only_users('Supervisores')
+    Ej: @only_users('Gerentes')
     """
     def decorator(fn):
         @wraps(fn)
@@ -134,6 +217,224 @@ def only_users(*allowed_user_ids):
             return fn(*args, **kwargs)
         return wrapper
     return decorator
+
+
+def _normalizar_texto_password(texto):
+    limpio = str(texto or "")
+    limpio = "".join(c for c in unicodedata.normalize("NFD", limpio) if unicodedata.category(c) != "Mn")
+    limpio = limpio.lower()
+    limpio = re.sub(r"[^a-z0-9]+", "", limpio)
+    return limpio
+
+
+def _contrasena_supervision(valor_usuario):
+    return f"Lp{_normalizar_texto_password(valor_usuario)}"
+
+
+def _init_supervision_storage():
+    os.makedirs(SUPERVISION_UPLOAD_SUPERVISOR_DIR, exist_ok=True)
+    os.makedirs(SUPERVISION_UPLOAD_SUCURSAL_DIR, exist_ok=True)
+
+
+def _init_supervision_db():
+    _init_supervision_storage()
+    with sqlite3.connect(SUPERVISION_DB_PATH) as conn:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS supervision_ingresos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ingreso_at TEXT NOT NULL,
+                ingreso_fecha TEXT NOT NULL,
+                ingreso_semana TEXT NOT NULL,
+                dashboard_user TEXT NOT NULL,
+                supervisor TEXT NOT NULL,
+                sucursal TEXT NOT NULL,
+                foto_supervisor TEXT NOT NULL,
+                foto_sucursal TEXT NOT NULL
+            )
+            """
+        )
+
+
+def _guardar_foto_supervision(archivo, carpeta_destino, prefijo):
+    if not archivo or not archivo.filename:
+        return None
+
+    nombre_seguro = secure_filename(archivo.filename)
+    extension = os.path.splitext(nombre_seguro)[1].lower()
+    if extension not in {".jpg", ".jpeg", ".png", ".webp"}:
+        return None
+
+    nombre_final = f"{prefijo}_{uuid.uuid4().hex}{extension}"
+    ruta_relativa = os.path.join(carpeta_destino, nombre_final).replace("\\", "/")
+    ruta_absoluta = os.path.join(os.path.dirname(__file__), ruta_relativa)
+    os.makedirs(os.path.dirname(ruta_absoluta), exist_ok=True)
+    archivo.save(ruta_absoluta)
+    return ruta_relativa
+
+
+def _registrar_ingreso_supervision(ingreso_at, dashboard_user, supervisor, sucursal, foto_supervisor, foto_sucursal):
+    ingreso_fecha = ingreso_at.strftime("%Y-%m-%d")
+    ingreso_semana = f"{ingreso_at.isocalendar().year}-W{ingreso_at.isocalendar().week:02d}"
+
+    with sqlite3.connect(SUPERVISION_DB_PATH) as conn:
+        cursor = conn.execute(
+            """
+            INSERT INTO supervision_ingresos
+            (ingreso_at, ingreso_fecha, ingreso_semana, dashboard_user, supervisor, sucursal, foto_supervisor, foto_sucursal)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                ingreso_at.isoformat(),
+                ingreso_fecha,
+                ingreso_semana,
+                dashboard_user,
+                supervisor,
+                sucursal,
+                foto_supervisor,
+                foto_sucursal,
+            ),
+        )
+        return cursor.lastrowid
+
+
+def _obtener_estadisticas_supervision():
+    ahora_tj = datetime.now(TZ_TIJUANA)
+    hoy = ahora_tj.strftime("%Y-%m-%d")
+    semana_actual = f"{ahora_tj.isocalendar().year}-W{ahora_tj.isocalendar().week:02d}"
+
+    with sqlite3.connect(SUPERVISION_DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+
+        visitas_semana = conn.execute(
+            """
+            SELECT
+                sucursal,
+                COUNT(*) AS total_visitas,
+                GROUP_CONCAT(DISTINCT supervisor) AS supervisores
+            FROM supervision_ingresos
+            WHERE ingreso_semana = ?
+            GROUP BY sucursal
+            ORDER BY total_visitas DESC, sucursal ASC
+            """,
+            (semana_actual,),
+        ).fetchall()
+
+        visitas_usuario_hoy = conn.execute(
+            """
+            SELECT
+                supervisor,
+                COUNT(*) AS total_sucursales,
+                GROUP_CONCAT(sucursal) AS sucursales
+            FROM supervision_ingresos
+            WHERE ingreso_fecha = ?
+            GROUP BY supervisor
+            ORDER BY total_sucursales DESC, supervisor ASC
+            """,
+            (hoy,),
+        ).fetchall()
+
+        ingresos_recientes = conn.execute(
+            """
+            SELECT
+                ingreso_at,
+                dashboard_user,
+                supervisor,
+                sucursal
+            FROM supervision_ingresos
+            ORDER BY id DESC
+            LIMIT 100
+            """
+        ).fetchall()
+
+    return {
+        "hoy": hoy,
+        "semana_actual": semana_actual,
+        "visitas_semana": [dict(fila) for fila in visitas_semana],
+        "visitas_usuario_hoy": [dict(fila) for fila in visitas_usuario_hoy],
+        "ingresos_recientes": [dict(fila) for fila in ingresos_recientes],
+    }
+
+
+def _obtener_panel_hoja_visita(supervisor):
+    hoy = datetime.now(TZ_TIJUANA).date()
+    hace_7 = (hoy - timedelta(days=6)).strftime("%Y-%m-%d")
+    hoy_str = hoy.strftime("%Y-%m-%d")
+
+    with sqlite3.connect(SUPERVISION_DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+
+        visitas_7_dias = conn.execute(
+            """
+            SELECT
+                sucursal,
+                COUNT(*) AS visitas,
+                GROUP_CONCAT(DISTINCT supervisor) AS usuarios
+            FROM supervision_ingresos
+            WHERE ingreso_fecha >= ?
+            GROUP BY sucursal
+            ORDER BY visitas DESC, sucursal ASC
+            """,
+            (hace_7,),
+        ).fetchall()
+
+        visitas_usuario_hoy = conn.execute(
+            """
+            SELECT
+                supervisor,
+                COUNT(*) AS visitas
+            FROM supervision_ingresos
+            WHERE ingreso_fecha = ?
+            GROUP BY supervisor
+            ORDER BY visitas DESC, supervisor ASC
+            """,
+            (hoy_str,),
+        ).fetchall()
+
+        ultima_visita_supervisor = conn.execute(
+            """
+            SELECT sucursal
+            FROM supervision_ingresos
+            WHERE supervisor = ?
+            ORDER BY id DESC
+            LIMIT 1
+            """,
+            (supervisor,),
+        ).fetchone()
+
+        ingresos_recientes = conn.execute(
+            """
+            SELECT
+                ingreso_at,
+                supervisor,
+                sucursal
+            FROM supervision_ingresos
+            ORDER BY id DESC
+            LIMIT 20
+            """
+        ).fetchall()
+
+    ingresos_formateados = []
+    for fila in ingresos_recientes:
+        registro = dict(fila)
+        try:
+            fecha_dt = datetime.fromisoformat(registro["ingreso_at"])
+            if fecha_dt.tzinfo is not None:
+                fecha_dt = fecha_dt.astimezone(TZ_TIJUANA)
+            registro["ingreso_fecha_hora"] = fecha_dt.strftime("%d/%m/%Y %I:%M %p")
+        except Exception:
+            registro["ingreso_fecha_hora"] = registro["ingreso_at"]
+        ingresos_formateados.append(registro)
+
+    return {
+        "visitas_7_dias": [dict(fila) for fila in visitas_7_dias],
+        "visitas_usuario_hoy": [dict(fila) for fila in visitas_usuario_hoy],
+        "ultima_sucursal": (dict(ultima_visita_supervisor)["sucursal"] if ultima_visita_supervisor else "-"),
+        "ingresos_recientes": ingresos_formateados,
+    }
+
+
+_init_supervision_db()
 
 # ==================== AUTENTICACIÃ“N GOOGLE ====================
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
@@ -369,16 +670,124 @@ def home():
     if current_user.id == 'Gerentes':
         return redirect(url_for('reporte_grafica'))
 
-    elif current_user.id == 'Supervisores':
-        return redirect(url_for('supervision'))
-
     return render_template("home.html")
 
-# ==================== supervision ====================
+# ==================== SUPERVISION ====================
 @app.route("/supervision")
 @login_required
 def supervision():
     return render_template("supervision.html")
+
+
+@app.route("/supervision/hoja-visita", methods=["GET", "POST"])
+@login_required
+def supervision_hoja_visita():
+    error = None
+    supervisor = ""
+    sucursal = ""
+
+    if request.method == "POST":
+        supervisor = (request.form.get("supervisor") or "").strip()
+        password = (request.form.get("password") or "").strip()
+        sucursal = (request.form.get("sucursal") or "").strip()
+        foto_supervisor = request.files.get("foto_supervisor")
+        foto_sucursal = request.files.get("foto_sucursal")
+
+        usuarios_validos = {u["value"] for u in SUPERVISION_USUARIOS}
+        if supervisor not in usuarios_validos:
+            error = "Selecciona un supervisor válido."
+        elif password.lower() != _contrasena_supervision(supervisor).lower():
+            error = f"Contraseña incorrecta. Ejemplo: {_contrasena_supervision('supervisor1')}"
+        elif sucursal not in SUPERVISION_SUCURSALES:
+            error = "Selecciona una sucursal válida."
+        elif not foto_supervisor or not foto_supervisor.filename:
+            error = "Debes subir la foto del supervisor con uniforme."
+        elif not foto_sucursal or not foto_sucursal.filename:
+            error = "Debes subir la foto de la sucursal."
+        else:
+            foto_supervisor_path = _guardar_foto_supervision(
+                foto_supervisor,
+                SUPERVISION_UPLOAD_SUPERVISOR_DIR,
+                f"uniforme_{supervisor}",
+            )
+            foto_sucursal_path = _guardar_foto_supervision(
+                foto_sucursal,
+                SUPERVISION_UPLOAD_SUCURSAL_DIR,
+                f"sucursal_{_normalizar_texto_password(sucursal)}",
+            )
+
+            if not foto_supervisor_path or not foto_sucursal_path:
+                error = "Formato de foto no válido. Usa JPG, JPEG, PNG o WEBP."
+            else:
+                ingreso_at = datetime.now(TZ_TIJUANA)
+                ingreso_id = _registrar_ingreso_supervision(
+                    ingreso_at=ingreso_at,
+                    dashboard_user=current_user.id,
+                    supervisor=supervisor,
+                    sucursal=sucursal,
+                    foto_supervisor=foto_supervisor_path,
+                    foto_sucursal=foto_sucursal_path,
+                )
+
+                session["supervision_hoja_visita_ingreso"] = {
+                    "id": ingreso_id,
+                    "supervisor": supervisor,
+                    "sucursal": sucursal,
+                    "ingreso_at": ingreso_at.isoformat(),
+                }
+                return redirect(url_for("supervision_hoja_visita_home"))
+
+    return render_template(
+        "supervision_hoja_visita.html",
+        supervisores=SUPERVISION_USUARIOS,
+        sucursales=SUPERVISION_SUCURSALES,
+        error=error,
+        supervisor_seleccionado=supervisor,
+        sucursal_seleccionada=sucursal,
+    )
+
+
+@app.route("/supervision/hoja-visita/home")
+@app.route("/supervision/hoja-visita/panel/")
+@login_required
+def supervision_hoja_visita_home():
+    ingreso = session.get("supervision_hoja_visita_ingreso")
+    if not ingreso:
+        flash("Primero debes identificarte para entrar a Hoja de Visita.", "error")
+        return redirect(url_for("supervision_hoja_visita"))
+
+    return render_template(
+        "supervision_hoja_visita_home.html",
+        ingreso=ingreso,
+    )
+
+
+@app.route("/supervision/sucursales")
+@login_required
+def supervision_sucursales():
+    estadisticas = _obtener_estadisticas_supervision()
+    return render_template(
+        "supervision_sucursales.html",
+        estadisticas=estadisticas,
+    )
+
+
+@app.route("/supervision/estadisticas")
+@login_required
+def supervision_estadisticas():
+    return jsonify(_obtener_estadisticas_supervision())
+
+
+@app.route("/supervision/general")
+@login_required
+def supervision_general():
+    ingreso = session.get("supervision_hoja_visita_ingreso", {})
+    panel_stats = _obtener_panel_hoja_visita(ingreso.get("supervisor", ""))
+    return render_template(
+        "supervision_general.html",
+        ingreso=ingreso,
+        panel_stats=panel_stats,
+    )
 
 # ==================== TABLA ====================
 @app.route("/tabla", methods=["GET", "POST"])
