@@ -1,6 +1,5 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,7 +9,6 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/reporte_pedidos_semanales.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
 </head>
-
 <body>
     <div class="container py-4">
         <header class="page-header mb-4">
@@ -27,45 +25,92 @@
 
         <section class="card card-custom mb-4">
             <div class="card-header">
-                <h5 class="mb-0">Gráfica de Pedidos (Uber / Didi)</h5>
+                <h5 class="mb-0">Filtros</h5>
             </div>
             <div class="card-body">
-                <div class="row g-3 mb-3">
-                    <div class="col-md-6">
-                        <label for="selectSucursal" class="form-label">Sucursal</label>
-                        <select id="selectSucursal" class="form-select" title="Filtrar por sucursal">
-                            <option value="__todas__">Todas las sucursales</option>
+                <div class="row g-3">
+                    <div class="col-lg-3">
+                        <label for="selectTipo" class="form-label">Tipo de pedidos</label>
+                        <select id="selectTipo" class="form-select" title="Filtrar por tipo de pedidos">
+                            <option value="ambos">Uber + Didi (Total)</option>
+                            <option value="uber">Solo Uber</option>
+                            <option value="didi">Solo Didi</option>
+                        </select>
+                    </div>
+                    <div class="col-lg-4">
+                        <label class="form-label">Sucursales a comparar</label>
+                        <div class="multi-select-control" data-control="sucursales">
+                            <button type="button" class="multi-select-trigger" data-trigger>
+                                <span data-label>Selecciona sucursales</span>
+                            </button>
+                            <div class="multi-select-panel" data-panel>
+                                <input type="text" class="form-control multi-select-search" data-search placeholder="Buscar sucursal...">
+                                <div class="multi-select-options" data-options></div>
+                            </div>
+                        </div>
+                        <small class="filter-help">Puedes elegir una o varias. Si no eliges, se usan todas.</small>
+                        <label for="selectSucursales" class="visually-hidden">Sucursales a comparar</label>
+                        <select id="selectSucursales" class="d-none" multiple title="Sucursales a comparar" aria-label="Sucursales a comparar">
                             {% for sucursal in sucursales %}
                             <option value="{{ sucursal }}">{{ sucursal }}</option>
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-6">
-                        <label for="selectTipo" class="form-label">Tipo de pedidos</label>
-                        <select id="selectTipo" class="form-select" title="Filtrar por tipo de pedidos">
-                            <option value="ambos">Uber vs Didi (Comparativa)</option>
-                            <option value="uber">Solo Uber</option>
-                            <option value="didi">Solo Didi</option>
-                        </select>
+                    <div class="col-lg-5">
+                        <label class="form-label">Semanas a comparar (max 8)</label>
+                        <div class="multi-select-control" data-control="semanas">
+                            <button type="button" class="multi-select-trigger" data-trigger>
+                                <span data-label>Selecciona semanas</span>
+                            </button>
+                            <div class="multi-select-panel" data-panel>
+                                <input type="text" class="form-control multi-select-search" data-search placeholder="Buscar semana...">
+                                <div class="multi-select-options" data-options></div>
+                                <div class="multi-select-help" id="weekSelectionHelp"></div>
+                            </div>
+                        </div>
+                        <small class="filter-help">Comparativa a nivel marca para Uber, Didi o Uber vs Didi.</small>
+                        <label for="selectSemanas" class="visually-hidden">Semanas a comparar</label>
+                        <select id="selectSemanas" class="d-none" multiple title="Semanas a comparar" aria-label="Semanas a comparar"></select>
                     </div>
-                </div>
-
-                <div class="chart-wrap">
-                    <canvas id="graficaPedidosSemanales"></canvas>
                 </div>
             </div>
         </section>
 
         <section class="card card-custom mb-4">
             <div class="card-header">
-                <h5 class="mb-0">Totales por Semana (Todas las Sucursales)</h5>
+                <h5 class="mb-0">Graficas Semanales</h5>
             </div>
             <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-lg-6">
+                        <div class="chart-wrap">
+                            <h6 class="chart-title">Grafica Semanal por Sucursal</h6>
+                            <canvas id="graficaTendenciaSemanal"></canvas>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="chart-wrap">
+                            <h6 class="chart-title">Comparativa Semanal (Nivel Marca)</h6>
+                            <canvas id="graficaComparativaMarca"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="card card-custom mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Totales por Semana (segun filtros)</h5>
+            </div>
+            <div class="card-body">
+                <p class="table-range mb-2" id="rangoTablaTexto">Rango en tabla: sin semanas seleccionadas</p>
                 <div class="table-responsive">
                     <table class="table table-dark table-hover align-middle mb-0" id="tablaTotalesSemanales">
                         <thead>
                             <tr>
                                 <th>Semana</th>
+                                <th class="text-end">Uber</th>
+                                <th class="text-end">Didi</th>
                                 <th class="text-end">Total semanal</th>
                             </tr>
                         </thead>
@@ -73,6 +118,8 @@
                         <tfoot>
                             <tr>
                                 <th>Total final</th>
+                                <th class="text-end" id="tablaUberFinal">0</th>
+                                <th class="text-end" id="tablaDidiFinal">0</th>
                                 <th class="text-end" id="tablaTotalesSemanalesFinal">0</th>
                             </tr>
                         </tfoot>
@@ -82,13 +129,11 @@
         </section>
 
         <div class="text-end">
-            <a href="{{ url_for('home') }}" class="btn btn-outline-light">Volver al Dashboard</a>
+            <a href="{{ url_for('home') }}" class="btn btn-outline-light">Volver a Ventas</a>
         </div>
     </div>
 
     <script id="pedidos-data" type="application/json">{{ pedidos_chart_data | tojson }}</script>
     <script src="{{ url_for('static', filename='js/reporte_pedidos_semanales.js') }}"></script>
 </body>
-
 </html>
-

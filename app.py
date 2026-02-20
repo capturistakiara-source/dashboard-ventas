@@ -1841,21 +1841,25 @@ def reporte_pedidos_semanales():
                 "reporte_pedidos_semanales.html",
                 sucursales=[],
                 rango_fechas="No disponible",
-                pedidos_chart_data={"labels": [], "series": {}},
+                pedidos_chart_data={"week_starts": [], "labels": [], "series": {}},
                 error="No se pudieron cargar datos de sucursales."
             )
 
-        hoy = datetime.now().date()
-        anio_inicio = hoy.year if hoy.month == 12 else hoy.year - 1
-        fecha_inicio = datetime(anio_inicio, 12, 1).date()
-        fecha_fin = hoy
+        fecha_inicio = datetime(2025, 1, 1).date()
+        fecha_fin = datetime(2026, 12, 31).date()
 
+        lunes_inicio = fecha_inicio - timedelta(days=fecha_inicio.weekday())
+        lunes_fin = fecha_fin - timedelta(days=fecha_fin.weekday())
+
+        week_starts = []
         labels = []
-        cursor = fecha_inicio
-        while cursor <= fecha_fin:
-            fin_semana = min(cursor + timedelta(days=6), fecha_fin)
-            labels.append(f"{cursor.strftime('%d/%m')} - {fin_semana.strftime('%d/%m')}")
-            cursor = fin_semana + timedelta(days=1)
+        cursor = lunes_inicio
+        while cursor <= lunes_fin:
+            week_starts.append(cursor.isoformat())
+            labels.append(f"{cursor.strftime('%d/%m/%Y')}")
+            cursor += timedelta(days=7)
+
+        week_index = {week_starts[i]: i for i in range(len(week_starts))}
 
         series = {}
         for sucursal in sucursales:
@@ -1870,9 +1874,63 @@ def reporte_pedidos_semanales():
                     key = _norm(col_name)
                     return headers_norm.index(key) if key in headers_norm else -1
 
+                def _idx_any(candidates, must_include=None):
+                    # 1) Coincidencia exacta por lista de candidatos.
+                    for candidate in candidates:
+                        idx = _idx(candidate)
+                        if idx >= 0:
+                            return idx
+
+                    # 2) Coincidencia flexible por palabras obligatorias.
+                    required = [r for r in (_norm(x) for x in (must_include or [])) if r]
+                    for i, h in enumerate(headers_norm):
+                        if all(req in h for req in required):
+                            return i
+                    return -1
+
+                def _idx_token_fallback(token, exclude_tokens=None):
+                    # Fallback final: cualquier columna que contenga el token, excluyendo columnas de monto/venta.
+                    token_norm = _norm(token)
+                    excludes = [_norm(x) for x in (exclude_tokens or [])]
+                    for i, h in enumerate(headers_norm):
+                        if token_norm not in h:
+                            continue
+                        if any(ex in h for ex in excludes):
+                            continue
+                        return i
+                    return -1
+
                 idx_apertura = _idx("APERTURA")
-                idx_uber = _idx("PEDIDOS UBER")
-                idx_didi = _idx("PEDIDOS DIDI")
+                idx_uber = _idx_any(
+                    candidates=[
+                        "PEDIDOS UBER",
+                        "G.PEDIDOS UBER",
+                        "UBER PEDIDOS",
+                        "PEDIDOS UBER EATS",
+                        "UBER EATS PEDIDOS",
+                    ],
+                    must_include=["UBER", "PEDIDOS"],
+                )
+                idx_didi = _idx_any(
+                    candidates=[
+                        "PEDIDOS DIDI",
+                        "G.PEDIDOS DIDI",
+                        "DIDI PEDIDOS",
+                        "PEDIDOS DIDI FOOD",
+                        "DIDI FOOD PEDIDOS",
+                    ],
+                    must_include=["DIDI", "PEDIDOS"],
+                )
+
+                # Fallback para hojas donde el encabezado viene solo como "UBER"/"DIDI"
+                # o variantes no estandar, evitando columnas de importes.
+                exclude_metric_tokens = [
+                    "TC", "TOTAL", "VENTA", "MONTO", "IMPORTE", "COMISION", "COMISIONES", "COBRO", "PAGO"
+                ]
+                if idx_uber < 0:
+                    idx_uber = _idx_token_fallback("UBER", exclude_metric_tokens)
+                if idx_didi < 0:
+                    idx_didi = _idx_token_fallback("DIDI", exclude_metric_tokens)
 
                 if idx_apertura >= 0:
                     for row in rows[1:]:
@@ -1883,8 +1941,9 @@ def reporte_pedidos_semanales():
                         if not fecha_row or not (fecha_inicio <= fecha_row <= fecha_fin):
                             continue
 
-                        idx_semana = (fecha_row - fecha_inicio).days // 7
-                        if idx_semana < 0 or idx_semana >= len(labels):
+                        inicio_semana = fecha_row - timedelta(days=fecha_row.weekday())
+                        idx_semana = week_index.get(inicio_semana.isoformat())
+                        if idx_semana is None:
                             continue
 
                         if 0 <= idx_uber < len(row):
@@ -1901,7 +1960,7 @@ def reporte_pedidos_semanales():
             "reporte_pedidos_semanales.html",
             sucursales=sucursales,
             rango_fechas=f"{fecha_inicio.strftime('%d/%m/%Y')} al {fecha_fin.strftime('%d/%m/%Y')}",
-            pedidos_chart_data={"labels": labels, "series": series}
+            pedidos_chart_data={"week_starts": week_starts, "labels": labels, "series": series}
         )
 
     except Exception as e:
@@ -1910,7 +1969,7 @@ def reporte_pedidos_semanales():
             "reporte_pedidos_semanales.html",
             sucursales=[],
             rango_fechas="Error",
-            pedidos_chart_data={"labels": [], "series": {}},
+            pedidos_chart_data={"week_starts": [], "labels": [], "series": {}},
             error=str(e)
         )
 

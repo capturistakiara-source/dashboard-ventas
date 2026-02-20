@@ -216,7 +216,7 @@
                     mode: 'index'
                 },
                 onHover: (event, chartElement) => {
-                    event.native.target.style.cursor = chartElement[0]  'pointer' : 'default';
+                    event.native.target.style.cursor = chartElement[0] ? 'pointer' : 'default';
                 }
             }
         });
