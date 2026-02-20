@@ -107,9 +107,21 @@ body {
 .multi-select-options {
     max-height: 240px;
     overflow: auto;
-    border: 1px solid #2e2e2e;
+    border: 1px solid #4a4a4a;
     border-radius: 0.4rem;
     margin-top: 0.5rem;
+    background: #0f0f10;
+}
+
+.multi-select-actions {
+    display: flex;
+    gap: 0.45rem;
+    margin-top: 0.5rem;
+}
+
+.multi-select-actions .btn {
+    padding: 0.2rem 0.55rem;
+    font-size: 0.78rem;
 }
 
 .multi-select-option {
@@ -117,9 +129,10 @@ body {
     align-items: center;
     gap: 0.5rem;
     padding: 0.45rem 0.55rem;
-    border-bottom: 1px solid #222;
+    border-bottom: 1px solid #2f2f2f;
     cursor: pointer;
     font-size: 0.92rem;
+    color: #f3f3f3;
 }
 
 .multi-select-option:last-child {
@@ -127,7 +140,16 @@ body {
 }
 
 .multi-select-option:hover {
-    background: #1a1a1a;
+    background: #2a2a2b;
+}
+
+.multi-select-option:has(input:checked) {
+    background: #3b1414;
+    color: #ffffff;
+}
+
+.multi-select-option input[type="checkbox"] {
+    accent-color: #d13a3a;
 }
 
 .multi-select-help {

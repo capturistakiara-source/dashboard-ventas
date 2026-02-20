@@ -10,6 +10,8 @@
     const selectSemanas = document.getElementById("selectSemanas");
     const weekSelectionHelp = document.getElementById("weekSelectionHelp");
     const rangoTablaTexto = document.getElementById("rangoTablaTexto");
+    const btnUltimas8Semanas = document.getElementById("btnUltimas8Semanas");
+    const btnLimpiarSemanas = document.getElementById("btnLimpiarSemanas");
 
     const canvasTendencia = document.getElementById("graficaTendenciaSemanal");
     const canvasComparativa = document.getElementById("graficaComparativaMarca");
@@ -195,6 +197,51 @@
                 borderWidth: 1
             }
         ];
+    }
+
+    function weekTotalByIndex(idx) {
+        return branchNames.reduce(function (acc, branchName) {
+            const branchData = series[branchName] || { uber: [], didi: [] };
+            return acc + num(branchData.uber && branchData.uber[idx]) + num(branchData.didi && branchData.didi[idx]);
+        }, 0);
+    }
+
+    function selectLast8WeeksWithData() {
+        const options = Array.from(selectSemanas.options);
+        if (!options.length) {
+            return;
+        }
+
+        let selectedIndices = [];
+        for (let i = options.length - 1; i >= 0; i -= 1) {
+            if (weekTotalByIndex(i) > 0) {
+                selectedIndices.push(i);
+            }
+            if (selectedIndices.length >= 8) {
+                break;
+            }
+        }
+
+        if (!selectedIndices.length) {
+            for (let i = Math.max(0, options.length - 8); i < options.length; i += 1) {
+                selectedIndices.push(i);
+            }
+        }
+
+        const selectedSet = new Set(selectedIndices);
+        options.forEach(function (opt, idx) {
+            opt.selected = selectedSet.has(idx);
+        });
+        setWeekHelp("");
+        renderAll();
+    }
+
+    function clearWeekSelection() {
+        Array.from(selectSemanas.options).forEach(function (opt) {
+            opt.selected = false;
+        });
+        setWeekHelp("");
+        renderAll();
     }
 
     function updateTableRange(selectedWeeks) {
@@ -472,6 +519,13 @@
         maxSelections: 8,
         onChange: renderAll
     });
+
+    if (btnUltimas8Semanas) {
+        btnUltimas8Semanas.addEventListener("click", selectLast8WeeksWithData);
+    }
+    if (btnLimpiarSemanas) {
+        btnLimpiarSemanas.addEventListener("click", clearWeekSelection);
+    }
 
     selectTipo.addEventListener("change", renderAll);
     renderAll();
