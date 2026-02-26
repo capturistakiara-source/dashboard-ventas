@@ -31,7 +31,7 @@ login_manager.init_app(app)
 login_manager.login_view = 'login'
 login_manager.login_message = 'Por favor inicia sesiÃ³n para acceder a esta pÃ¡gina.'
 
-# USUARIOS - CONTRASEÑAS EN TEXTO PLANO
+# USUARIOS - CONTRASENAS EN TEXTO PLANO
 USUARIOS = {
     'C.E.O': {
         'password': 'Dpostal01',
@@ -55,13 +55,13 @@ USUARIOS = {
     },
     'Capacitador de Gerentes': {
         'password': 'CGpostal01',
-        'nombre': 'SÃ¡nchez Rangel Carlos Javier',
+        'nombre': 'Sanchez Rangel Carlos Javier',
         'rol': 'Capacitador de Gerentes'
     },
-    'Gerente AdministraciÃ³n': {
+    'Gerente Administracion': {
         'password': 'GApostal01',
         'nombre': 'Abaroa Esqueda Leonardo',
-        'rol': 'Gerente AdministraciÃ³n'
+        'rol': 'Gerente Administracion'
     },
     'Gerente Regional': {
         'password': 'GRpostal01',
@@ -75,7 +75,7 @@ USUARIOS = {
     },
     'Gerente Mkt': {
         'password': 'GMpostal01',
-        'nombre': 'Franco Alonzo Jesus Omar',
+        'nombre': 'Jacquez Perez Jesus Alfonso',
         'rol': 'Gerente Mkt'
     },
     'Chef Ejecutivo': {
@@ -225,6 +225,24 @@ def _normalizar_texto_password(texto):
     limpio = limpio.lower()
     limpio = re.sub(r"[^a-z0-9]+", "", limpio)
     return limpio
+
+
+def _normalizar_credencial(texto):
+    limpio = str(texto or "").strip()
+    limpio = "".join(c for c in unicodedata.normalize("NFD", limpio) if unicodedata.category(c) != "Mn")
+    limpio = re.sub(r"\s+", " ", limpio)
+    return limpio.casefold()
+
+
+def _resolver_usuario_id(username_ingresado):
+    username_normalizado = _normalizar_credencial(username_ingresado)
+    if not username_normalizado:
+        return None
+
+    for user_id in USUARIOS:
+        if _normalizar_credencial(user_id) == username_normalizado:
+            return user_id
+    return None
 
 
 def _contrasena_supervision(valor_usuario):
@@ -625,19 +643,12 @@ def login():
         return redirect(url_for('home'))
     
     if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        
-        # DEBUG TEMPORAL
-        print(f"ðŸ” USUARIO INGRESADO: '{username}'")
-        print(f"ðŸ” CONTRASEÃ‘A INGRESADA: '{password}'")
-        
-        if username in USUARIOS:
-            print(f"ðŸ” CONTRASEÃ‘A ESPERADA: '{USUARIOS[username]['password']}'")
-            print(f"ðŸ” Â¿COINCIDEN?: {USUARIOS[username]['password'] == password}")
-        
-        if username in USUARIOS and USUARIOS[username]['password'] == password:
-            user = User(username, USUARIOS[username]['nombre'], USUARIOS[username]['rol'])
+        username = request.form.get('username') or ''
+        password = request.form.get('password') or ''
+        user_id = _resolver_usuario_id(username)
+
+        if user_id and _normalizar_credencial(USUARIOS[user_id]['password']) == _normalizar_credencial(password):
+            user = User(user_id, USUARIOS[user_id]['nombre'], USUARIOS[user_id]['rol'])
             login_user(user)
             return redirect(url_for('home'))
         else:
@@ -696,7 +707,7 @@ def supervision_hoja_visita():
         usuarios_validos = {u["value"] for u in SUPERVISION_USUARIOS}
         if supervisor not in usuarios_validos:
             error = "Selecciona un supervisor válido."
-        elif password.lower() != _contrasena_supervision(supervisor).lower():
+        elif _normalizar_credencial(password) != _normalizar_credencial(_contrasena_supervision(supervisor)):
             error = f"Contraseña incorrecta. Ejemplo: {_contrasena_supervision('supervisor1')}"
         elif sucursal not in SUPERVISION_SUCURSALES:
             error = "Selecciona una sucursal válida."
