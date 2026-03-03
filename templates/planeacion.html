@@ -110,7 +110,6 @@
                         <option value="all">Todas las Sucursales</option>
                         <option value="1">Bloque 1</option>
                         <option value="2">Bloque 2</option>
-                        <option value="3">Bloque 3</option>
                     </select>
                 </div>
                 <div class="filter-group">
@@ -387,23 +386,28 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVvb2ZmcnRqYWpsdXZoY2F1Y3RrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYwMTI5OTUsImV4cCI6MjA4MTU4ODk5NX0.SLhTDpScIaoCbjd_VDRGYyTj5lR6drtsfGXNJXThpz8';
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+        function normalizarBloque(value) {
+            const bloque = (value ?? '').toString().trim();
+            return bloque === '3' ? '2' : bloque;
+        }
+
         // DATOS Y VARIABLES GLOBALES
         const branchData = [
-            { name: "5 Y 10", block: "3" }, { name: "ALEMÁN", block: "3" },
+            { name: "20 Nov", block: "1" }, { name: "5 Y 10", block: "2" }, { name: "ALEMÁN", block: "2" },
             { name: "BRISAS", block: "1" }, { name: "CACHO", block: "1" },
-            { name: "CALIFORNIAS", block: "3" }, { name: "CAMPESTRE MURUA", block: "3" },
-            { name: "CAMPIÑA", block: "3" }, { name: "CAPISTRANO", block: "3" },
-            { name: "COLINA AZUL", block: "3" }, { name: "DARUMMITA LIBERTAD", block: "3" },
+            { name: "CALIFORNIAS", block: "2" }, { name: "CAMPESTRE MURUA", block: "2" },
+            { name: "CAMPIÑA", block: "2" }, { name: "CAPISTRANO", block: "2" },
+            { name: "COLINA AZUL", block: "2" }, { name: "DARUMMITA LIBERTAD", block: "2" },
             { name: "DARUMMITA PLAYAS", block: "2" }, { name: "ENSENADA", block: "1" },
-            { name: "FLORIDO", block: "3" }, { name: "INDEPENDENCIA", block: "3" },
-            { name: "LAGO", block: "3" }, { name: "LIBERTAD", block: "3" },
-            { name: "MALECÓN", block: "3" }, { name: "MALECÓN 2", block: "3" },
-            { name: "MARIANO MATAMOROS", block: "3" }, { name: "MATRIZ", block: "1" },
-            { name: "MURUA", block: "3" }, { name: "PANAMERICANO", block: "3" },
+            { name: "FLORIDO", block: "2" }, { name: "INDEPENDENCIA", block: "2" },
+            { name: "LAGO", block: "2" }, { name: "LIBERTAD", block: "2" },
+            { name: "MALECÓN", block: "2" }, { name: "MALECÓN 2", block: "2" },
+            { name: "MARIANO MATAMOROS", block: "2" }, { name: "MATRIZ", block: "1" },
+            { name: "MURUA", block: "2" }, { name: "PANAMERICANO", block: "2" },
             { name: "PLAYAS 1", block: "1" }, { name: "ROSARITO 3", block: "2" },
-            { name: "SOLER", block: "3" }, { name: "TORRES", block: "1" },
-            { name: "VENECIA", block: "3" }, { name: "ZONA NORTE", block: "3" },
-            { name: "ZONA RÍO", block: "3" }
+            { name: "SOLER", block: "2" }, { name: "TORRES", block: "1" },
+            { name: "VENECIA", block: "2" }, { name: "ZONA NORTE", block: "2" },
+            { name: "ZONA RÍO", block: "2" }
         ];
 
         // Iconos para archivos
@@ -490,7 +494,7 @@
 
             let filtrados = [...registros];
 
-            if (blockFilter !== 'all') filtrados = filtrados.filter(p => String(p.bloque) === String(blockFilter));
+            if (blockFilter !== 'all') filtrados = filtrados.filter(p => normalizarBloque(p.bloque) === String(blockFilter));
             if (branchFilter !== 'all') filtrados = filtrados.filter(p => (p.sucursal || '') === branchFilter);
             if (permisoFilter !== 'all') filtrados = filtrados.filter(p => (p.permiso || '') === permisoFilter);
             if (estatusFilter !== 'all') filtrados = filtrados.filter(p => (p.estatus || '') === estatusFilter);
@@ -702,7 +706,7 @@
 
                 const body = registros.map((p, idx) => ([
                     idx + 1,
-                    p.bloque ?? '',
+                    normalizarBloque(p.bloque),
                     p.sucursal ?? '',
                     p.permiso ?? '',
                     p.existencia ?? '',
@@ -817,7 +821,7 @@
             permisosGuardados = (data || []).map(item => ({
                 id: item.id,
                 asigna: item.anexa ?? '',
-                bloque: item.bloque ?? '',
+                bloque: normalizarBloque(item.bloque),
                 sucursal: item.sucursal ?? '',
                 permiso: item.tipo_permiso ?? '',
                 existencia: item.existencia ?? '',
@@ -907,7 +911,7 @@
 
                 const row = document.createElement('tr');
                 row.innerHTML = `
-        <td>${normalizarTxt(permiso.bloque)}</td>
+        <td>${normalizarTxt(normalizarBloque(permiso.bloque))}</td>
         <td>${normalizarTxt(permiso.sucursal)}</td>
         <td>${normalizarTxt(permiso.permiso)}</td>
         <td>${normalizarTxt(permiso.existencia)}</td>
@@ -1104,7 +1108,7 @@
             if (editarIndex >= 0 && permisosGuardados[editarIndex]) {
                 const p = permisosGuardados[editarIndex];
                 document.getElementById('asigna').value = p.asigna || '';
-                document.getElementById('bloqueModal').value = p.bloque || '';
+                document.getElementById('bloqueModal').value = normalizarBloque(p.bloque);
                 setTimeout(() => { document.getElementById('sucursalModal').value = p.sucursal || ''; }, 50);
                 document.getElementById('permiso').value = p.permiso || '';
                 document.getElementById('existencia').value = p.existencia || '';
@@ -1146,7 +1150,7 @@
 
         function cargarBloquesModal() {
             const select = document.getElementById('bloqueModal');
-            const bloquesUnicos = [...new Set(branchData.map(b => b.block))].sort();
+            const bloquesUnicos = [...new Set(branchData.map(b => normalizarBloque(b.block)))].sort();
             select.innerHTML = '<option value="">Seleccionar bloque</option>' +
                 bloquesUnicos.map(b => `<option value="${b}">Bloque ${b}</option>`).join('');
         }
@@ -1208,7 +1212,7 @@
 
                 id: (editingIndex >= 0 ? permisosGuardados[editingIndex].id : null),
                 asigna,
-                bloque,
+                bloque: normalizarBloque(bloque),
                 sucursal,
                 permiso,
                 existencia: document.getElementById('existencia').value,
@@ -1249,7 +1253,7 @@
         async function finalizarGuardado(nuevoPermiso) {
             const datosSupabase = {
                 anexa: nuevoPermiso.asigna || '',
-                bloque: nuevoPermiso.bloque || '',
+                bloque: normalizarBloque(nuevoPermiso.bloque),
                 sucursal: nuevoPermiso.sucursal || '',
                 tipo_permiso: nuevoPermiso.permiso || '',
                 existencia: nuevoPermiso.existencia || '',
@@ -1400,7 +1404,7 @@
                 ${permiso.sucursal || 'Sin sucursal'} <i class="fas fa-chevron-right"></i>
               </div>
               <div class="kanban-info"><strong>Permiso:</strong> ${permiso.permiso || ''}</div>
-              <div class="kanban-info"><strong>Bloque:</strong> ${permiso.bloque || ''}</div>
+              <div class="kanban-info"><strong>Bloque:</strong> ${normalizarBloque(permiso.bloque)}</div>
               <div class="kanban-info"><strong>Existencia:</strong> ${permiso.existencia || ''}</div>
               ${diasTexto}
               ${permiso.archivoNombre ? `
@@ -1482,7 +1486,7 @@
           </div>
 
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
-            <div><div style="color:#aaa;font-size:.85rem;margin-bottom:.3rem;">Bloque</div><div style="color:white;font-weight:500;">${permiso.bloque || ''}</div></div>
+            <div><div style="color:#aaa;font-size:.85rem;margin-bottom:.3rem;">Bloque</div><div style="color:white;font-weight:500;">${normalizarBloque(permiso.bloque)}</div></div>
             <div><div style="color:#aaa;font-size:.85rem;margin-bottom:.3rem;">Sucursal</div><div style="color:white;font-weight:500;">${permiso.sucursal || 'Sin sucursal'}</div></div>
           </div>
 
@@ -1593,7 +1597,7 @@
             if (blockValue === 'all') {
                 sucursales = [...new Set(branchData.map(b => b.name))].sort();
             } else {
-                sucursales = branchData.filter(b => b.block === blockValue)
+                sucursales = branchData.filter(b => normalizarBloque(b.block) === blockValue)
                     .sort((a, b) => a.name.localeCompare(b.name))
                     .map(b => b.name);
             }
@@ -1615,7 +1619,7 @@
 
             let filtrados = [...permisosGuardados];
 
-            if (blockFilter !== 'all') filtrados = filtrados.filter(p => String(p.bloque) === String(blockFilter));
+            if (blockFilter !== 'all') filtrados = filtrados.filter(p => normalizarBloque(p.bloque) === String(blockFilter));
             if (branchFilter !== 'all') filtrados = filtrados.filter(p => normalizarTxt(p.sucursal) === normalizarTxt(branchFilter));
             if (permisoFilter !== 'all') filtrados = filtrados.filter(p => normalizarTxt(p.permiso) === normalizarTxt(permisoFilter));
             if (estatusFilter !== 'all') filtrados = filtrados.filter(p => normalizarTxt(p.estatus) === normalizarTxt(estatusFilter));
