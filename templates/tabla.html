@@ -378,6 +378,11 @@
 
         <!-- FORMULARIO DE FILTRO -->
         <form method="POST" class="filter-form text-center">
+            {% if error %}
+            <div class="alert alert-warning text-start" role="alert" style="margin-bottom: 1rem;">
+                {{ error }}
+            </div>
+            {% endif %}
             <div class="row g-3 align-items-center justify-content-center">
                 <div class="col-auto">
                     <label for="sucursal" class="form-label">Sucursal:</label>
@@ -578,4 +583,3 @@
 </body>
 
 </html>
-

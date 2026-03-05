@@ -42,6 +42,20 @@
             color: var(--color-accent) !important;
         }
 
+        .planeacion-nav-user {
+            display: flex;
+            align-items: center;
+        }
+
+        .planeacion-nav-links {
+            display: flex;
+            align-items: center;
+        }
+
+        .planeacion-nav-link {
+            margin-left: 1rem;
+        }
+
         .corporate-header {
             background: linear-gradient(135deg, var(--color-accent-dark) 0%, var(--color-accent) 50%, var(--color-accent-light) 100%);
             color: white;
@@ -714,20 +728,108 @@
 
         /* RESPONSIVE */
         @media (max-width: 768px) {
+            .navbar .container {
+                align-items: flex-start;
+                gap: 6px;
+            }
+
+            .navbar-brand {
+                font-size: 1.05rem;
+                letter-spacing: 1px;
+                line-height: 1.2;
+                white-space: normal;
+            }
+
+            .navbar .navbar-nav {
+                width: 100%;
+                align-items: flex-start;
+            }
+
+            .planeacion-nav-user {
+                margin-left: auto !important;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: flex-end;
+                justify-content: flex-end;
+                gap: 4px;
+                width: auto;
+            }
+
+            .planeacion-nav-user .navbar-text {
+                margin: 0 !important;
+                display: inline-block;
+                width: auto;
+                font-size: 0.72rem;
+                white-space: nowrap;
+            }
+
+            .planeacion-nav-links {
+                display: flex;
+                align-items: center;
+                justify-content: flex-end;
+                gap: 10px;
+            }
+
+            .planeacion-nav-link {
+                display: inline-block !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                font-size: 0.72rem;
+            }
+
+            .corporate-header {
+                padding: 1.5rem 0;
+            }
+
+            .corporate-header::before {
+                font-size: 7rem;
+                right: 4%;
+            }
+
             .main-container {
                 padding: 1rem;
             }
 
             .header-logo {
-                font-size: 2rem;
+                font-size: 2.1rem;
+                letter-spacing: 2px;
+            }
+
+            .header-subtitle {
+                font-size: 0.88rem;
+                letter-spacing: 1.5px;
+            }
+
+            .summary-cards {
+                margin-top: -1.3rem;
             }
 
             .card-number {
-                font-size: 2rem;
+                font-size: 1.9rem;
+            }
+
+            .summary-card {
+                padding: 1rem;
+            }
+
+            .view-controls,
+            .filter-section {
+                padding: 1rem;
+            }
+
+            .view-controls .d-flex {
+                gap: 8px;
+            }
+
+            .view-btn {
+                margin-right: 0;
+                flex: 1 1 140px;
+                padding: 0.6rem 0.8rem;
             }
 
             .filter-row {
                 flex-direction: column;
+                gap: 0.75rem;
             }
 
             .filter-group,
@@ -735,13 +837,63 @@
                 min-width: 100%;
             }
 
-            .data-table {
-                display: block;
+            .table-responsive {
                 overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .data-table {
+                min-width: 1150px;
             }
 
             .form-grid {
                 grid-template-columns: repeat(2, 1fr);
+            }
+
+            .table-toolbar {
+                padding: 10px;
+                margin: 8px 0 10px;
+                align-items: stretch;
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .table-toolbar__left {
+                width: 100%;
+                align-items: stretch;
+                gap: 10px;
+            }
+
+            .table-count {
+                min-width: 0;
+            }
+
+            .table-pager,
+            .table-nav {
+                width: 100%;
+            }
+
+            .table-pager {
+                justify-content: flex-start;
+                flex-wrap: wrap;
+            }
+
+            .table-nav {
+                justify-content: space-between;
+            }
+
+            .table-nav__info {
+                min-width: 0;
+            }
+
+            .table-toolbar__right {
+                width: 100%;
+            }
+
+            .table-toolbar__right .btn-secondary-custom {
+                width: 100%;
+                justify-content: center;
+                display: inline-flex;
             }
 
             #reporteModal .modal-dialog {
@@ -764,8 +916,74 @@
         }
 
         @media (max-width: 480px) {
+            .main-container {
+                padding: 0.75rem;
+            }
+
+            .navbar-brand {
+                font-size: 0.98rem;
+            }
+
+            .header-logo {
+                font-size: 1.7rem;
+                letter-spacing: 1.5px;
+            }
+
+            .header-subtitle {
+                font-size: 0.8rem;
+            }
+
+            .summary-card {
+                padding: 0.9rem;
+            }
+
+            .card-number {
+                font-size: 1.6rem;
+                margin: 0.6rem 0;
+            }
+
             .form-grid {
                 grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 991.98px) {
+            .navbar .container {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 10px;
+            }
+
+            .planeacion-nav-user.navbar-nav {
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: flex-end !important;
+                justify-content: flex-end !important;
+                width: auto !important;
+                margin-left: auto !important;
+                gap: 4px;
+            }
+
+            .planeacion-nav-user .navbar-text {
+                margin: 0 !important;
+                width: auto !important;
+                white-space: nowrap;
+            }
+
+            .planeacion-nav-user .planeacion-nav-links {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: flex-end !important;
+                gap: 10px;
+            }
+
+            .planeacion-nav-user .planeacion-nav-link {
+                display: inline-flex !important;
+                align-items: center;
+                width: auto !important;
+                margin: 0 !important;
+                padding: 0 !important;
             }
         }
 

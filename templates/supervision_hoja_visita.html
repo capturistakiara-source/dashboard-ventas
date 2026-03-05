@@ -4,47 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Acceso Hoja de Visita - La Postal</title>
+    <title>Supervision | {{ modulo_titulo or "Acceso" }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
-    <style>
-        .auth-wrap {
-            max-width: 760px;
-            margin: 36px auto 0;
-            padding: 0 16px 40px;
-        }
-
-        .auth-card {
-            background: #0f0f0f;
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            border-radius: 16px;
-            padding: 24px;
-        }
-
-        .auth-label {
-            color: #f2f2f2;
-            margin-bottom: 8px;
-        }
-
-        .auth-input,
-        .auth-select {
-            background: #161616;
-            color: #fff;
-            border: 1px solid rgba(255, 255, 255, 0.18);
-        }
-
-        .auth-input:focus,
-        .auth-select:focus {
-            background: #161616;
-            color: #fff;
-            border-color: #b71c1c;
-            box-shadow: none;
-        }
-
-        .hidden-step {
-            display: none;
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/supervision.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
 </head>
 
@@ -52,110 +15,172 @@
     <nav class="navbar navbar-expand-lg navbar-dark rounded-0">
         <div class="container">
             <a class="navbar-brand" href="{{ url_for('supervision') }}">
-                LA POSTAL | ACCESO HOJA DE VISITA
+                LA POSTAL | SUPERVISION | {{ (modulo_titulo or "ACCESO")|upper }}
             </a>
             <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3">
+                    Hola, <span class="user-name">{{ current_user.nombre }}</span>
+                </span>
                 <a class="nav-link" href="{{ url_for('supervision') }}">Volver</a>
                 <a class="nav-link" href="{{ url_for('logout') }}">Salir</a>
             </div>
         </div>
     </nav>
 
-    <div class="auth-wrap">
-        <div class="auth-card">
-            <h2 class="card-title mb-2">Identificación obligatoria</h2>
-            <p class="card-desc mb-4">
-                Para entrar a Hoja de Visita debes completar: usuario, contraseña, foto con uniforme, sucursal y foto de sucursal.
-            </p>
-
-            {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-            {% for category, message in messages %}
-            <div class="alert alert-{{ 'danger' if category == 'error' else category }}" role="alert">
-                {{ message }}
+    <main class="dashboard-container">
+        <section class="welcome-section">
+            <div class="supervision-hero">
+                <div class="kanji-circle page-title">&#30435;</div>
+                <div class="supervision-title-wrap">
+                    <h1 class="brand-title">Supervision</h1>
+                    <div class="brand-subtitle">CONTROL OPERATIVO</div>
+                </div>
             </div>
-            {% endfor %}
-            {% endif %}
-            {% endwith %}
+            <div class="welcome-text supervision-welcome">{{ modulo_titulo or "Identificacion obligatoria" }}</div>
+        </section>
 
-            {% if error %}
-            <div class="alert alert-danger" role="alert">{{ error }}</div>
-            {% endif %}
+        <section class="cards-wrap supervision-card-shell">
+            <div class="supervision-auth-card">
+                <h3 class="supervision-auth-title">Acceso de {{ modulo_titulo or "Supervisor" }}</h3>
+                <p class="card-desc supervision-auth-desc">
+                    {% if reingreso_habilitado %}
+                    Nueva visita: solo elige sucursal y sube foto de sucursal para evaluarla.
+                    {% else %}
+                    Selecciona supervisor, captura contrasena, sube foto con uniforme, elige sucursal y sube foto de sucursal.
+                    {% endif %}
+                </p>
 
-            <form method="post" enctype="multipart/form-data" autocomplete="off" id="supervisionForm">
-                <div class="mb-3">
-                    <label for="supervisor" class="form-label auth-label">Usuario</label>
-                    <select id="supervisor" name="supervisor" class="form-select auth-select" title="Selecciona usuario" required>
-                        <option value="">Selecciona usuario</option>
-                        {% for usuario in supervisores %}
-                        <option value="{{ usuario.value }}" {% if supervisor_seleccionado == usuario.value %}selected{% endif %}>
-                            {{ usuario.label }}
-                        </option>
-                        {% endfor %}
-                    </select>
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                {% for category, message in messages %}
+                <div class="supervision-alert {% if category == 'success' %}supervision-alert-success{% elif category == 'error' %}supervision-alert-error{% else %}supervision-alert-warning{% endif %}">
+                    {{ message }}
                 </div>
+                {% endfor %}
+                {% endif %}
+                {% endwith %}
 
-                <div class="mb-3">
-                    <label for="password" class="form-label auth-label">Contraseña</label>
-                    <input id="password" name="password" type="password" class="form-control auth-input" title="Ingresa contraseña" required>
-                    <small class="text-secondary">Formato: <code>Lp + nombre de usuario</code>. Ejemplo: <code>Lpsupervisor1</code>.</small>
+                {% if error %}
+                <div class="supervision-alert supervision-alert-error">{{ error }}</div>
+                {% endif %}
+
+                {% if not db_disponible %}
+                <div class="supervision-alert supervision-alert-warning">
+                    Modo temporal sin BD disponible. Se validara con formato base.
                 </div>
+                {% endif %}
 
-                <div class="mb-3">
-                    <label for="foto_supervisor" class="form-label auth-label">Foto del supervisor con uniforme</label>
-                    <input id="foto_supervisor" name="foto_supervisor" type="file" class="form-control auth-input" title="Sube foto del supervisor" accept=".jpg,.jpeg,.png,.webp" required>
+                {% if ultimo_reporte_visita_id %}
+                <div class="supervision-alert supervision-alert-success">
+                    Reporte generado correctamente.
+                    <a href="#" class="btn-secondary" style="margin-top:8px;">Descargar reporte PDF</a>
                 </div>
+                {% endif %}
 
-                <div id="stepSucursal" class="hidden-step">
-                    <div class="mb-3">
-                        <label for="sucursal" class="form-label auth-label">Sucursal</label>
-                        <select id="sucursal" name="sucursal" class="form-select auth-select" title="Selecciona sucursal" required>
-                            <option value="">Selecciona sucursal</option>
-                            {% for suc in sucursales %}
-                            <option value="{{ suc }}" {% if sucursal_seleccionada == suc %}selected{% endif %}>
-                                {{ suc }}
-                            </option>
+                <form method="post" enctype="multipart/form-data" class="supervision-form" id="supervisionAccessForm" autocomplete="off">
+                    {% if reingreso_habilitado %}
+                    <input type="hidden" name="modo_reingreso" value="1">
+
+                    <div class="supervision-alert supervision-alert-success">
+                        Supervisor activo: <strong>{{ supervisor_actual or "-" }}</strong>. Ya no se requiere nueva foto de uniforme.
+                    </div>
+
+                    <div>
+                        <label for="sucursal">Sucursal</label>
+                        <select id="sucursal" name="sucursal" class="form-select" required>
+                            <option value="">Selecciona una sucursal</option>
+                            {% for s in sucursales %}
+                            <option value="{{ s }}" {% if s == sucursal_sel %}selected{% endif %}>{{ s }}</option>
                             {% endfor %}
                         </select>
                     </div>
-                </div>
 
-                <div id="stepFotoSucursal" class="hidden-step">
-                    <div class="mb-4">
-                        <label for="foto_sucursal" class="form-label auth-label">Foto de la sucursal</label>
-                        <input id="foto_sucursal" name="foto_sucursal" type="file" class="form-control auth-input" title="Sube foto de la sucursal" accept=".jpg,.jpeg,.png,.webp" required>
+                    <div>
+                        <label for="foto_sucursal">Foto de la sucursal</label>
+                        <input id="foto_sucursal" name="foto_sucursal" type="file" accept="image/*" class="form-control" required>
                     </div>
-                </div>
+                    {% else %}
+                    <div>
+                        <label for="supervisor">Supervisor</label>
+                        <select id="supervisor" name="supervisor" class="form-select" required>
+                            <option value="">Selecciona un supervisor</option>
+                            {% for u in supervisores %}
+                            <option value="{{ u.value }}" {% if u.value == supervisor_sel %}selected{% endif %}>{{ u.label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
 
-                <div class="d-grid gap-2">
-                    <button type="submit" class="btn btn-danger">Entrar a Hoja de Visita</button>
-                    <a href="{{ url_for('supervision') }}" class="btn btn-outline-light">Cancelar</a>
-                </div>
-            </form>
-        </div>
-    </div>
+                    <div>
+                        <label for="password">Contrasena</label>
+                        <input id="password" name="password" type="password" class="form-control" required>
+                        <p class="supervision-format-hint">Formato: <code>Lp + nombre</code>. Ejemplo: <code>Lpsupervisor1</code>.</p>
+                    </div>
+
+                    <div>
+                        <label for="foto_supervisor">Foto del supervisor (uniforme)</label>
+                        <input id="foto_supervisor" name="foto_supervisor" type="file" accept="image/*" class="form-control" required>
+                    </div>
+
+                    <div id="sucursalBlock" style="display:none;">
+                        <label for="sucursal">Sucursal</label>
+                        <select id="sucursal" name="sucursal" class="form-select" required>
+                            <option value="">Selecciona una sucursal</option>
+                            {% for s in sucursales %}
+                            <option value="{{ s }}" {% if s == sucursal_sel %}selected{% endif %}>{{ s }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div id="fotoSucursalBlock" style="display:none;">
+                        <label for="foto_sucursal">Foto de la sucursal</label>
+                        <input id="foto_sucursal" name="foto_sucursal" type="file" accept="image/*" class="form-control" required>
+                    </div>
+                    {% endif %}
+
+                    <div class="supervision-form-actions">
+                        <button type="submit" class="btn-primary">{% if reingreso_habilitado %}Iniciar nueva visita{% else %}Ingresar{% endif %}</button>
+                        {% if reingreso_habilitado %}
+                        <a href="{{ url_for('supervision_hoja_visita') }}?full=1" class="btn-secondary">Cambiar supervisor</a>
+                        {% endif %}
+                        <a href="{{ cancel_url or url_for('home') }}" class="btn-secondary">Cancelar</a>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </main>
 
     <script>
         (function () {
             const fotoSupervisor = document.getElementById("foto_supervisor");
-            const sucursal = document.getElementById("sucursal");
-            const stepSucursal = document.getElementById("stepSucursal");
-            const stepFotoSucursal = document.getElementById("stepFotoSucursal");
-
-            function toggleSteps() {
-                const tieneFotoSupervisor = fotoSupervisor.files && fotoSupervisor.files.length > 0;
-                stepSucursal.style.display = tieneFotoSupervisor  "block" : "none";
-
-                const sucursalElegida = sucursal && sucursal.value && sucursal.value.trim() !== "";
-                stepFotoSucursal.style.display = (tieneFotoSupervisor && sucursalElegida)  "block" : "none";
+            const sucursalBlock = document.getElementById("sucursalBlock");
+            const sucursalSelect = document.getElementById("sucursal");
+            const fotoSucursalBlock = document.getElementById("fotoSucursalBlock");
+            const fotoSucursal = document.getElementById("foto_sucursal");
+            if (!fotoSupervisor || !sucursalBlock || !sucursalSelect || !fotoSucursalBlock || !fotoSucursal) {
+                return;
             }
 
-            fotoSupervisor.addEventListener("change", toggleSteps);
-            sucursal.addEventListener("change", toggleSteps);
-            toggleSteps();
+            function refreshStepVisibility() {
+                const hasSupervisorPhoto = fotoSupervisor.files && fotoSupervisor.files.length > 0;
+                sucursalBlock.style.display = hasSupervisorPhoto ? "block" : "none";
+                if (!hasSupervisorPhoto) {
+                    sucursalSelect.value = "";
+                    fotoSucursalBlock.style.display = "none";
+                    fotoSucursal.value = "";
+                    return;
+                }
+                const hasSucursal = !!(sucursalSelect && sucursalSelect.value);
+                fotoSucursalBlock.style.display = hasSucursal ? "block" : "none";
+                if (!hasSucursal) {
+                    fotoSucursal.value = "";
+                }
+            }
+
+            fotoSupervisor.addEventListener("change", refreshStepVisibility);
+            sucursalSelect.addEventListener("change", refreshStepVisibility);
+            refreshStepVisibility();
         })();
     </script>
 </body>
 
 </html>
-

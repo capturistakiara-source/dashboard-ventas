@@ -1,37 +1,13 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hoja de Visita - La Postal</title>
+    <title>Supervision | Hoja de visita</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
-    <style>
-        .wrap {
-            max-width: 900px;
-            margin: 40px auto;
-            padding: 0 16px;
-        }
-
-        .panel {
-            background: #0f0f0f;
-            border: 1px solid rgba(255, 255, 255, 0.14);
-            border-radius: 16px;
-            padding: 26px;
-        }
-
-        .info-chip {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 14px;
-            border-radius: 999px;
-            border: 1px solid rgba(255, 255, 255, 0.24);
-            margin: 5px 8px 5px 0;
-            background: rgba(255, 255, 255, 0.02);
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/supervision.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
 </head>
 
@@ -42,29 +18,171 @@
                 LA POSTAL | HOJA DE VISITA
             </a>
             <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3">
+                    Hola, <span class="user-name">{{ current_user.nombre }}</span>
+                </span>
                 <a class="nav-link" href="{{ url_for('supervision') }}">Volver a Supervisión</a>
                 <a class="nav-link" href="{{ url_for('logout') }}">Salir</a>
             </div>
         </div>
     </nav>
 
-    <div class="wrap">
-        <div class="panel">
-            <h2 class="card-title mb-2">Hoja de visita iniciada</h2>
-            <p class="card-desc mb-3">Tu registro fue guardado correctamente.</p>
-
-            <div>
-                <span class="info-chip"><strong>Supervisor:</strong> {{ ingreso.supervisor }}</span>
-                <span class="info-chip"><strong>Sucursal:</strong> {{ ingreso.sucursal }}</span>
+    <main class="dashboard-container">
+        <section class="welcome-section">
+            <div class="supervision-hero">
+                <div class="kanji-circle page-title">&#35370;</div>
+                <div class="supervision-title-wrap">
+                    <h1 class="brand-title">Hoja de visita</h1>
+                    <div class="brand-subtitle">SUPERVISION</div>
+                </div>
             </div>
-
-            <div class="d-grid gap-2 mt-4">
-                <a class="btn btn-light" href="{{ url_for('supervision_hoja_visita') }}">Nueva visita</a>
-                <a class="btn btn-outline-light" href="{{ url_for('supervision') }}">Volver a Supervisión</a>
+            <div class="supervision-session-meta">
+                <span><strong>Supervisor:</strong> {{ ingreso.supervisor or "-" }}</span>
+                <span><strong>Sucursal registrada:</strong> {{ ingreso.sucursal or "-" }}</span>
+                <span><strong>Ingreso:</strong> {{ ingreso_fecha_hora }}</span>
             </div>
+        </section>
+
+        <section class="cards-wrap supervision-card-shell supervision-panel-shell">
+            <div class="supervision-auth-card">
+                <h3 class="supervision-auth-title">Checklist de visita</h3>
+                <p class="card-desc supervision-auth-desc">
+                    Panel de visita activo. La captura detallada por secciones y subpuntos todavia no esta conectada en esta version.
+                </p>
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                {% for category, message in messages %}
+                <div class="supervision-alert {% if category == 'success' %}supervision-alert-success{% elif category == 'error' %}supervision-alert-error{% else %}supervision-alert-warning{% endif %}">
+                    {{ message }}
+                </div>
+                {% endfor %}
+                {% endif %}
+                {% endwith %}
+
+                <div class="supervision-alert supervision-alert-warning">
+                    El layout del checklist ya quedo preparado, pero el proyecto Flask actual solo registra el ingreso de la visita y muestra su resumen operativo.
+                </div>
+
+                <div class="supervision-score-strip">
+                    <span><strong>Visitas 7 dias:</strong> {{ resumen_panel.total_visitas_7_dias }}</span>
+                    <span><strong>Visitas hoy:</strong> {{ resumen_panel.visitas_hoy_supervisor }}</span>
+                    <span><strong>Ultima sucursal:</strong> {{ resumen_panel.ultima_sucursal }}</span>
+                    <span><strong>Registros recientes:</strong> {{ resumen_panel.total_ingresos_recientes }}</span>
+                </div>
+
+                <div class="supervision-form-actions">
+                    <a href="{{ url_for('supervision_hoja_visita') }}" class="btn-primary">Nueva visita</a>
+                    <a href="{{ url_for('supervision_general') }}" class="btn-secondary">Ver general</a>
+                </div>
+            </div>
+        </section>
+
+        <section class="cards-wrap supervision-card-shell supervision-summary-wrap">
+            <div class="supervision-summary-grid">
+                <article class="supervision-auth-card supervision-summary-card">
+                    <h3>Visitas por sucursal</h3>
+                    <div class="supervision-table-wrap">
+                        <table class="supervision-table">
+                            <thead>
+                                <tr>
+                                    <th>Sucursal</th>
+                                    <th>Visitas</th>
+                                    <th>Usuarios</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if panel_stats.visitas_7_dias %}
+                                {% for fila in panel_stats.visitas_7_dias %}
+                                <tr>
+                                    <td data-label="Sucursal">{{ fila.sucursal }}</td>
+                                    <td data-label="Visitas">{{ fila.visitas }}</td>
+                                    <td data-label="Usuarios">{{ fila.usuarios or "-" }}</td>
+                                </tr>
+                                {% endfor %}
+                                {% else %}
+                                <tr>
+                                    <td colspan="3">Sin visitas registradas en los ultimos 7 dias.</td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+
+                <article class="supervision-auth-card supervision-summary-card">
+                    <h3>Visitas por usuario hoy</h3>
+                    <div class="supervision-table-wrap">
+                        <table class="supervision-table">
+                            <thead>
+                                <tr>
+                                    <th>Usuario</th>
+                                    <th>Visitas</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if panel_stats.visitas_usuario_hoy %}
+                                {% for fila in panel_stats.visitas_usuario_hoy %}
+                                <tr>
+                                    <td data-label="Usuario">{{ fila.supervisor }}</td>
+                                    <td data-label="Visitas">{{ fila.visitas }}</td>
+                                </tr>
+                                {% endfor %}
+                                {% else %}
+                                <tr>
+                                    <td colspan="2">Sin visitas registradas hoy.</td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <section class="cards-wrap supervision-card-shell">
+            <div class="supervision-auth-card supervision-wide-card">
+                <h3 class="supervision-auth-title">Ingresos recientes</h3>
+                <p class="card-desc supervision-auth-desc">
+                    Ultimos accesos vinculados al modulo de hoja de visita.
+                </p>
+
+                <div class="supervision-table-wrap">
+                    <table class="supervision-table">
+                        <thead>
+                            <tr>
+                                <th>Fecha y hora</th>
+                                <th>Supervisor</th>
+                                <th>Sucursal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if panel_stats.ingresos_recientes %}
+                            {% for fila in panel_stats.ingresos_recientes %}
+                            <tr>
+                                <td data-label="Fecha y hora">{{ fila.ingreso_fecha_hora }}</td>
+                                <td data-label="Supervisor">{{ fila.supervisor }}</td>
+                                <td data-label="Sucursal">{{ fila.sucursal }}</td>
+                            </tr>
+                            {% endfor %}
+                            {% else %}
+                            <tr>
+                                <td colspan="3">Sin ingresos registrados.</td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <div class="team-watermark">
+            <a href="{{ url_for('supervision') }}" title="Ir al home de supervision">
+                <img src="{{ url_for('static', filename='logo personaje .png') }}" alt="Equipo La Postal"
+                    class="team-watermark-photo">
+            </a>
         </div>
-    </div>
+    </main>
 </body>
 
 </html>
-

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supervision | Tabla Cierre y apertura</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/supervision.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
+</head>
+
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark rounded-0">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('home') }}">
+                LA POSTAL | DASHBOARD
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3">
+                    Hola, <span class="user-name">{{ current_user.nombre }}</span>
+                </span>
+                <a class="nav-link" href="{{ url_for('perfil') }}">Perfil</a>
+                <a class="nav-link" href="{{ url_for('logout') }}">Salir</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="dashboard-container">
+        <section class="ca-shell">
+            <div class="ca-head">
+                <div class="ca-kicker">SUPERVISION OPERATIVA</div>
+                <h1 class="ca-title">Cierre y apertura</h1>
+                <p class="ca-sub">Captura y consulta checks por bloque y sucursal.</p>
+            </div>
+
+            <div class="ca-panel">
+                <div class="ca-tabs">
+                    <a href="{{ url_for('supervision_cierre_apertura', modo='apertura') }}" class="ca-tab">Apertura</a>
+                    <a href="{{ url_for('supervision_cierre_apertura', modo='cierre') }}" class="ca-tab">Cierre</a>
+                    <a href="{{ url_for('supervision_cierre_apertura_tabla') }}" class="ca-tab is-active">Tabla</a>
+                </div>
+
+                <form method="get" class="ca-form">
+                    <div class="ca-filterbar ca-filterbar-table">
+                        <div>
+                            <label for="sucursal">Sucursal</label>
+                            <select id="sucursal" name="sucursal" class="form-select">
+                                <option value="">Todas las sucursales</option>
+                                {% for s in sucursales %}
+                                <option value="{{ s }}" {% if s == sucursal_sel %}selected{% endif %}>{{ s }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="ca-filter-actions supervision-form-actions">
+                            <button type="submit" class="btn-primary">Filtrar</button>
+                            <a href="{{ url_for('supervision_cierre_apertura_tabla') }}" class="btn-secondary">Limpiar</a>
+                        </div>
+                    </div>
+                </form>
+
+                <div class="ca-table-stack">
+                    <div class="ca-table-card">
+                        <h3>Tabla Apertura</h3>
+                        <div class="supervision-table-wrap">
+                            <table class="supervision-table">
+                                <thead>
+                                    <tr>
+                                        <th>Fecha</th>
+                                        <th>Sucursal</th>
+                                        <th>Supervisor</th>
+                                        <th>Total checks</th>
+                                        <th>Detalle checks</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in apertura_rows %}
+                                    <tr>
+                                        <td data-label="Fecha">{{ row.fecha }}</td>
+                                        <td data-label="Sucursal">{{ row.sucursal }}</td>
+                                        <td data-label="Supervisor">{{ row.supervisor }}</td>
+                                        <td data-label="Total checks">{{ row.total_marcados }}</td>
+                                        <td data-label="Detalle checks">{{ row.detalle }}</td>
+                                    </tr>
+                                    {% else %}
+                                    <tr>
+                                        <td colspan="5">Sin registros de apertura.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="ca-table-card">
+                        <h3>Tabla Cierre</h3>
+                        <div class="supervision-table-wrap">
+                            <table class="supervision-table">
+                                <thead>
+                                    <tr>
+                                        <th>Fecha</th>
+                                        <th>Sucursal</th>
+                                        <th>Supervisor</th>
+                                        <th>Total checks</th>
+                                        <th>Detalle checks</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in cierre_rows %}
+                                    <tr>
+                                        <td data-label="Fecha">{{ row.fecha }}</td>
+                                        <td data-label="Sucursal">{{ row.sucursal }}</td>
+                                        <td data-label="Supervisor">{{ row.supervisor }}</td>
+                                        <td data-label="Total checks">{{ row.total_marcados }}</td>
+                                        <td data-label="Detalle checks">{{ row.detalle }}</td>
+                                    </tr>
+                                    {% else %}
+                                    <tr>
+                                        <td colspan="5">Sin registros de cierre.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="team-watermark">
+            <a href="{{ url_for('supervision') }}" title="Ir al home de supervision">
+                <img src="{{ url_for('static', filename='logo personaje .png') }}" alt="Equipo La Postal" class="team-watermark-photo">
+            </a>
+        </div>
+    </main>
+</body>
+
+</html>

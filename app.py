@@ -1,7 +1,6 @@
 ﻿import os
 import json
 import re
-import sqlite3
 import unicodedata
 import uuid
 import gspread
@@ -25,7 +24,7 @@ from flask import Flask, render_template, url_for
 app = Flask(__name__)
 app.secret_key = 'Lapostal01'
 
-# ConfiguraciÃ³n de Flask-Login
+# Configuracion de Flask-Login
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
@@ -184,10 +183,110 @@ SUPERVISION_USUARIOS = [
     {"value": "supervisor3", "label": "Supervisor 3"},
 ]
 
-SUPERVISION_DB_PATH = os.path.join(os.path.dirname(__file__), "supervision_visitas.db")
+CAT_SUCURSALES_BY_BLOQUE = {
+    "1": [
+        "20 NOV",
+        "BRISAS",
+        "CACHO",
+        "ENSENADA",
+        "MATRIZ",
+        "PLAYAS 1",
+        "TORRES",
+    ],
+    "2": [
+        "5 Y 10",
+        "ALEMAN",
+        "CALIFORNIAS",
+        "CAMPESTRE MURUA",
+        "CAMPIÑA",
+        "CAPISTRANO",
+        "COLINA AZUL",
+        "DARUMMITA LIBERTAD",
+        "DARUMMITA PLAYAS",
+        "FLORIDO",
+        "INDEPENDENCIA",
+        "LAGO",
+        "LIBERTAD",
+        "MALECON",
+        "MALECON 2",
+        "MARIANO MATAMOROS",
+        "MURUA",
+        "PANAMERICANO",
+        "ROSARITO 3",
+        "SOLER",
+        "VENECIA",
+        "ZONA NORTE",
+        "ZONA RIO",
+    ],
+}
+CAT_BLOQUES = sorted(CAT_SUCURSALES_BY_BLOQUE.keys())
+CAT_SUCURSALES = sorted({s for items in CAT_SUCURSALES_BY_BLOQUE.values() for s in items})
+
+SUPERVISION_HOJA_SECCIONES_BASE = [
+    (f"seccion-{idx:02d}", f"Seccion {idx}")
+    for idx in range(1, 8)
+]
+SUPERVISION_HOJA_PUNTOS_POR_SECCION = 20
+SUPERVISION_HOJA_SUBPUNTOS_BASE = 2
+
+SUPERVISION_APERTURA_PUNTOS = [
+    "Imagen de Sucursal hora de llegada (apertura de cortina)",
+    "Imagen de todo el EQUIPO y LIDER con uniforme en tiempo y forma (de pies a cabeza y seriedad en la foto, no señas inadecuadas)",
+    "Imagen de apertura de comedor listo para atender a comensales (liempieza de pisos, mesas y sillas)",
+    "Imagen de Sushi Case o mesa fría abastecido y decorado",
+    "Imagen de Vitrolera lista y decorada",
+    "Salsa teriyaki preparada y con piña",
+    "Imagen de cebollitas y chiles preparados",
+    "Dispensadores de baños abastecidos",
+    "Imagen de exterior banqueta y tapete (limpio y despejado)",
+    "Pollo, RES y verdura listos en cambros para calentar o en preparacion",
+    "Registro del formato de toma de temperatura de alimento",
+    "Botes y trapos en solucion desinfectante por areas (caja, cocina, comedor, bar, baño, sushi etc)",
+    "Barra de licores abastecida (quienes cuenten con ella)",
+    "Botes de basura limpios y con tapa",
+    "Almacen de secos, refrigeradores y congeladores con productos ordenados y etiquetados",
+    "Servicio para la sopa Miso (cebollin, champiñon, alga, tofu y sopa)",
+    "Hielo aislado de contaminantes (que tenga su pala y que NO haya productos encima, debajo o alrededor)",
+    "Mamilas en cambros con hielo",
+    "Fotos de apertura al publico se deben enviar 5 minutos antes (8:55, 09:55)",
+    "Limpieza general de sucursal, cada miercoles de la semana",
+    "No se envio la evidencia de apertura",
+]
+
+SUPERVISION_CIERRE_PUNTOS = [
+    "Zinc despejado y sin un solo traste o agua estancada.",
+    "Mesas de trabajo limpias y despejadas.",
+    "Limpieza de microondas, hornos y salamandras interna y externa.",
+    "Plancha limpia parte operativa y parte baja entre la mesa y la plancha.",
+    "Limpieza de pared area de plancha, freidora, estufa u otros equipos.",
+    "Estufa limpia en su base, parrillas y laterales.",
+    "Campana interna y externa diario trapo humedo. Una vez por semana limpieza profunda.",
+    "Limpieza en filtros de campana 2 veces por semana (lunes y jueves).",
+    "Limpieza exterior de freidoras, canastillas limpias y parte interna.",
+    "Limpieza profunda de freidoras una vez por semana (martes). Enviar video con freidora sin aceite y limpia.",
+    "Piso de cocina limpio.",
+    "Limpieza interna, externa y orden de refrigeradores y congeladores.",
+    "Refrigeradores y congeladores movidos de su espacio para barrer y trapear.",
+    "Limpieza de barra fria exterior.",
+    "Limpieza de barra fria interna area de almacenamiento y cambro.",
+    "Limpieza sushi case interna y externa.",
+    "Mamilas de cocina y servicio limpias y abastecidas (anguila, ponsu, cilantro, chipotle y siracha).",
+    "Lavado y desinfeccion de cuchillos (5 ml de cloro por cada litro de agua).",
+    "Cerrar todas valvulas de paso de gas.",
+    "Limpieza de bano y taza interior, exterior y alrededores.",
+    "Revisar si hay fugas de agua (llaves cerradas y revisar que no haya escurrimiento).",
+    "Botes de basura interna y exteriormente limpios y con bolsa.",
+    "Area de cajas limpia y despejada.",
+    "Comedor limpio (mesas, sillas y piso).",
+    "Foto de cierre luces apagadas y candado puesto.",
+    "Envio de video de cierre donde se visualice cada punto claramente (hasta 1 hora despues del cierre).",
+    "No se envio el video de cierre / no se alcanzan a apreciar los puntos evaluados en el cierre",
+]
+
 SUPERVISION_UPLOAD_ROOT = os.path.join("static", "uploads", "supervision")
 SUPERVISION_UPLOAD_SUPERVISOR_DIR = os.path.join(SUPERVISION_UPLOAD_ROOT, "supervisores")
 SUPERVISION_UPLOAD_SUCURSAL_DIR = os.path.join(SUPERVISION_UPLOAD_ROOT, "sucursales")
+SUPERVISION_UPLOAD_SUBPUNTO_DIR = os.path.join(SUPERVISION_UPLOAD_ROOT, "subpuntos")
 TZ_TIJUANA = pytz.timezone("America/Tijuana")
 
 class User(UserMixin):
@@ -252,26 +351,48 @@ def _contrasena_supervision(valor_usuario):
 def _init_supervision_storage():
     os.makedirs(SUPERVISION_UPLOAD_SUPERVISOR_DIR, exist_ok=True)
     os.makedirs(SUPERVISION_UPLOAD_SUCURSAL_DIR, exist_ok=True)
+    os.makedirs(SUPERVISION_UPLOAD_SUBPUNTO_DIR, exist_ok=True)
 
 
-def _init_supervision_db():
-    _init_supervision_storage()
-    with sqlite3.connect(SUPERVISION_DB_PATH) as conn:
-        conn.execute(
-            """
-            CREATE TABLE IF NOT EXISTS supervision_ingresos (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                ingreso_at TEXT NOT NULL,
-                ingreso_fecha TEXT NOT NULL,
-                ingreso_semana TEXT NOT NULL,
-                dashboard_user TEXT NOT NULL,
-                supervisor TEXT NOT NULL,
-                sucursal TEXT NOT NULL,
-                foto_supervisor TEXT NOT NULL,
-                foto_sucursal TEXT NOT NULL
-            )
-            """
+def get_sucursales_by_bloque(bloque):
+    return CAT_SUCURSALES_BY_BLOQUE.get(str(bloque or "").strip(), [])
+
+
+def _catalogo_puntos_cierre_apertura(tipo):
+    nombres = SUPERVISION_APERTURA_PUNTOS if tipo == "apertura" else SUPERVISION_CIERRE_PUNTOS
+    return [
+        {
+            "id": idx,
+            "codigo": f"{tipo}-p{idx:02d}",
+            "tipo": tipo,
+            "nombre": nombre,
+            "orden": idx,
+        }
+        for idx, nombre in enumerate(nombres, start=1)
+    ]
+
+
+def _split_every_ten_words(text):
+    words = (text or "").split()
+    if not words:
+        return ""
+    lines = []
+    for idx in range(0, len(words), 10):
+        lines.append(" ".join(words[idx:idx + 10]))
+    return "\n".join(lines)
+
+
+def _build_empty_matrix_rows(tipo, sucursales):
+    rows = []
+    for punto in _catalogo_puntos_cierre_apertura(tipo):
+        rows.append(
+            {
+                "punto": punto,
+                "incidencia_texto": _split_every_ten_words(punto["nombre"]),
+                "valores": [0 for _ in sucursales],
+            }
         )
+    return rows
 
 
 def _guardar_foto_supervision(archivo, carpeta_destino, prefijo):
@@ -291,168 +412,27 @@ def _guardar_foto_supervision(archivo, carpeta_destino, prefijo):
     return ruta_relativa
 
 
-def _registrar_ingreso_supervision(ingreso_at, dashboard_user, supervisor, sucursal, foto_supervisor, foto_sucursal):
-    ingreso_fecha = ingreso_at.strftime("%Y-%m-%d")
-    ingreso_semana = f"{ingreso_at.isocalendar().year}-W{ingreso_at.isocalendar().week:02d}"
-
-    with sqlite3.connect(SUPERVISION_DB_PATH) as conn:
-        cursor = conn.execute(
-            """
-            INSERT INTO supervision_ingresos
-            (ingreso_at, ingreso_fecha, ingreso_semana, dashboard_user, supervisor, sucursal, foto_supervisor, foto_sucursal)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                ingreso_at.isoformat(),
-                ingreso_fecha,
-                ingreso_semana,
-                dashboard_user,
-                supervisor,
-                sucursal,
-                foto_supervisor,
-                foto_sucursal,
-            ),
-        )
-        return cursor.lastrowid
-
-
 def _obtener_estadisticas_supervision():
     ahora_tj = datetime.now(TZ_TIJUANA)
-    hoy = ahora_tj.strftime("%Y-%m-%d")
-    semana_actual = f"{ahora_tj.isocalendar().year}-W{ahora_tj.isocalendar().week:02d}"
-
-    with sqlite3.connect(SUPERVISION_DB_PATH) as conn:
-        conn.row_factory = sqlite3.Row
-
-        visitas_semana = conn.execute(
-            """
-            SELECT
-                sucursal,
-                COUNT(*) AS total_visitas,
-                GROUP_CONCAT(DISTINCT supervisor) AS supervisores
-            FROM supervision_ingresos
-            WHERE ingreso_semana = ?
-            GROUP BY sucursal
-            ORDER BY total_visitas DESC, sucursal ASC
-            """,
-            (semana_actual,),
-        ).fetchall()
-
-        visitas_usuario_hoy = conn.execute(
-            """
-            SELECT
-                supervisor,
-                COUNT(*) AS total_sucursales,
-                GROUP_CONCAT(sucursal) AS sucursales
-            FROM supervision_ingresos
-            WHERE ingreso_fecha = ?
-            GROUP BY supervisor
-            ORDER BY total_sucursales DESC, supervisor ASC
-            """,
-            (hoy,),
-        ).fetchall()
-
-        ingresos_recientes = conn.execute(
-            """
-            SELECT
-                ingreso_at,
-                dashboard_user,
-                supervisor,
-                sucursal
-            FROM supervision_ingresos
-            ORDER BY id DESC
-            LIMIT 100
-            """
-        ).fetchall()
-
     return {
-        "hoy": hoy,
-        "semana_actual": semana_actual,
-        "visitas_semana": [dict(fila) for fila in visitas_semana],
-        "visitas_usuario_hoy": [dict(fila) for fila in visitas_usuario_hoy],
-        "ingresos_recientes": [dict(fila) for fila in ingresos_recientes],
+        "hoy": ahora_tj.strftime("%Y-%m-%d"),
+        "semana_actual": f"{ahora_tj.isocalendar().year}-W{ahora_tj.isocalendar().week:02d}",
+        "visitas_semana": [],
+        "visitas_usuario_hoy": [],
+        "ingresos_recientes": [],
     }
 
 
 def _obtener_panel_hoja_visita(supervisor):
-    hoy = datetime.now(TZ_TIJUANA).date()
-    hace_7 = (hoy - timedelta(days=6)).strftime("%Y-%m-%d")
-    hoy_str = hoy.strftime("%Y-%m-%d")
-
-    with sqlite3.connect(SUPERVISION_DB_PATH) as conn:
-        conn.row_factory = sqlite3.Row
-
-        visitas_7_dias = conn.execute(
-            """
-            SELECT
-                sucursal,
-                COUNT(*) AS visitas,
-                GROUP_CONCAT(DISTINCT supervisor) AS usuarios
-            FROM supervision_ingresos
-            WHERE ingreso_fecha >= ?
-            GROUP BY sucursal
-            ORDER BY visitas DESC, sucursal ASC
-            """,
-            (hace_7,),
-        ).fetchall()
-
-        visitas_usuario_hoy = conn.execute(
-            """
-            SELECT
-                supervisor,
-                COUNT(*) AS visitas
-            FROM supervision_ingresos
-            WHERE ingreso_fecha = ?
-            GROUP BY supervisor
-            ORDER BY visitas DESC, supervisor ASC
-            """,
-            (hoy_str,),
-        ).fetchall()
-
-        ultima_visita_supervisor = conn.execute(
-            """
-            SELECT sucursal
-            FROM supervision_ingresos
-            WHERE supervisor = ?
-            ORDER BY id DESC
-            LIMIT 1
-            """,
-            (supervisor,),
-        ).fetchone()
-
-        ingresos_recientes = conn.execute(
-            """
-            SELECT
-                ingreso_at,
-                supervisor,
-                sucursal
-            FROM supervision_ingresos
-            ORDER BY id DESC
-            LIMIT 20
-            """
-        ).fetchall()
-
-    ingresos_formateados = []
-    for fila in ingresos_recientes:
-        registro = dict(fila)
-        try:
-            fecha_dt = datetime.fromisoformat(registro["ingreso_at"])
-            if fecha_dt.tzinfo is not None:
-                fecha_dt = fecha_dt.astimezone(TZ_TIJUANA)
-            registro["ingreso_fecha_hora"] = fecha_dt.strftime("%d/%m/%Y %I:%M %p")
-        except Exception:
-            registro["ingreso_fecha_hora"] = registro["ingreso_at"]
-        ingresos_formateados.append(registro)
-
     return {
-        "visitas_7_dias": [dict(fila) for fila in visitas_7_dias],
-        "visitas_usuario_hoy": [dict(fila) for fila in visitas_usuario_hoy],
-        "ultima_sucursal": (dict(ultima_visita_supervisor)["sucursal"] if ultima_visita_supervisor else "-"),
-        "ingresos_recientes": ingresos_formateados,
+        "visitas_7_dias": [],
+        "visitas_usuario_hoy": ([{"supervisor": supervisor, "visitas": 1}] if supervisor else []),
+        "ultima_sucursal": session.get("supervision_sucursal") or "-",
+        "ingresos_recientes": [],
     }
 
 
-_init_supervision_db()
+_init_supervision_storage()
 
 # ==================== AUTENTICACIÃ“N GOOGLE ====================
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
@@ -489,7 +469,8 @@ creds = Credentials.from_service_account_info(creds_data, scopes=scope)
 client = gspread.authorize(creds)
 print("âœ… ConexiÃ³n exitosa con Google Sheets")
 
-SHEET_NAME = "ventas"
+# Respeta SHEET_NAME del .env; usa "ventas" solo como fallback.
+SHEET_NAME = SHEET_NAME or "ventas"
 
 EXCLUDED_WORKSHEETS = {"MALECON", "MALECON 2", "VILLAFONTANA", "RANKING_SEMANAL"}
 
@@ -501,6 +482,25 @@ def _sheet_key(name):
 def _is_excluded_sheet(name):
     return _sheet_key(name) in EXCLUDED_WORKSHEETS
 
+
+def _open_target_spreadsheet():
+    """
+    Abre el spreadsheet configurado.
+    Si no existe coincidencia exacta por nombre, intenta coincidencia case-insensitive.
+    Si solo hay un spreadsheet visible para la cuenta de servicio, usa ese.
+    """
+    try:
+        return client.open(SHEET_NAME)
+    except gspread.exceptions.SpreadsheetNotFound:
+        docs = client.openall()
+        target = (SHEET_NAME or "").strip().lower()
+        for doc in docs:
+            if (doc.title or "").strip().lower() == target:
+                return doc
+        if len(docs) == 1:
+            return docs[0]
+        raise
+
 # ==================== CACHÃ‰S GLOBALES ====================
 cache_sheets = {"data": None, "timestamp": 0}
 cache_global = {"data": None, "timestamp": 0}
@@ -508,31 +508,31 @@ cache_comparativa = {"data": None, "timestamp": 0}
 CACHE_TTL = 300
 
 def get_spreadsheet_data():
-    """Obtiene datos del spreadsheet con cachÃ© mejorado"""
+    """Obtiene datos del spreadsheet con cache mejorado."""
     global cache_sheets
     now = time.time()
     
     if cache_sheets["data"] and (now - cache_sheets["timestamp"]) < CACHE_TTL:
-        print("âœ… Usando datos en cachÃ© (sheets)")
+        print("Usando datos en cache (sheets)")
         return cache_sheets["data"]
     
-    print("ðŸ“¡ Leyendo Google Sheets...")
+    print("Leyendo Google Sheets...")
     try:
-        spreadsheet = client.open(SHEET_NAME)
+        spreadsheet = _open_target_spreadsheet()
         hojas = [ws for ws in spreadsheet.worksheets() if not _is_excluded_sheet(ws.title)]
         data = {}
         
-        print(f"ðŸ” Hojas encontradas: {[hoja.title for hoja in hojas]}")
+        print(f"Hojas encontradas: {[hoja.title for hoja in hojas]}")
         
-        # âœ… CORREGIDO: Leer TODAS las hojas, sin filtrar
+        # Leer todas las hojas permitidas
         for hoja in hojas:
             try:
-                print(f"ðŸ“– Leyendo: '{hoja.title}'")
+                print(f"Leyendo: '{hoja.title}'")
                 filas = hoja.get_all_values()
                 data[hoja.title] = filas
-                print(f"âœ… '{hoja.title}': {len(filas)} filas")
+                print(f"OK '{hoja.title}': {len(filas)} filas")
             except Exception as e:
-                print(f"âŒ Error en '{hoja.title}': {e}")
+                print(f"Error en '{hoja.title}': {e}")
                 data[hoja.title] = []
         
         cache_sheets["data"] = data
@@ -540,7 +540,7 @@ def get_spreadsheet_data():
         return data
         
     except Exception as e:
-        print(f"âŒ Error general: {e}")
+        print(f"Error general al abrir spreadsheet '{SHEET_NAME}': {e}")
         return cache_sheets["data"] or {}
 
 # ==================== COLUMNAS ====================
@@ -696,65 +696,105 @@ def supervision_hoja_visita():
     error = None
     supervisor = ""
     sucursal = ""
+    supervisor_sesion = (session.get("supervision_supervisor") or "").strip()
+    sucursal_sesion = (session.get("supervision_sucursal") or "").strip()
+    ultimo_ingreso = session.get("supervision_hoja_visita_ingreso") or {}
+    forzar_acceso_completo = request.args.get("full") == "1"
+    reingreso_habilitado = bool(
+        not forzar_acceso_completo
+        and supervisor_sesion
+        and ultimo_ingreso.get("foto_supervisor")
+    )
 
     if request.method == "POST":
-        supervisor = (request.form.get("supervisor") or "").strip()
-        password = (request.form.get("password") or "").strip()
         sucursal = (request.form.get("sucursal") or "").strip()
-        foto_supervisor = request.files.get("foto_supervisor")
         foto_sucursal = request.files.get("foto_sucursal")
+        modo_reingreso = request.form.get("modo_reingreso") == "1"
 
-        usuarios_validos = {u["value"] for u in SUPERVISION_USUARIOS}
-        if supervisor not in usuarios_validos:
-            error = "Selecciona un supervisor válido."
-        elif _normalizar_credencial(password) != _normalizar_credencial(_contrasena_supervision(supervisor)):
-            error = f"Contraseña incorrecta. Ejemplo: {_contrasena_supervision('supervisor1')}"
-        elif sucursal not in SUPERVISION_SUCURSALES:
-            error = "Selecciona una sucursal válida."
-        elif not foto_supervisor or not foto_supervisor.filename:
-            error = "Debes subir la foto del supervisor con uniforme."
-        elif not foto_sucursal or not foto_sucursal.filename:
-            error = "Debes subir la foto de la sucursal."
-        else:
-            foto_supervisor_path = _guardar_foto_supervision(
-                foto_supervisor,
-                SUPERVISION_UPLOAD_SUPERVISOR_DIR,
-                f"uniforme_{supervisor}",
-            )
-            foto_sucursal_path = _guardar_foto_supervision(
-                foto_sucursal,
-                SUPERVISION_UPLOAD_SUCURSAL_DIR,
-                f"sucursal_{_normalizar_texto_password(sucursal)}",
-            )
-
-            if not foto_supervisor_path or not foto_sucursal_path:
-                error = "Formato de foto no válido. Usa JPG, JPEG, PNG o WEBP."
+        if modo_reingreso and reingreso_habilitado:
+            if sucursal not in SUPERVISION_SUCURSALES:
+                error = "Selecciona una sucursal valida."
+            elif not foto_sucursal or not foto_sucursal.filename:
+                error = "Debes subir la foto de la sucursal."
             else:
-                ingreso_at = datetime.now(TZ_TIJUANA)
-                ingreso_id = _registrar_ingreso_supervision(
-                    ingreso_at=ingreso_at,
-                    dashboard_user=current_user.id,
-                    supervisor=supervisor,
-                    sucursal=sucursal,
-                    foto_supervisor=foto_supervisor_path,
-                    foto_sucursal=foto_sucursal_path,
+                foto_sucursal_path = _guardar_foto_supervision(
+                    foto_sucursal,
+                    SUPERVISION_UPLOAD_SUCURSAL_DIR,
+                    f"sucursal_{_normalizar_texto_password(sucursal)}",
                 )
+                if not foto_sucursal_path:
+                    error = "Formato de foto no valido. Usa JPG, JPEG, PNG o WEBP."
+                else:
+                    ingreso_at = datetime.now(TZ_TIJUANA)
+                    session["supervision_supervisor"] = supervisor_sesion
+                    session["supervision_sucursal"] = sucursal
+                    session["supervision_hoja_visita_ingreso"] = {
+                        "id": uuid.uuid4().hex,
+                        "supervisor": supervisor_sesion,
+                        "sucursal": sucursal,
+                        "ingreso_at": ingreso_at.isoformat(),
+                        "foto_supervisor": ultimo_ingreso.get("foto_supervisor"),
+                        "foto_sucursal": foto_sucursal_path,
+                        "dashboard_user": current_user.id,
+                    }
+                    return redirect(url_for("supervision_hoja_visita_home"))
+        else:
+            supervisor = (request.form.get("supervisor") or "").strip()
+            password = (request.form.get("password") or "").strip()
+            foto_supervisor = request.files.get("foto_supervisor")
+            usuarios_validos = {u["value"] for u in SUPERVISION_USUARIOS}
 
-                session["supervision_hoja_visita_ingreso"] = {
-                    "id": ingreso_id,
-                    "supervisor": supervisor,
-                    "sucursal": sucursal,
-                    "ingreso_at": ingreso_at.isoformat(),
-                }
-                return redirect(url_for("supervision_hoja_visita_home"))
+            if supervisor not in usuarios_validos:
+                error = "Selecciona un supervisor valido."
+            elif _normalizar_credencial(password) != _normalizar_credencial(_contrasena_supervision(supervisor)):
+                error = f"Contrasena incorrecta. Ejemplo: {_contrasena_supervision('supervisor1')}"
+            elif sucursal not in SUPERVISION_SUCURSALES:
+                error = "Selecciona una sucursal valida."
+            elif not foto_supervisor or not foto_supervisor.filename:
+                error = "Debes subir la foto del supervisor con uniforme."
+            elif not foto_sucursal or not foto_sucursal.filename:
+                error = "Debes subir la foto de la sucursal."
+            else:
+                foto_supervisor_path = _guardar_foto_supervision(
+                    foto_supervisor,
+                    SUPERVISION_UPLOAD_SUPERVISOR_DIR,
+                    f"uniforme_{supervisor}",
+                )
+                foto_sucursal_path = _guardar_foto_supervision(
+                    foto_sucursal,
+                    SUPERVISION_UPLOAD_SUCURSAL_DIR,
+                    f"sucursal_{_normalizar_texto_password(sucursal)}",
+                )
+                if not foto_supervisor_path or not foto_sucursal_path:
+                    error = "Formato de foto no valido. Usa JPG, JPEG, PNG o WEBP."
+                else:
+                    ingreso_at = datetime.now(TZ_TIJUANA)
+                    session["supervision_supervisor"] = supervisor
+                    session["supervision_sucursal"] = sucursal
+                    session["supervision_hoja_visita_ingreso"] = {
+                        "id": uuid.uuid4().hex,
+                        "supervisor": supervisor,
+                        "sucursal": sucursal,
+                        "ingreso_at": ingreso_at.isoformat(),
+                        "foto_supervisor": foto_supervisor_path,
+                        "foto_sucursal": foto_sucursal_path,
+                        "dashboard_user": current_user.id,
+                    }
+                    return redirect(url_for("supervision_hoja_visita_home"))
 
     return render_template(
         "supervision_hoja_visita.html",
+        modulo_titulo="Hoja de visita",
         supervisores=SUPERVISION_USUARIOS,
         sucursales=SUPERVISION_SUCURSALES,
         error=error,
-        supervisor_seleccionado=supervisor,
-        sucursal_seleccionada=sucursal,
+        supervisor_sel=supervisor,
+        sucursal_sel=sucursal or sucursal_sesion,
+        reingreso_habilitado=reingreso_habilitado,
+        db_disponible=True,
+        ultimo_reporte_visita_id=session.pop("supervision_last_reporte_visita_id", None),
+        supervisor_actual=supervisor_sesion,
+        cancel_url=url_for("supervision"),
     )
 
 
@@ -767,9 +807,36 @@ def supervision_hoja_visita_home():
         flash("Primero debes identificarte para entrar a Hoja de Visita.", "error")
         return redirect(url_for("supervision_hoja_visita"))
 
+    panel_stats = _obtener_panel_hoja_visita(ingreso.get("supervisor", ""))
+
+    ingreso_fecha_hora = ingreso.get("ingreso_at", "")
+    try:
+        fecha_dt = datetime.fromisoformat(ingreso_fecha_hora)
+        if fecha_dt.tzinfo is not None:
+            fecha_dt = fecha_dt.astimezone(TZ_TIJUANA)
+        ingreso_fecha_hora = fecha_dt.strftime("%d/%m/%Y %I:%M %p")
+    except Exception:
+        pass
+
+    resumen_panel = {
+        "total_visitas_7_dias": sum(fila.get("visitas", 0) for fila in panel_stats.get("visitas_7_dias", [])),
+        "total_ingresos_recientes": len(panel_stats.get("ingresos_recientes", [])),
+        "ultima_sucursal": panel_stats.get("ultima_sucursal", "-"),
+    }
+
+    for fila in panel_stats.get("visitas_usuario_hoy", []):
+        if fila.get("supervisor") == ingreso.get("supervisor"):
+            resumen_panel["visitas_hoy_supervisor"] = fila.get("visitas", 0)
+            break
+    else:
+        resumen_panel["visitas_hoy_supervisor"] = 0
+
     return render_template(
         "supervision_hoja_visita_home.html",
         ingreso=ingreso,
+        ingreso_fecha_hora=ingreso_fecha_hora,
+        panel_stats=panel_stats,
+        resumen_panel=resumen_panel,
     )
 
 
@@ -794,22 +861,133 @@ def supervision_estadisticas():
 def supervision_general():
     ingreso = session.get("supervision_hoja_visita_ingreso", {})
     panel_stats = _obtener_panel_hoja_visita(ingreso.get("supervisor", ""))
+    ahora_txt = datetime.now(TZ_TIJUANA).strftime("%d/%m/%Y %I:%M %p")
     return render_template(
         "supervision_general.html",
         ingreso=ingreso,
         panel_stats=panel_stats,
+        ahora_txt=ahora_txt,
+    )
+
+
+@app.route("/supervision/cierre-apertura", methods=["GET", "POST"])
+@login_required
+def supervision_cierre_apertura():
+    modo = (request.values.get("modo") or "apertura").strip().lower()
+    if modo not in {"apertura", "cierre", "tabla"}:
+        modo = "apertura"
+
+    bloque_sel = (request.values.get("bloque") or "").strip()
+    if bloque_sel not in CAT_BLOQUES:
+        bloque_sel = ""
+    sucursales_bloque = get_sucursales_by_bloque(bloque_sel) if bloque_sel else []
+    sucursal_sel = (request.values.get("sucursal") or "").strip()
+    if sucursal_sel and sucursales_bloque and sucursal_sel not in sucursales_bloque:
+        sucursal_sel = ""
+    vista_tabla = (request.values.get("vista") or "ambas").strip().lower()
+    if vista_tabla not in {"ambas", "apertura", "cierre"}:
+        vista_tabla = "ambas"
+    fecha_desde = (request.values.get("fecha_desde") or "").strip()
+    fecha_hasta = (request.values.get("fecha_hasta") or "").strip()
+
+    puntos = []
+    checks_sel = []
+    apertura_matrix_cols = []
+    apertura_matrix_rows = []
+    cierre_matrix_cols = []
+    cierre_matrix_rows = []
+
+    if modo in {"apertura", "cierre"}:
+        puntos = _catalogo_puntos_cierre_apertura(modo)
+        checks_sel = [int(item) for item in request.form.getlist("checks") if str(item).isdigit()]
+
+    if request.method == "POST":
+        flash("La captura de cierre y apertura ya esta adaptada a Flask, pero aun no tiene una fuente real para guardar registros.", "warning")
+
+    if modo == "tabla":
+        matrix_sucursales = [sucursal_sel] if sucursal_sel else sucursales_bloque
+        if vista_tabla in {"ambas", "apertura"}:
+            apertura_matrix_cols = matrix_sucursales
+            apertura_matrix_rows = _build_empty_matrix_rows("apertura", matrix_sucursales) if matrix_sucursales else []
+        if vista_tabla in {"ambas", "cierre"}:
+            cierre_matrix_cols = matrix_sucursales
+            cierre_matrix_rows = _build_empty_matrix_rows("cierre", matrix_sucursales) if matrix_sucursales else []
+
+    return render_template(
+        "supervision_cierre_apertura.html",
+        modo=modo,
+        bloques=CAT_BLOQUES,
+        bloque_sel=bloque_sel,
+        sucursal_sel=sucursal_sel,
+        sucursales_bloque=sucursales_bloque,
+        puntos=puntos,
+        checks_sel=checks_sel,
+        vista_tabla=vista_tabla,
+        fecha_desde=fecha_desde,
+        fecha_hasta=fecha_hasta,
+        apertura_matrix_cols=apertura_matrix_cols,
+        apertura_matrix_rows=apertura_matrix_rows,
+        cierre_matrix_cols=cierre_matrix_cols,
+        cierre_matrix_rows=cierre_matrix_rows,
+        catalogo_sucursales_json=json.dumps(CAT_SUCURSALES_BY_BLOQUE),
+    )
+
+
+@app.route("/supervision/cierre-apertura/tabla")
+@login_required
+def supervision_cierre_apertura_tabla():
+    args = request.args.to_dict(flat=True)
+    args["modo"] = "tabla"
+    return redirect(url_for("supervision_cierre_apertura", **args))
+
+
+@app.route("/supervision/cierre-apertura/form/<tipo>", methods=["GET", "POST"])
+@login_required
+def supervision_cierre_apertura_form(tipo):
+    tipo = (tipo or "").strip().lower()
+    if tipo not in {"apertura", "cierre"}:
+        return redirect(url_for("supervision_cierre_apertura"))
+
+    sucursal_sel = (request.values.get("sucursal") or "").strip()
+    checks_sel = [int(item) for item in request.values.getlist("checks") if str(item).isdigit()]
+    puntos = _catalogo_puntos_cierre_apertura(tipo)
+
+    if request.method == "POST":
+        flash(f"El formulario de {tipo} esta adaptado a Flask, pero aun no tiene una fuente real para guardar registros.", "warning")
+
+    return render_template(
+        "supervision_cierre_apertura_form.html",
+        tipo=tipo,
+        tipo_titulo=("Apertura" if tipo == "apertura" else "Cierre"),
+        sucursales=SUPERVISION_SUCURSALES,
+        sucursal_sel=sucursal_sel,
+        puntos=puntos,
+        checks_sel=checks_sel,
     )
 
 # ==================== TABLA ====================
 @app.route("/tabla", methods=["GET", "POST"])
 @login_required
 def tabla_completa():
-    spreadsheet = client.open(SHEET_NAME)
-    sucursales = [ws.title for ws in spreadsheet.worksheets() if not _is_excluded_sheet(ws.title)]
     sheets_data = get_spreadsheet_data()
+    sucursales = [name for name in sheets_data.keys() if not _is_excluded_sheet(name)]
+    error_tabla = None
 
     if not sucursales:
-        return "No hay hojas disponibles para mostrar.", 400
+        error_tabla = (
+            f"No se pudo abrir el spreadsheet '{SHEET_NAME}' o no tiene hojas visibles. "
+            "Verifica nombre exacto y permisos del service account."
+        )
+        return render_template(
+            "tabla.html",
+            sucursales=[],
+            sucursal_actual="",
+            data=[],
+            totales={},
+            fecha_inicio=request.form.get("fecha_inicio"),
+            fecha_fin=request.form.get("fecha_fin"),
+            error=error_tabla,
+        ), 200
 
     sucursal_seleccionada = request.form.get("sucursal") or sucursales[0]
     fecha_inicio_str = request.form.get("fecha_inicio")
@@ -879,7 +1057,8 @@ def tabla_completa():
                            data=data_amigable,
                            totales=totales_amigable,
                            fecha_inicio=fecha_inicio_str,
-                           fecha_fin=fecha_fin_str)
+                           fecha_fin=fecha_fin_str,
+                           error=error_tabla)
 
 # ==================== RESUMEN MENSUAL ====================
 @app.route("/resumen", methods=["GET", "POST"])
@@ -1448,7 +1627,7 @@ def datos_grafica_global():
         return jsonify(cache_global["data"])
 
     try:
-        spreadsheet = client.open(SHEET_NAME)
+        spreadsheet = _open_target_spreadsheet()
         hojas = [ws for ws in spreadsheet.worksheets() if not _is_excluded_sheet(ws.title)]
 
         nombres_sucursales = []
@@ -1499,7 +1678,7 @@ def datos_grafica_filtrada():
     fecha_inicio = datetime.strptime(fecha_inicio_str, "%Y-%m-%d").date() if fecha_inicio_str else None
     fecha_fin = datetime.strptime(fecha_fin_str, "%Y-%m-%d").date() if fecha_fin_str else None
 
-    sheet = client.open(SHEET_NAME).worksheet(sucursal)
+    sheet = _open_target_spreadsheet().worksheet(sucursal)
     all_rows = sheet.get_all_values()
     if not all_rows:
         return jsonify({"fechas": [], "series": {}})
@@ -1840,7 +2019,7 @@ def reporte_pedidos_semanales():
         # Esta vista debe incluir MATRIZ aunque este excluida globalmente en otros modulos.
         try:
             if "MATRIZ" not in sheets_data:
-                ws_matriz = client.open(SHEET_NAME).worksheet("MATRIZ")
+                ws_matriz = _open_target_spreadsheet().worksheet("MATRIZ")
                 sheets_data["MATRIZ"] = ws_matriz.get_all_values()
             if "MATRIZ" not in sucursales:
                 sucursales.append("MATRIZ")

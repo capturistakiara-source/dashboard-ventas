@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supervision | Cierre y apertura</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/supervision.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
+</head>
+
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark rounded-0">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('home') }}">
+                LA POSTAL | DASHBOARD
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3">
+                    Hola, <span class="user-name">{{ current_user.nombre }}</span>
+                </span>
+                <a class="nav-link" href="{{ url_for('perfil') }}">Perfil</a>
+                <a class="nav-link" href="{{ url_for('logout') }}">Salir</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="dashboard-container">
+        <section class="ca-shell">
+            <div class="ca-head">
+                <div class="ca-kicker">SUPERVISION OPERATIVA</div>
+                <h1 class="ca-title">Cierre y apertura</h1>
+                <p class="ca-sub">Captura y consulta checks por bloque y sucursal.</p>
+            </div>
+
+            <div class="ca-panel">
+                <div class="ca-tabs">
+                    <a href="{{ url_for('supervision_cierre_apertura', modo='apertura') }}" class="ca-tab {% if modo == 'apertura' %}is-active{% endif %}">Apertura</a>
+                    <a href="{{ url_for('supervision_cierre_apertura', modo='cierre') }}" class="ca-tab {% if modo == 'cierre' %}is-active{% endif %}">Cierre</a>
+                    <a href="{{ url_for('supervision_cierre_apertura_tabla') }}" class="ca-tab {% if modo == 'tabla' %}is-active{% endif %}">Tabla</a>
+                </div>
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                {% for category, message in messages %}
+                <div class="supervision-alert {% if category == 'success' %}supervision-alert-success{% elif category == 'error' %}supervision-alert-error{% else %}supervision-alert-warning{% endif %}">
+                    {{ message }}
+                </div>
+                {% endfor %}
+                {% endif %}
+                {% endwith %}
+
+                {% if modo == "apertura" or modo == "cierre" %}
+                <form method="post" class="ca-form" id="cierreAperturaForm">
+                    <input type="hidden" name="modo" value="{{ modo }}">
+
+                    <div class="ca-filterbar">
+                        <div>
+                            <label for="bloque">Bloque</label>
+                            <select id="bloque" name="bloque" class="form-select" required>
+                                <option value="">Selecciona un bloque</option>
+                                {% for b in bloques %}
+                                <option value="{{ b }}" {% if b == bloque_sel %}selected{% endif %}>{{ b }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label for="sucursal">Sucursal</label>
+                            <select id="sucursal" name="sucursal" class="form-select" required>
+                                <option value="">Selecciona una sucursal</option>
+                                {% for s in sucursales_bloque %}
+                                <option value="{{ s }}" {% if s == sucursal_sel %}selected{% endif %}>{{ s }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="ca-checklist-grid">
+                        {% for punto in puntos %}
+                        <article class="ca-checkblock">
+                            <label class="ca-checkitem">
+                                <input type="checkbox" name="checks" value="{{ punto.id }}" data-point-id="{{ punto.id }}" {% if punto.id in checks_sel %}checked{% endif %}>
+                                <span>{{ punto.orden }}. {{ punto.nombre }}</span>
+                            </label>
+                            <input type="hidden" name="obs_point_{{ punto.id }}" id="obs_point_{{ punto.id }}" value="">
+                        </article>
+                        {% else %}
+                        <p class="supervision-empty">Sin puntos activos en catalogo.</p>
+                        {% endfor %}
+                    </div>
+
+                    <div class="supervision-form-actions ca-stack-actions">
+                        <button type="button" class="ca-chip-btn ca-chip-btn-soft" id="toggleObsBtn">Observaciones</button>
+                        <button type="submit" class="ca-chip-btn ca-chip-btn-accent">
+                            {% if modo == "apertura" %}Guardar apertura{% else %}Guardar cierre{% endif %}
+                        </button>
+                    </div>
+                    <div class="ca-obs-panel" id="obsPanel" style="display:none;">
+                        <label for="observaciones">Observaciones</label>
+                        <textarea id="observaciones" name="observaciones" class="form-control" rows="4" placeholder="Escribe observaciones de apertura/cierre..."></textarea>
+                    </div>
+                </form>
+                {% endif %}
+
+                {% if modo == "tabla" %}
+                <form method="get" class="ca-form" id="tablaFiltroForm">
+                    <input type="hidden" name="modo" value="tabla">
+                    <div class="ca-filterbar ca-filterbar-table">
+                        <div>
+                            <label for="bloque_tabla">Bloque</label>
+                            <select id="bloque_tabla" name="bloque" class="form-select">
+                                <option value="">Selecciona un bloque</option>
+                                {% for b in bloques %}
+                                <option value="{{ b }}" {% if b == bloque_sel %}selected{% endif %}>{{ b }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label for="sucursal_tabla">Sucursal</label>
+                            <select id="sucursal_tabla" name="sucursal" class="form-select">
+                                <option value="">Todas las sucursales del bloque</option>
+                                {% for s in sucursales_bloque %}
+                                <option value="{{ s }}" {% if s == sucursal_sel %}selected{% endif %}>{{ s }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label for="vista_tabla">Ver tabla</label>
+                            <select id="vista_tabla" name="vista" class="form-select">
+                                <option value="ambas" {% if vista_tabla == "ambas" %}selected{% endif %}>Ambas</option>
+                                <option value="apertura" {% if vista_tabla == "apertura" %}selected{% endif %}>Solo apertura</option>
+                                <option value="cierre" {% if vista_tabla == "cierre" %}selected{% endif %}>Solo cierre</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="fecha_desde">Desde</label>
+                            <input id="fecha_desde" name="fecha_desde" type="date" class="form-control" value="{{ fecha_desde }}">
+                        </div>
+                        <div>
+                            <label for="fecha_hasta">Hasta</label>
+                            <input id="fecha_hasta" name="fecha_hasta" type="date" class="form-control" value="{{ fecha_hasta }}">
+                        </div>
+                    </div>
+                    <div class="ca-date-quick">
+                        <button type="button" class="ca-chip-btn ca-chip-btn-soft" data-range="today">Hoy</button>
+                        <button type="button" class="ca-chip-btn ca-chip-btn-soft" data-range="7d">Ultimos 7 dias</button>
+                        <button type="button" class="ca-chip-btn ca-chip-btn-soft" data-range="month">Mes actual</button>
+                        <button type="button" class="ca-chip-btn ca-chip-btn-soft" data-range="year">Ano actual</button>
+                        <button type="button" class="ca-chip-btn ca-chip-btn-soft" data-range="clear">Limpiar fechas</button>
+                    </div>
+                </form>
+
+                <div class="ca-table-stack">
+                    {% if vista_tabla == "ambas" or vista_tabla == "apertura" %}
+                    <div class="ca-table-card">
+                        <h3>Tabla Apertura</h3>
+                        <div class="supervision-table-wrap">
+                            <table class="supervision-table ca-matrix-table">
+                                <thead>
+                                    <tr>
+                                        <th>Incidencia</th>
+                                        {% for suc in apertura_matrix_cols %}
+                                        <th class="ca-matrix-col" title="{{ suc }}">{{ suc }}</th>
+                                        {% endfor %}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in apertura_matrix_rows %}
+                                    <tr>
+                                        <td data-label="Incidencia" class="ca-incidencia-cell">{{ row.punto.orden }}. {{ row.incidencia_texto|replace('\n', '<br>')|safe }}</td>
+                                        {% for val in row.valores %}
+                                        <td data-label="Sucursal">{{ val }}</td>
+                                        {% endfor %}
+                                    </tr>
+                                    {% else %}
+                                    <tr>
+                                        <td colspan="99">Sin registros de apertura.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if vista_tabla == "ambas" or vista_tabla == "cierre" %}
+                    <div class="ca-table-card">
+                        <h3>Tabla Cierre</h3>
+                        <div class="supervision-table-wrap">
+                            <table class="supervision-table ca-matrix-table">
+                                <thead>
+                                    <tr>
+                                        <th>Incidencia</th>
+                                        {% for suc in cierre_matrix_cols %}
+                                        <th class="ca-matrix-col" title="{{ suc }}">{{ suc }}</th>
+                                        {% endfor %}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in cierre_matrix_rows %}
+                                    <tr>
+                                        <td data-label="Incidencia" class="ca-incidencia-cell">{{ row.punto.orden }}. {{ row.incidencia_texto|replace('\n', '<br>')|safe }}</td>
+                                        {% for val in row.valores %}
+                                        <td data-label="Sucursal">{{ val }}</td>
+                                        {% endfor %}
+                                    </tr>
+                                    {% else %}
+                                    <tr>
+                                        <td colspan="99">Sin registros de cierre.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </section>
+
+        <div class="team-watermark">
+            <a href="{{ url_for('supervision') }}" title="Ir al home de supervision">
+                <img src="{{ url_for('static', filename='logo personaje .png') }}" alt="Equipo La Postal" class="team-watermark-photo">
+            </a>
+        </div>
+    </main>
+
+    <div class="ca-modal-overlay" id="pointObsModal">
+        <div class="ca-modal">
+            <h4>Observacion del punto</h4>
+            <div class="ca-modal-point" id="pointObsLabel"></div>
+            <textarea id="pointObsText" class="form-control" rows="4" placeholder="Escribe observacion de este punto..."></textarea>
+            <div class="ca-modal-actions">
+                <button type="button" class="ca-chip-btn ca-chip-btn-soft" id="pointObsCancel">Cerrar</button>
+                <button type="button" class="ca-chip-btn ca-chip-btn-accent" id="pointObsSave">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="ca-modal-overlay" id="allObsModal">
+        <div class="ca-modal ca-modal-lg">
+            <h4>Observaciones por punto</h4>
+            <div id="allObsList" class="ca-all-obs-list"></div>
+            <div class="ca-modal-actions">
+                <button type="button" class="ca-chip-btn ca-chip-btn-soft" id="allObsClose">Cerrar</button>
+                <button type="button" class="ca-chip-btn ca-chip-btn-accent" id="allObsSave">Guardar cambios</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
+    <script>
+        (function () {
+            const catalog = {{ catalogo_sucursales_json|safe }};
+
+            function wirePair(bloqueId, sucursalId, allLabel) {
+                const bloqueSel = document.getElementById(bloqueId);
+                const sucursalSel = document.getElementById(sucursalId);
+                if (!bloqueSel || !sucursalSel) return;
+
+                function refill() {
+                    const bloque = bloqueSel.value || "";
+                    const current = sucursalSel.value || "";
+                    const sucursales = catalog[bloque] || [];
+                    while (sucursalSel.options.length > 0) sucursalSel.remove(0);
+                    const baseOpt = document.createElement("option");
+                    baseOpt.value = "";
+                    baseOpt.textContent = allLabel;
+                    sucursalSel.appendChild(baseOpt);
+                    sucursales.forEach((s) => {
+                        const opt = document.createElement("option");
+                        opt.value = s;
+                        opt.textContent = s;
+                        sucursalSel.appendChild(opt);
+                    });
+                    if (sucursales.includes(current)) sucursalSel.value = current;
+                }
+
+                bloqueSel.addEventListener("change", refill);
+                refill();
+            }
+
+            wirePair("bloque", "sucursal", "Selecciona una sucursal");
+            wirePair("bloque_tabla", "sucursal_tabla", "Todas las sucursales del bloque");
+
+            const tablaForm = document.getElementById("tablaFiltroForm");
+            const tablaBloque = document.getElementById("bloque_tabla");
+            const tablaSucursal = document.getElementById("sucursal_tabla");
+            const tablaVista = document.getElementById("vista_tabla");
+            const tablaDesde = document.getElementById("fecha_desde");
+            const tablaHasta = document.getElementById("fecha_hasta");
+
+            if (tablaForm && tablaBloque && tablaSucursal && tablaVista) {
+                let booting = true;
+                const autoSubmit = () => {
+                    if (booting) return;
+                    tablaForm.submit();
+                };
+                tablaBloque.addEventListener("change", autoSubmit);
+                tablaSucursal.addEventListener("change", autoSubmit);
+                tablaVista.addEventListener("change", autoSubmit);
+                if (tablaDesde) tablaDesde.addEventListener("change", autoSubmit);
+                if (tablaHasta) tablaHasta.addEventListener("change", autoSubmit);
+                setTimeout(() => { booting = false; }, 0);
+
+                function iso(d) {
+                    const y = d.getFullYear();
+                    const m = String(d.getMonth() + 1).padStart(2, "0");
+                    const day = String(d.getDate()).padStart(2, "0");
+                    return `${y}-${m}-${day}`;
+                }
+
+                const rangeBtns = Array.from(document.querySelectorAll("[data-range]"));
+                rangeBtns.forEach((btn) => {
+                    btn.addEventListener("click", () => {
+                        const today = new Date();
+                        const startMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+                        const startYear = new Date(today.getFullYear(), 0, 1);
+                        let from = "";
+                        let to = "";
+
+                        switch (btn.dataset.range) {
+                            case "today":
+                                from = iso(today);
+                                to = iso(today);
+                                break;
+                            case "7d":
+                                const d7 = new Date(today);
+                                d7.setDate(today.getDate() - 6);
+                                from = iso(d7);
+                                to = iso(today);
+                                break;
+                            case "month":
+                                from = iso(startMonth);
+                                to = iso(today);
+                                break;
+                            case "year":
+                                from = iso(startYear);
+                                to = iso(today);
+                                break;
+                            default:
+                                from = "";
+                                to = "";
+                        }
+
+                        if (tablaDesde) tablaDesde.value = from;
+                        if (tablaHasta) tablaHasta.value = to;
+                        autoSubmit();
+                    });
+                });
+            }
+
+            if (window.flatpickr) {
+                if (tablaDesde) {
+                    flatpickr(tablaDesde, {
+                        locale: "es",
+                        dateFormat: "Y-m-d",
+                        altInput: true,
+                        altFormat: "d/m/Y",
+                        allowInput: true,
+                    });
+                }
+                if (tablaHasta) {
+                    flatpickr(tablaHasta, {
+                        locale: "es",
+                        dateFormat: "Y-m-d",
+                        altInput: true,
+                        altFormat: "d/m/Y",
+                        allowInput: true,
+                    });
+                }
+            }
+
+            const obsBtn = document.getElementById("toggleObsBtn");
+            const pointModal = document.getElementById("pointObsModal");
+            const pointObsLabel = document.getElementById("pointObsLabel");
+            const pointObsText = document.getElementById("pointObsText");
+            const pointObsCancel = document.getElementById("pointObsCancel");
+            const pointObsSave = document.getElementById("pointObsSave");
+            const allObsModal = document.getElementById("allObsModal");
+            const allObsList = document.getElementById("allObsList");
+            const allObsClose = document.getElementById("allObsClose");
+            const allObsSave = document.getElementById("allObsSave");
+            const checkInputs = Array.from(document.querySelectorAll('input[name="checks"]'));
+            let editingPointId = null;
+
+            function hiddenObsInput(pointId) {
+                return document.getElementById(`obs_point_${pointId}`);
+            }
+
+            function openPointModal(pointId, pointLabel) {
+                editingPointId = String(pointId);
+                if (pointObsLabel) pointObsLabel.textContent = pointLabel || "";
+                const input = hiddenObsInput(editingPointId);
+                if (pointObsText) pointObsText.value = input ? input.value : "";
+                if (pointModal) pointModal.classList.add("is-open");
+            }
+
+            function closePointModal() {
+                if (pointModal) pointModal.classList.remove("is-open");
+                editingPointId = null;
+            }
+
+            checkInputs.forEach((cb) => {
+                cb.addEventListener("change", function () {
+                    if (!cb.checked) return;
+                    const labelEl = cb.closest("label") ? cb.closest("label").querySelector("span") : null;
+                    openPointModal(cb.dataset.pointId || cb.value, labelEl ? labelEl.textContent : "");
+                });
+            });
+
+            if (pointObsSave) {
+                pointObsSave.addEventListener("click", function () {
+                    if (!editingPointId) return closePointModal();
+                    const input = hiddenObsInput(editingPointId);
+                    if (input) input.value = pointObsText ? pointObsText.value : "";
+                    closePointModal();
+                });
+            }
+
+            if (pointObsCancel) pointObsCancel.addEventListener("click", closePointModal);
+
+            function rebuildAllObsModal() {
+                if (!allObsList) return;
+                allObsList.innerHTML = "";
+                const selected = checkInputs.filter((x) => x.checked);
+                if (selected.length === 0) {
+                    const empty = document.createElement("p");
+                    empty.textContent = "No hay puntos seleccionados.";
+                    allObsList.appendChild(empty);
+                    return;
+                }
+                selected.forEach((cb) => {
+                    const pointId = cb.dataset.pointId || cb.value;
+                    const labelEl = cb.closest("label") ? cb.closest("label").querySelector("span") : null;
+                    const wrap = document.createElement("div");
+                    wrap.className = "ca-all-obs-item";
+
+                    const title = document.createElement("div");
+                    title.className = "ca-all-obs-title";
+                    title.textContent = labelEl ? labelEl.textContent : `Punto ${pointId}`;
+                    wrap.appendChild(title);
+
+                    const ta = document.createElement("textarea");
+                    ta.className = "form-control";
+                    ta.rows = 3;
+                    ta.dataset.pointId = pointId;
+                    const input = hiddenObsInput(pointId);
+                    ta.value = input ? input.value : "";
+                    wrap.appendChild(ta);
+
+                    allObsList.appendChild(wrap);
+                });
+            }
+
+            if (obsBtn && allObsModal) {
+                obsBtn.addEventListener("click", function () {
+                    rebuildAllObsModal();
+                    allObsModal.classList.add("is-open");
+                });
+            }
+
+            if (allObsClose) {
+                allObsClose.addEventListener("click", function () {
+                    allObsModal.classList.remove("is-open");
+                });
+            }
+
+            if (allObsSave) {
+                allObsSave.addEventListener("click", function () {
+                    const textareas = Array.from(allObsList.querySelectorAll("textarea[data-point-id]"));
+                    textareas.forEach((ta) => {
+                        const input = hiddenObsInput(ta.dataset.pointId);
+                        if (input) input.value = ta.value || "";
+                    });
+                    allObsModal.classList.remove("is-open");
+                });
+            }
+        })();
+    </script>
+</body>
+
+</html>

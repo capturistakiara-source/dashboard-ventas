@@ -17,14 +17,16 @@
             <a class="navbar-brand" href="{{ url_for('home') }}">
                 LA POSTAL | PLANEACIÓN
             </a>
-            <div class="navbar-nav ms-auto">
+            <div class="navbar-nav ms-auto planeacion-nav-user">
                 <span class="navbar-text me-3">
                     Hola, <span style="color: #b71c1c; font-weight: 500;" id="nombreUsuario">{{ current_user.nombre
                         }}</span>
                 </span>
-                <a class="nav-link" href="{{ url_for('home') }}">Dashboard</a>
-                <a class="nav-link" href="{{ url_for('perfil') }}">Perfil</a>
-                <a class="nav-link" href="{{ url_for('logout') }}">Salir</a>
+                <div class="planeacion-nav-links">
+                    <a class="nav-link planeacion-nav-link" href="{{ url_for('home') }}">Dashboard</a>
+                    <a class="nav-link planeacion-nav-link" href="{{ url_for('perfil') }}">Perfil</a>
+                    <a class="nav-link planeacion-nav-link" href="{{ url_for('logout') }}">Salir</a>
+                </div>
             </div>
         </div>
     </nav>
