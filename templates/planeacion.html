@@ -847,6 +847,10 @@
             else mostrarKanban(registros);
         }
 
+        function obtenerIndicePermisoPorId(id) {
+            return permisosGuardados.findIndex(permiso => String(permiso.id) === String(id));
+        }
+
         // TABLA
         function mostrarRegistrosEnTabla(registros) {
             const tablaBody = document.getElementById('tablaBody');
@@ -893,7 +897,7 @@
                 if (permiso.archivoNombre) {
                     const fileIcon = getFileIcon(permiso.archivoNombre);
                     archivoHTML = `
-          <a href="#" class="document-link ver-archivo-btn" data-index="${index}">
+          <a href="#" class="document-link ver-archivo-btn" data-id="${permiso.id}">
             <i class="fas ${fileIcon}"></i> ${permiso.archivoNombre}
           </a>
         `;
@@ -932,10 +936,10 @@
         <td>${normalizarTxt(permiso.permisoLegal)}</td>
         <td>${archivoHTML}</td>
         <td>
-          <button class="table-action-btn editar-btn" data-index="${index}">
+          <button class="table-action-btn editar-btn" data-id="${permiso.id}">
             <i class="fas fa-edit"></i> Editar
           </button>
-          <button class="table-action-btn eliminar-btn" data-index="${index}" style="color: #ff6b6b;">
+          <button class="table-action-btn eliminar-btn" data-id="${permiso.id}" style="color: #ff6b6b;">
             <i class="fas fa-trash"></i> Eliminar
           </button>
         </td>
@@ -945,14 +949,24 @@
 
             document.querySelectorAll('.editar-btn').forEach(btn => {
                 btn.addEventListener('click', function () {
-                    abrirModal(parseInt(this.dataset.index));
+                    const index = obtenerIndicePermisoPorId(this.dataset.id);
+                    if (index < 0) {
+                        alert('No se encontró el permiso seleccionado.');
+                        return;
+                    }
+                    abrirModal(index);
                 });
             });
 
             document.querySelectorAll('.eliminar-btn').forEach(btn => {
                 btn.addEventListener('click', function () {
+                    const index = obtenerIndicePermisoPorId(this.dataset.id);
+                    if (index < 0) {
+                        alert('No se encontró el permiso seleccionado.');
+                        return;
+                    }
                     if (confirm('¿Estás seguro de eliminar este registro?')) {
-                        eliminarRegistro(parseInt(this.dataset.index));
+                        eliminarRegistro(index);
                     }
                 });
             });
@@ -960,7 +974,12 @@
             document.querySelectorAll('.ver-archivo-btn').forEach(link => {
                 link.addEventListener('click', function (e) {
                     e.preventDefault();
-                    mostrarArchivoModal(parseInt(this.dataset.index));
+                    const index = obtenerIndicePermisoPorId(this.dataset.id);
+                    if (index < 0) {
+                        alert('No se encontró el permiso seleccionado.');
+                        return;
+                    }
+                    mostrarArchivoModal(index);
                 });
             });
         }
